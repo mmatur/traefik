@@ -606,6 +606,11 @@ func (in *MiddlewareSpec) DeepCopyInto(out *MiddlewareSpec) {
 		*out = new(dynamic.Retry)
 		**out = **in
 	}
+	if in.TraefikEE != nil {
+		in, out := &in.TraefikEE, &out.TraefikEE
+		*out = new(dynamic.TraefikEE)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
