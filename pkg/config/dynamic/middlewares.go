@@ -43,7 +43,8 @@ type Middleware struct {
 
 // TraefikEE holds TraefikEE-specific Middleware configuration.
 type TraefikEE struct {
-	LDAPAuth *LDAPAuth `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
+	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
+	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -316,6 +317,21 @@ type InFlightReq struct {
 
 // SetDefaults Default values for a InFlightReq.
 func (i *InFlightReq) SetDefaults() {
+	i.SourceCriterion = &SourceCriterion{
+		RequestHost: true,
+	}
+}
+
+// +k8s:deepcopy-gen=true
+
+// DistributedInFlightReq limits the number of requests being processed and served concurrently, in a cluster.
+type DistributedInFlightReq struct {
+	Amount          int64            `json:"amount,omitempty" toml:"amount,omitempty" yaml:"amount,omitempty"`
+	SourceCriterion *SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
+}
+
+// SetDefaults Default values for a DistributedInFlightReq.
+func (i *DistributedInFlightReq) SetDefaults() {
 	i.SourceCriterion = &SourceCriterion{
 		RequestHost: true,
 	}
