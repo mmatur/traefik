@@ -45,6 +45,7 @@ type Middleware struct {
 type TraefikEE struct {
 	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
 	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
+	ForceCase   *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -84,6 +85,14 @@ type LDAPAuth struct {
 func (l *LDAPAuth) SetDefaults() {
 	l.Attribute = "cn"
 	l.ForwardUsernameHeader = "Username"
+}
+
+// +k8s:deepcopy-gen=true
+
+// ForceCase holds the ForceCase middleware configuration.
+type ForceCase struct {
+	// Headers is the list of headers on which to force case.
+	Headers []string `json:"headers,omitempty" toml:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
