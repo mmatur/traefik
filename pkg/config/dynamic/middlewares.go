@@ -45,6 +45,7 @@ type Middleware struct {
 type TraefikEE struct {
 	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
 	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
+	RateLimit   *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
 	ForceCase   *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
 }
 
@@ -380,6 +381,27 @@ type RateLimit struct {
 
 // SetDefaults sets the default values on a RateLimit.
 func (r *RateLimit) SetDefaults() {
+	r.Burst = 1
+	r.SourceCriterion = &SourceCriterion{
+		IPStrategy: &IPStrategy{},
+	}
+}
+
+// +k8s:deepcopy-gen=true
+
+// DistributedRateLimit holds the rate limiting configuration for a given router.
+type DistributedRateLimit struct {
+	// Average is the maximum rate, in requests/s, allowed for the given source.
+	// It defaults to 0, which means no rate limiting.
+	Average int64 `json:"average,omitempty" toml:"average,omitempty" yaml:"average,omitempty"`
+	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
+	// It defaults to 1.
+	Burst           int64            `json:"burst,omitempty" toml:"burst,omitempty" yaml:"burst,omitempty"`
+	SourceCriterion *SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
+}
+
+// SetDefaults sets the default values on a DistributedRateLimit.
+func (r *DistributedRateLimit) SetDefaults() {
 	r.Burst = 1
 	r.SourceCriterion = &SourceCriterion{
 		IPStrategy: &IPStrategy{},
