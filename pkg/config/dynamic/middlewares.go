@@ -36,13 +36,13 @@ type Middleware struct {
 	PassTLSClientCert *PassTLSClientCert `json:"passTLSClientCert,omitempty" toml:"passTLSClientCert,omitempty" yaml:"passTLSClientCert,omitempty"`
 	Retry             *Retry             `json:"retry,omitempty" toml:"retry,omitempty" yaml:"retry,omitempty"`
 
-	TraefikEE *TraefikEE `json:"traefikee,omitempty" toml:"traefikee,omitempty" yaml:"traefikee,omitempty"`
+	Plugin *Plugin `json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
 
-// TraefikEE holds TraefikEE-specific Middleware configuration.
-type TraefikEE struct {
+// Plugin holds TraefikEE-specific Middleware configuration.
+type Plugin struct {
 	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
 	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
 	RateLimit   *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`

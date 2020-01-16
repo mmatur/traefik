@@ -42,7 +42,7 @@ type MiddlewareSpec struct {
 	PassTLSClientCert *dynamic.PassTLSClientCert `json:"passTLSClientCert,omitempty"`
 	Retry             *dynamic.Retry             `json:"retry,omitempty"`
 
-	TraefikEE *dynamic.TraefikEE `json:"traefikee,omitempty"`
+	Plugin *dynamic.Plugin `json:"plugin,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true

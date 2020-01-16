@@ -232,7 +232,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			Compress:          middleware.Spec.Compress,
 			PassTLSClientCert: middleware.Spec.PassTLSClientCert,
 			Retry:             middleware.Spec.Retry,
-			TraefikEE:         middleware.Spec.TraefikEE,
+			Plugin:            middleware.Spec.Plugin,
 		}
 	}
 
