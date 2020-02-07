@@ -104,32 +104,29 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 		return err
 	}
 
-	pool.Go(func(stop chan bool) {
+	pool.GoCtx(func(ctxPool context.Context) {
 		operation := func() error {
-			stopWatch := make(chan struct{}, 1)
-			defer close(stopWatch)
-
-			eventsChan, err := k8sClient.WatchAll(p.Namespaces, stopWatch)
+			eventsChan, err := k8sClient.WatchAll(p.Namespaces, ctxPool.Done())
 			if err != nil {
 				logger.Errorf("Error watching kubernetes events: %v", err)
 				timer := time.NewTimer(1 * time.Second)
 				select {
 				case <-timer.C:
 					return err
-				case <-stop:
+				case <-ctxPool.Done():
 					return nil
 				}
 			}
 
 			throttleDuration := time.Duration(p.ThrottleDuration)
-			throttledChan := throttleEvents(ctxLog, throttleDuration, stop, eventsChan)
+			throttledChan := throttleEvents(ctxLog, throttleDuration, pool, eventsChan)
 			if throttledChan != nil {
 				eventsChan = throttledChan
 			}
 
 			for {
 				select {
-				case <-stop:
+				case <-ctxPool.Done():
 					return nil
 				case event := <-eventsChan:
 					// Note that event is the *first* event that came in during this
@@ -164,7 +161,8 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 		notify := func(err error, time time.Duration) {
 			logger.Errorf("Provider connection error: %s; retrying in %s", err, time)
 		}
-		err := backoff.RetryNotify(safe.OperationWithRecover(operation), job.NewBackOff(backoff.NewExponentialBackOff()), notify)
+
+		err := backoff.RetryNotify(safe.OperationWithRecover(operation), backoff.WithContext(job.NewBackOff(backoff.NewExponentialBackOff()), ctxPool), notify)
 		if err != nil {
 			logger.Errorf("Cannot connect to Provider: %s", err)
 		}
@@ -313,53 +311,57 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 				conf.HTTP.Services["default-backend"] = service
 			}
 		}
+
 		for _, rule := range ingress.Spec.Rules {
 			if err := checkStringQuoteValidity(rule.Host); err != nil {
 				log.FromContext(ctx).Errorf("Invalid syntax for host: %s", rule.Host)
 				continue
 			}
 
-			for _, p := range rule.HTTP.Paths {
-				service, err := loadService(client, ingress.Namespace, p.Backend)
-				if err != nil {
-					log.FromContext(ctx).
-						WithField("serviceName", p.Backend.ServiceName).
-						WithField("servicePort", p.Backend.ServicePort.String()).
-						Errorf("Cannot create service: %v", err)
-					continue
-				}
+			if rule.HTTP != nil {
+				for _, p := range rule.HTTP.Paths {
+					service, err := loadService(client, ingress.Namespace, p.Backend)
+					if err != nil {
+						log.FromContext(ctx).
+							WithField("serviceName", p.Backend.ServiceName).
+							WithField("servicePort", p.Backend.ServicePort.String()).
+							Errorf("Cannot create service: %v", err)
+						continue
+					}
 
-				if err = checkStringQuoteValidity(p.Path); err != nil {
-					log.FromContext(ctx).Errorf("Invalid syntax for path: %s", p.Path)
-					continue
-				}
+					if err = checkStringQuoteValidity(p.Path); err != nil {
+						log.FromContext(ctx).Errorf("Invalid syntax for path: %s", p.Path)
+						continue
+					}
 
-				serviceName := provider.Normalize(ingress.Namespace + "-" + p.Backend.ServiceName + "-" + p.Backend.ServicePort.String())
-				var rules []string
-				if len(rule.Host) > 0 {
-					rules = []string{"Host(`" + rule.Host + "`)"}
-				}
+					serviceName := provider.Normalize(ingress.Namespace + "-" + p.Backend.ServiceName + "-" + p.Backend.ServicePort.String())
+					var rules []string
+					if len(rule.Host) > 0 {
+						rules = append(rules, buildHostRule(rule.Host))
+					}
 
-				if len(p.Path) > 0 {
-					rules = append(rules, "PathPrefix(`"+p.Path+"`)")
-				}
+					if len(p.Path) > 0 {
+						rules = append(rules, "PathPrefix(`"+p.Path+"`)")
+					}
 
-				routerKey := strings.TrimPrefix(provider.Normalize(rule.Host+p.Path), "-")
-				conf.HTTP.Routers[routerKey] = &dynamic.Router{
-					Rule:    strings.Join(rules, " && "),
-					Service: serviceName,
-				}
-
-				if len(ingress.Spec.TLS) > 0 {
-					// TLS enabled for this ingress, add TLS router
-					conf.HTTP.Routers[routerKey+"-tls"] = &dynamic.Router{
+					routerKey := strings.TrimPrefix(provider.Normalize(rule.Host+p.Path), "-")
+					conf.HTTP.Routers[routerKey] = &dynamic.Router{
 						Rule:    strings.Join(rules, " && "),
 						Service: serviceName,
-						TLS:     &dynamic.RouterTLSConfig{},
 					}
+
+					if len(ingress.Spec.TLS) > 0 {
+						// TLS enabled for this ingress, add TLS router
+						conf.HTTP.Routers[routerKey+"-tls"] = &dynamic.Router{
+							Rule:    strings.Join(rules, " && "),
+							Service: serviceName,
+							TLS:     &dynamic.RouterTLSConfig{},
+						}
+					}
+					conf.HTTP.Services[serviceName] = service
 				}
-				conf.HTTP.Services[serviceName] = service
 			}
+
 			err := p.updateIngressStatus(ingress, client)
 			if err != nil {
 				log.FromContext(ctx).Errorf("Error while updating ingress status: %v", err)
@@ -375,6 +377,14 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 	}
 
 	return conf
+}
+
+func buildHostRule(host string) string {
+	if strings.HasPrefix(host, "*.") {
+		return "HostRegexp(`" + strings.Replace(host, "*.", "{subdomain:[a-zA-Z0-9-]+}.", 1) + "`)"
+	}
+
+	return "Host(`" + host + "`)"
 }
 
 func shouldProcessIngress(ingressClass string, ingressClassAnnotation string) bool {
@@ -505,7 +515,7 @@ func (p *Provider) updateIngressStatus(i *v1beta1.Ingress, k8sClient Client) err
 	return k8sClient.UpdateIngressStatus(i.Namespace, i.Name, service.Status.LoadBalancer.Ingress[0].IP, service.Status.LoadBalancer.Ingress[0].Hostname)
 }
 
-func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop chan bool, eventsChan <-chan interface{}) chan interface{} {
+func throttleEvents(ctx context.Context, throttleDuration time.Duration, pool *safe.Pool, eventsChan <-chan interface{}) chan interface{} {
 	if throttleDuration == 0 {
 		return nil
 	}
@@ -516,10 +526,10 @@ func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop ch
 	// non-blocking write to pendingEvent. This guarantees that writing to
 	// eventChan will never block, and that pendingEvent will have
 	// something in it if there's been an event since we read from that channel.
-	go func() {
+	pool.GoCtx(func(ctxPool context.Context) {
 		for {
 			select {
-			case <-stop:
+			case <-ctxPool.Done():
 				return
 			case nextEvent := <-eventsChan:
 				select {
@@ -533,7 +543,7 @@ func throttleEvents(ctx context.Context, throttleDuration time.Duration, stop ch
 				}
 			}
 		}
-	}()
+	})
 
 	return eventsChanBuffered
 }

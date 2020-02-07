@@ -172,7 +172,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 
 	acmeProviders := initACMEProvider(staticConfiguration, &providerAggregator, tlsManager)
 
-	serverEntryPointsTCP, err := server.NewTCPEntryPoints(*staticConfiguration)
+	serverEntryPointsTCP, err := server.NewTCPEntryPoints(staticConfiguration.EntryPoints)
 	if err != nil {
 		return nil, err
 	}
@@ -267,14 +267,18 @@ func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.Pr
 			}
 
 			if err := providerAggregator.AddProvider(p); err != nil {
-				log.WithoutContext().Errorf("Unable to add ACME provider to the providers list: %v", err)
+				log.WithoutContext().Errorf("The ACME resolver %q is skipped from the resolvers list because: %v", name, err)
 				continue
 			}
+
 			p.SetTLSManager(tlsManager)
+
 			if p.TLSChallenge != nil {
 				tlsManager.TLSAlpnGetter = p.GetTLSALPNCertificate
 			}
+
 			p.SetConfigListenerChan(make(chan dynamic.Configuration))
+
 			resolvers = append(resolvers, p)
 		}
 	}
