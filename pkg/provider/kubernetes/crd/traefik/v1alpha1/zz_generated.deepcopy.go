@@ -611,6 +611,11 @@ func (in *MiddlewareSpec) DeepCopyInto(out *MiddlewareSpec) {
 		*out = new(dynamic.ContentType)
 		**out = **in
 	}
+	if in.Plugin != nil {
+		in, out := &in.Plugin, &out.Plugin
+		*out = new(dynamic.Plugin)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
