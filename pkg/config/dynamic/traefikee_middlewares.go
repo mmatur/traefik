@@ -5,6 +5,7 @@ package dynamic
 // Plugin holds TraefikEE-specific Middleware configuration.
 type Plugin struct {
 	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
+	JWTAuth     *JWTAuth                `json:"jwtAuth,omitempty" toml:"jwtAuth,omitempty" yaml:"jwtAuth,omitempty"`
 	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
 	RateLimit   *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
 	ForceCase   *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
@@ -47,6 +48,22 @@ type LDAPAuth struct {
 func (l *LDAPAuth) SetDefaults() {
 	l.Attribute = "cn"
 	l.ForwardUsernameHeader = "Username"
+}
+
+// +k8s:deepcopy-gen=true
+
+// JWTAuth holds the JWT Middleware configuration.
+type JWTAuth struct {
+	// Source is the name of the authentication source this middleware should use.
+	Source string `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+
+	// ForwardAuthorization determines whether the "Authorization" header should be forwarded or stripped from the request.
+	ForwardAuthorization bool `json:"forwardAuthorization,omitempty" toml:"forwardAuthorization,omitempty" yaml:"forwardAuthorization,omitempty"`
+	// ForwardHeaders defines headers that should be added to the request and populated with values extracted from the JWT.
+	ForwardHeaders map[string]string `json:"forwardHeaders,omitempty" toml:"forwardHeaders,omitempty" yaml:"forwardHeaders,omitempty"`
+	// Claims defines an expression to perform validation on custom claims present in a JWT. For example:
+	//     Equals(`grp`, `admin`) && Equals(`scope`, `deploy`)
+	Claims string `json:"claims,omitempty" toml:"claims,omitempty" yaml:"claims,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
