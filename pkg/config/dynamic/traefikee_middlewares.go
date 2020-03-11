@@ -4,11 +4,12 @@ package dynamic
 
 // Plugin holds TraefikEE-specific Middleware configuration.
 type Plugin struct {
-	LDAPAuth    *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
-	JWTAuth     *JWTAuth                `json:"jwtAuth,omitempty" toml:"jwtAuth,omitempty" yaml:"jwtAuth,omitempty"`
-	InFlightReq *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
-	RateLimit   *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
-	ForceCase   *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
+	LDAPAuth           *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
+	JWTAuth            *JWTAuth                `json:"jwtAuth,omitempty" toml:"jwtAuth,omitempty" yaml:"jwtAuth,omitempty"`
+	OAuthIntrospection *OAuthIntrospection     `json:"oAuthIntrospection,omitempty" toml:"oAuthIntrospection,omitempty" yaml:"oAuthIntrospection,omitempty"`
+	InFlightReq        *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
+	RateLimit          *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
+	ForceCase          *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -48,6 +49,28 @@ type LDAPAuth struct {
 func (l *LDAPAuth) SetDefaults() {
 	l.Attribute = "cn"
 	l.ForwardUsernameHeader = "Username"
+}
+
+// +k8s:deepcopy-gen=true
+
+// OAuthIntrospection holds the OAuth 2 token introspection Middleware configuration.
+type OAuthIntrospection struct {
+	// Source is the name of the authentication source this middleware should use.
+	Source string `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+
+	// TokenQueryKey defines where to find the token to introspect in the query parameters. Will look in the Authorization header first.
+	TokenQueryKey string `json:"tokenQueryKey,omitempty" toml:"tokenQueryKey,omitempty" yaml:"tokenQueryKey,omitempty"`
+	// TokenTypeHint is a hint to pass to the Authorization Server. See https://tools.ietf.org/html/rfc7662#section-2.1 for more information.
+	TokenTypeHint string `json:"tokenTypeHint,omitempty" toml:"tokenTypeHint,omitempty" yaml:"tokenTypeHint,omitempty"`
+
+	// ForwardAuthorization determines whether the "Authorization" header or query parameter containing the token should be
+	// forwarded or stripped from the request.
+	ForwardAuthorization bool `json:"forwardAuthorization,omitempty" toml:"forwardAuthorization,omitempty" yaml:"forwardAuthorization,omitempty"`
+	// ForwardHeaders defines headers that should be added to the request and populated with values extracted from the response of the token introspection.
+	ForwardHeaders map[string]string `json:"forwardHeaders,omitempty" toml:"forwardHeaders,omitempty" yaml:"forwardHeaders,omitempty"`
+	// Claims defines an expression to perform validation on the token introspection's response. For example:
+	//     Equals(`grp`, `admin`) && Equals(`scope`, `deploy`)
+	Claims string `json:"claims,omitempty" toml:"claims,omitempty" yaml:"claims,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
