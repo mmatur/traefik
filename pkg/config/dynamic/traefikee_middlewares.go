@@ -4,6 +4,7 @@ package dynamic
 
 // Plugin holds TraefikEE-specific Middleware configuration.
 type Plugin struct {
+	HMACAuth           *HMACAuth               `json:"hmacAuth,omitempty" toml:"hmacAuth,omitempty" yaml:"hmacAuth,omitempty"`
 	LDAPAuth           *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
 	JWTAuth            *JWTAuth                `json:"jwtAuth,omitempty" toml:"jwtAuth,omitempty" yaml:"jwtAuth,omitempty"`
 	OAuthIntrospection *OAuthIntrospection     `json:"oAuthIntrospection,omitempty" toml:"oAuthIntrospection,omitempty" yaml:"oAuthIntrospection,omitempty"`
@@ -87,6 +88,21 @@ type JWTAuth struct {
 	// Claims defines an expression to perform validation on custom claims present in a JWT. For example:
 	//     Equals(`grp`, `admin`) && Equals(`scope`, `deploy`)
 	Claims string `json:"claims,omitempty" toml:"claims,omitempty" yaml:"claims,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// HMACAuth holds the HMAC Authentication Middleware configuration.
+type HMACAuth struct {
+	Source              string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+	ValidatePayload     bool     `json:"validatePayload,omitempty" toml:"validatePayload,omitempty" yaml:"validatePayload,omitempty"`
+	FallbackValidPeriod int64    `json:"fallbackValidPeriod,omitempty" toml:"fallbackValidPeriod,omitempty" yaml:"fallbackValidPeriod,omitempty"`
+	EnforcedHeaders     []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
+}
+
+// SetDefaults sets default values for an HMAC Authentication middleware.
+func (h *HMACAuth) SetDefaults() {
+	h.ValidatePayload = true
 }
 
 // +k8s:deepcopy-gen=true
