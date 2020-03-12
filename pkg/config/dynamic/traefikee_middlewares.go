@@ -94,15 +94,19 @@ type JWTAuth struct {
 
 // HMACAuth holds the HMAC Authentication Middleware configuration.
 type HMACAuth struct {
-	Source              string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
-	ValidatePayload     bool     `json:"validatePayload,omitempty" toml:"validatePayload,omitempty" yaml:"validatePayload,omitempty"`
-	FallbackValidPeriod int64    `json:"fallbackValidPeriod,omitempty" toml:"fallbackValidPeriod,omitempty" yaml:"fallbackValidPeriod,omitempty"`
-	EnforcedHeaders     []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
+	Source          string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+	ValidateDigest  bool     `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
+	EnforcedHeaders []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
 }
 
 // SetDefaults sets default values for an HMAC Authentication middleware.
 func (h *HMACAuth) SetDefaults() {
-	h.ValidatePayload = true
+	h.ValidateDigest = true
+	h.EnforcedHeaders = []string{
+		"(request-target)",
+		"(created)",
+		"(expires)",
+	}
 }
 
 // +k8s:deepcopy-gen=true
