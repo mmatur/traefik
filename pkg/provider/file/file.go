@@ -110,19 +110,6 @@ func (p *Provider) addWatcher(pool *safe.Pool, directory string, configurationCh
 			case <-ctx.Done():
 				return
 			case evt := <-watcher.Events:
-				if evt.Op == fsnotify.Remove {
-					err = watcher.Remove(evt.Name)
-					if err != nil {
-						log.WithoutContext().WithField(log.ProviderName, providerName).
-							Errorf("Could not remove watcher for %s: %s", directory, err)
-					}
-					err = watcher.Add(directory)
-					if err != nil {
-						log.WithoutContext().WithField(log.ProviderName, providerName).
-							Errorf("Could not re-add watcher for %s: %s", directory, err)
-					}
-				}
-
 				if p.Directory == "" {
 					_, evtFileName := filepath.Split(evt.Name)
 					_, confFileName := filepath.Split(p.Filename)
@@ -232,6 +219,10 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				Stores:  make(map[string]tls.Store),
 				Options: make(map[string]tls.Options),
 			},
+			UDP: &dynamic.UDPConfiguration{
+				Routers:  make(map[string]*dynamic.UDPRouter),
+				Services: make(map[string]*dynamic.UDPService),
+			},
 		}
 	}
 
@@ -298,6 +289,22 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				logger.WithField(log.ServiceName, name).Warn("TCP service already configured, skipping")
 			} else {
 				configuration.TCP.Services[name] = conf
+			}
+		}
+
+		for name, conf := range c.UDP.Routers {
+			if _, exists := configuration.UDP.Routers[name]; exists {
+				logger.WithField(log.RouterName, name).Warn("UDP router already configured, skipping")
+			} else {
+				configuration.UDP.Routers[name] = conf
+			}
+		}
+
+		for name, conf := range c.UDP.Services {
+			if _, exists := configuration.UDP.Services[name]; exists {
+				logger.WithField(log.ServiceName, name).Warn("UDP service already configured, skipping")
+			} else {
+				configuration.UDP.Services[name] = conf
 			}
 		}
 
@@ -404,6 +411,10 @@ func (p *Provider) decodeConfiguration(filePath string, content string) (*dynami
 		TLS: &dynamic.TLSConfiguration{
 			Stores:  make(map[string]tls.Store),
 			Options: make(map[string]tls.Options),
+		},
+		UDP: &dynamic.UDPConfiguration{
+			Routers:  make(map[string]*dynamic.UDPRouter),
+			Services: make(map[string]*dynamic.UDPService),
 		},
 	}
 

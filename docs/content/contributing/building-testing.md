@@ -16,6 +16,8 @@ For changes to its dependencies, the `dep` dependency management tool is require
 Run make with the `binary` target.
 This will create binaries for the Linux platform in the `dist` folder.
 
+In case when you run build on CI, you may probably want to run docker in non-interactive mode. To achieve that define `DOCKER_NON_INTERACTIVE=true` environment variable.
+
 ```bash
 $ make binary
 docker build -t traefik-webui -f webui/Dockerfile webui
@@ -28,7 +30,7 @@ Successfully tagged traefik-webui:latest
 [...]
 docker build  -t "traefik-dev:4475--feature-documentation" -f build.Dockerfile .
 Sending build context to Docker daemon    279MB
-Step 1/10 : FROM golang:1.13-alpine
+Step 1/10 : FROM golang:1.14-alpine
  ---> f4bfb3d22bda
 [...]
 Successfully built 5c3c1a911277
@@ -60,7 +62,7 @@ PRE_TARGET= make test-unit
 
 Requirements:
 
-- `go` v1.13+
+- `go` v1.14+
 - environment variable `GO111MODULE=on`
 - [go-bindata](https://github.com/containous/go-bindata) `GO111MODULE=off go get -u github.com/containous/go-bindata/...`
 

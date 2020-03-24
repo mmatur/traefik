@@ -55,7 +55,7 @@ func TestNewConfigurationWatcher(t *testing.T) {
 		}},
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, time.Second)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, time.Second, []string{})
 
 	run := make(chan struct{})
 
@@ -78,6 +78,10 @@ func TestNewConfigurationWatcher(t *testing.T) {
 					"default": {},
 				},
 				Stores: map[string]tls.Store{},
+			},
+			UDP: &dynamic.UDPConfiguration{
+				Routers:  map[string]*dynamic.UDPRouter{},
+				Services: map[string]*dynamic.UDPService{},
 			},
 		}
 
@@ -108,7 +112,7 @@ func TestListenProvidersThrottleProviderConfigReload(t *testing.T) {
 		})
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, 30*time.Millisecond)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, 30*time.Millisecond, []string{})
 
 	publishedConfigCount := 0
 	watcher.AddListener(func(_ dynamic.Configuration) {
@@ -132,7 +136,7 @@ func TestListenProvidersSkipsEmptyConfigs(t *testing.T) {
 		messages: []dynamic.Message{{ProviderName: "mock"}},
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, time.Second)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, time.Second, []string{})
 	watcher.AddListener(func(_ dynamic.Configuration) {
 		t.Error("An empty configuration was published but it should not")
 	})
@@ -158,7 +162,7 @@ func TestListenProvidersSkipsSameConfigurationForProvider(t *testing.T) {
 		messages: []dynamic.Message{message, message},
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, 0)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, 0, []string{})
 
 	alreadyCalled := false
 	watcher.AddListener(func(_ dynamic.Configuration) {
@@ -201,7 +205,7 @@ func TestListenProvidersDoesNotSkipFlappingConfiguration(t *testing.T) {
 		},
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, 15*time.Millisecond)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, 15*time.Millisecond, []string{"defaultEP"})
 
 	var lastConfig dynamic.Configuration
 	watcher.AddListener(func(conf dynamic.Configuration) {
@@ -216,13 +220,17 @@ func TestListenProvidersDoesNotSkipFlappingConfiguration(t *testing.T) {
 
 	expected := dynamic.Configuration{
 		HTTP: th.BuildConfiguration(
-			th.WithRouters(th.WithRouter("foo@mock")),
+			th.WithRouters(th.WithRouter("foo@mock", th.WithEntryPoints("defaultEP"))),
 			th.WithLoadBalancerServices(th.WithService("bar@mock")),
 			th.WithMiddlewares(),
 		),
 		TCP: &dynamic.TCPConfiguration{
 			Routers:  map[string]*dynamic.TCPRouter{},
 			Services: map[string]*dynamic.TCPService{},
+		},
+		UDP: &dynamic.UDPConfiguration{
+			Routers:  map[string]*dynamic.UDPRouter{},
+			Services: map[string]*dynamic.UDPService{},
 		},
 		TLS: &dynamic.TLSConfiguration{
 			Options: map[string]tls.Options{
@@ -252,7 +260,7 @@ func TestListenProvidersPublishesConfigForEachProvider(t *testing.T) {
 		},
 	}
 
-	watcher := NewConfigurationWatcher(routinesPool, pvd, 0)
+	watcher := NewConfigurationWatcher(routinesPool, pvd, 0, []string{"defaultEP"})
 
 	var publishedProviderConfig dynamic.Configuration
 
@@ -268,7 +276,10 @@ func TestListenProvidersPublishesConfigForEachProvider(t *testing.T) {
 
 	expected := dynamic.Configuration{
 		HTTP: th.BuildConfiguration(
-			th.WithRouters(th.WithRouter("foo@mock"), th.WithRouter("foo@mock2")),
+			th.WithRouters(
+				th.WithRouter("foo@mock", th.WithEntryPoints("defaultEP")),
+				th.WithRouter("foo@mock2", th.WithEntryPoints("defaultEP")),
+			),
 			th.WithLoadBalancerServices(th.WithService("bar@mock"), th.WithService("bar@mock2")),
 			th.WithMiddlewares(),
 		),
@@ -281,6 +292,10 @@ func TestListenProvidersPublishesConfigForEachProvider(t *testing.T) {
 				"default": {},
 			},
 			Stores: map[string]tls.Store{},
+		},
+		UDP: &dynamic.UDPConfiguration{
+			Routers:  map[string]*dynamic.UDPRouter{},
+			Services: map[string]*dynamic.UDPService{},
 		},
 	}
 

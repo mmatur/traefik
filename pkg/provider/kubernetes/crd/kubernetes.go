@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -168,9 +169,11 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	conf := &dynamic.Configuration{
 		HTTP: p.loadIngressRouteConfiguration(ctx, client, tlsConfigs),
 		TCP:  p.loadIngressRouteTCPConfiguration(ctx, client, tlsConfigs),
+		UDP:  p.loadIngressRouteUDPConfiguration(ctx, client),
 		TLS: &dynamic.TLSConfiguration{
 			Certificates: getTLSConfig(tlsConfigs),
 			Options:      buildTLSOptions(ctx, client),
+			Stores:       buildTLSStores(ctx, client),
 		},
 	}
 
@@ -245,6 +248,38 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	}
 
 	return conf
+}
+
+func getServicePort(svc *corev1.Service, port int32) (*corev1.ServicePort, error) {
+	if svc == nil {
+		return nil, errors.New("service is not defined")
+	}
+
+	if port == 0 {
+		return nil, errors.New("ingressRoute service port not defined")
+	}
+
+	hasValidPort := false
+	for _, p := range svc.Spec.Ports {
+		if p.Port == port {
+			return &p, nil
+		}
+
+		if p.Port != 0 {
+			hasValidPort = true
+		}
+	}
+
+	if svc.Spec.Type != corev1.ServiceTypeExternalName {
+		return nil, fmt.Errorf("service port not found: %d", port)
+	}
+
+	if hasValidPort {
+		log.WithoutContext().
+			Warning("The port %d from IngressRoute doesn't match with ports defined in the ExternalName service %s/%s.", port, svc.Namespace, svc.Name)
+	}
+
+	return &corev1.ServicePort{Port: port}, nil
 }
 
 func createErrorPageMiddleware(client Client, namespace string, errorPage *v1alpha1.ErrorPage) (*dynamic.ErrorPage, *dynamic.Service, error) {
@@ -467,6 +502,7 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 		return tlsOptions
 	}
 	tlsOptions = make(map[string]tls.Options)
+	var nsDefault []string
 
 	for _, tlsOption := range tlsOptionsCRD {
 		logger := log.FromContext(log.With(ctx, log.Str("tlsOption", tlsOption.Name), log.Str("namespace", tlsOption.Namespace)))
@@ -493,7 +529,13 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 			clientCAs = append(clientCAs, tls.FileOrContent(cert))
 		}
 
-		tlsOptions[makeID(tlsOption.Namespace, tlsOption.Name)] = tls.Options{
+		id := makeID(tlsOption.Namespace, tlsOption.Name)
+		// If the name is default, we override the default config.
+		if tlsOption.Name == "default" {
+			id = tlsOption.Name
+			nsDefault = append(nsDefault, tlsOption.Namespace)
+		}
+		tlsOptions[id] = tls.Options{
 			MinVersion:       tlsOption.Spec.MinVersion,
 			MaxVersion:       tlsOption.Spec.MaxVersion,
 			CipherSuites:     tlsOption.Spec.CipherSuites,
@@ -502,10 +544,70 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 				CAFiles:        clientCAs,
 				ClientAuthType: tlsOption.Spec.ClientAuth.ClientAuthType,
 			},
-			SniStrict: tlsOption.Spec.SniStrict,
+			SniStrict:                tlsOption.Spec.SniStrict,
+			PreferServerCipherSuites: tlsOption.Spec.PreferServerCipherSuites,
 		}
 	}
+
+	if len(nsDefault) > 1 {
+		delete(tlsOptions, "default")
+		log.FromContext(ctx).Errorf("Default TLS Options defined in multiple namespaces: %v", nsDefault)
+	}
+
 	return tlsOptions
+}
+
+func buildTLSStores(ctx context.Context, client Client) map[string]tls.Store {
+	tlsStoreCRD := client.GetTLSStores()
+	var tlsStores map[string]tls.Store
+
+	if len(tlsStoreCRD) == 0 {
+		return tlsStores
+	}
+	tlsStores = make(map[string]tls.Store)
+	var nsDefault []string
+
+	for _, tlsStore := range tlsStoreCRD {
+		namespace := tlsStore.Namespace
+		secretName := tlsStore.Spec.DefaultCertificate.SecretName
+		logger := log.FromContext(log.With(ctx, log.Str("tlsStore", tlsStore.Name), log.Str("namespace", namespace), log.Str("secretName", secretName)))
+
+		secret, exists, err := client.GetSecret(namespace, secretName)
+		if err != nil {
+			logger.Errorf("Failed to fetch secret %s/%s: %v", namespace, secretName, err)
+			continue
+		}
+		if !exists {
+			logger.Errorf("Secret %s/%s does not exist", namespace, secretName)
+			continue
+		}
+
+		cert, key, err := getCertificateBlocks(secret, namespace, secretName)
+		if err != nil {
+			logger.Errorf("Could not get certificate blocks: %v", err)
+			continue
+		}
+
+		id := makeID(tlsStore.Namespace, tlsStore.Name)
+		// If the name is default, we override the default config.
+		if tlsStore.Name == "default" {
+			id = tlsStore.Name
+			nsDefault = append(nsDefault, tlsStore.Namespace)
+		}
+		tlsStores[id] = tls.Store{
+			DefaultCertificate: &tls.Certificate{
+				CertFile: tls.FileOrContent(cert),
+				KeyFile:  tls.FileOrContent(key),
+			},
+		}
+	}
+
+	if len(nsDefault) > 1 {
+		delete(tlsStores, "default")
+		log.FromContext(ctx).Errorf("Default TLS Stores defined in multiple namespaces: %v", nsDefault)
+	}
+
+	return tlsStores
 }
 
 func checkStringQuoteValidity(value string) error {

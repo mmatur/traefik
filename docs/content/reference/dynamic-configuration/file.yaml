@@ -62,6 +62,7 @@ http:
           interval: foobar
           timeout: foobar
           hostname: foobar
+          followRedirects: true
           headers:
             name0: foobar
             name1: foobar
@@ -71,6 +72,7 @@ http:
     Service02:
       mirroring:
         service: foobar
+        maxBodySize: 42
         mirrors:
         - name: foobar
           percent: 42
@@ -169,6 +171,9 @@ http:
         - foobar
         - foobar
         accessControlAllowOrigin: foobar
+        accessControlAllowOriginList:
+        - foobar
+        - foobar
         accessControlExposeHeaders:
         - foobar
         - foobar
@@ -245,9 +250,11 @@ http:
             commonName: true
             serialNumber: true
             domainComponent: true
+          serialNumber: true
     Middleware14:
       rateLimit:
         average: 42
+        period: 42
         burst: 42
         sourceCriterion:
           ipstrategy:
@@ -342,6 +349,31 @@ tcp:
           weight: 42
         - name: foobar
           weight: 42
+udp:
+  routers:
+    UDPRouter0:
+      entryPoints:
+      - foobar
+      - foobar
+      service: foobar
+    UDPRouter1:
+      entryPoints:
+      - foobar
+      - foobar
+      service: foobar
+  services:
+    UDPService01:
+      loadBalancer:
+        servers:
+        - address: foobar
+        - address: foobar
+    UDPService02:
+      weighted:
+        services:
+        - name: foobar
+          weight: 42
+        - name: foobar
+          weight: 42
 tls:
   certificates:
   - certFile: foobar
@@ -370,6 +402,7 @@ tls:
         - foobar
         clientAuthType: foobar
       sniStrict: true
+      preferServerCipherSuites: true
     Options1:
       minVersion: foobar
       maxVersion: foobar
@@ -385,6 +418,7 @@ tls:
         - foobar
         clientAuthType: foobar
       sniStrict: true
+      preferServerCipherSuites: true
   stores:
     Store0:
       defaultCertificate:

@@ -32,6 +32,28 @@ entryPoints:
       trustedIPs:
       - foobar
       - foobar
+    http:
+      redirections:
+        entryPoint:
+          to: foobar
+          scheme: foobar
+          permanent: true
+          priority: 42
+      middlewares:
+      - foobar
+      - foobar
+      tls:
+        options: foobar
+        certResolver: foobar
+        domains:
+        - main: foobar
+          sans:
+          - foobar
+          - foobar
+        - main: foobar
+          sans:
+          - foobar
+          - foobar
 providers:
   providersThrottleDuration: 42
   docker:
@@ -88,7 +110,7 @@ providers:
     - foobar
     labelSelector: foobar
     ingressClass: foobar
-      throttleDuration: 42s
+    throttleDuration: 42s
     ingressEndpoint:
       ip: foobar
       hostname: foobar
@@ -139,6 +161,58 @@ providers:
       httpAuth:
         username: foobar
         password: foobar
+  consul:
+    rootKey: traefik
+    endpoints:
+    - foobar
+    - foobar
+    username: foobar
+    password: foobar
+    tls:
+      ca: foobar
+      caOptional: true
+      cert: foobar
+      key: foobar
+      insecureSkipVerify: true
+  etcd:
+    rootKey: traefik
+    endpoints:
+    - foobar
+    - foobar
+    username: foobar
+    password: foobar
+    tls:
+      ca: foobar
+      caOptional: true
+      cert: foobar
+      key: foobar
+      insecureSkipVerify: true
+  zooKeeper:
+    rootKey: traefik
+    endpoints:
+      - foobar
+      - foobar
+    username: foobar
+    password: foobar
+    tls:
+      ca: foobar
+      caOptional: true
+      cert: foobar
+      key: foobar
+      insecureSkipVerify: true
+  redis:
+    rootKey: traefik
+    endpoints:
+      - foobar
+      - foobar
+    username: foobar
+    password: foobar
+    tls:
+      ca: foobar
+      caOptional: true
+      cert: foobar
+      key: foobar
+      insecureSkipVerify: true
 api:
   insecure: true
   dashboard: true
@@ -241,6 +315,10 @@ tracing:
     parentIDHeaderName: foobar
     spanIDHeaderName: foobar
     baggagePrefixHeaderName: foobar
+  elastic:
+    serverURL: foobar
+    secretToken: foobar
+    serviceEnvironment: foobar
 hostResolver:
   cnameFlattening: true
   resolvConfig: foobar
