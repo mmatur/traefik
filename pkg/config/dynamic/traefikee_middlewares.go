@@ -81,6 +81,9 @@ type JWTAuth struct {
 	// Source is the name of the authentication source this middleware should use.
 	Source string `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
 
+	// TokenQueryKey defines where to find the token to use in the query parameters. Will look in the Authorization header first.
+	TokenQueryKey string `json:"tokenQueryKey,omitempty" toml:"tokenQueryKey,omitempty" yaml:"tokenQueryKey,omitempty"`
+
 	// ForwardAuthorization determines whether the "Authorization" header should be forwarded or stripped from the request.
 	ForwardAuthorization bool `json:"forwardAuthorization,omitempty" toml:"forwardAuthorization,omitempty" yaml:"forwardAuthorization,omitempty"`
 	// ForwardHeaders defines headers that should be added to the request and populated with values extracted from the JWT.
@@ -88,6 +91,11 @@ type JWTAuth struct {
 	// Claims defines an expression to perform validation on custom claims present in a JWT. For example:
 	//     Equals(`grp`, `admin`) && Equals(`scope`, `deploy`)
 	Claims string `json:"claims,omitempty" toml:"claims,omitempty" yaml:"claims,omitempty"`
+}
+
+// SetDefaults sets default values for an HMAC Authentication middleware.
+func (j *JWTAuth) SetDefaults() {
+	j.TokenQueryKey = "jwt"
 }
 
 // +k8s:deepcopy-gen=true
