@@ -8,6 +8,7 @@ type Plugin struct {
 	LDAPAuth           *LDAPAuth               `json:"ldapAuth,omitempty" toml:"ldapAuth,omitempty" yaml:"ldapAuth,omitempty"`
 	JWTAuth            *JWTAuth                `json:"jwtAuth,omitempty" toml:"jwtAuth,omitempty" yaml:"jwtAuth,omitempty"`
 	OAuthIntrospection *OAuthIntrospection     `json:"oAuthIntrospection,omitempty" toml:"oAuthIntrospection,omitempty" yaml:"oAuthIntrospection,omitempty"`
+	OIDCAuth           *OIDCAuth               `json:"oidcAuth,omitempty" toml:"oidcAuth,omitempty" yaml:"oidcAuth,omitempty"`
 	InFlightReq        *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
 	RateLimit          *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
 	ForceCase          *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
@@ -159,4 +160,68 @@ func (r *DistributedRateLimit) SetDefaults() {
 	r.SourceCriterion = &SourceCriterion{
 		IPStrategy: &IPStrategy{},
 	}
+}
+
+// +k8s:deepcopy-gen=true
+
+// OIDCAuth holds the configuration for the OIDCAuth middleware.
+type OIDCAuth struct {
+	Source      string               `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+	RedirectURL string               `json:"redirectUrl,omitempty"  toml:"redirectUrl,omitempty" yaml:"redirectUrl,omitempty"`
+	Scopes      []string             `json:"scopes,omitempty" toml:"scopes,omitempty" yaml:"scopes,omitempty"`
+	AuthParams  map[string]string    `json:"authParams,omitempty" toml:"authParams,omitempty" yaml:"authParams,omitempty"`
+	StateCookie *OIDCAuthStateCookie `json:"stateCookie,omitempty" toml:"stateCookie,omitempty" yaml:"stateCookie,omitempty"`
+	Session     *OIDCAuthSession     `json:"session,omitempty" toml:"session,omitempty" yaml:"session,omitempty"`
+
+	// ForwardHeaders defines headers that should be added to the request and populated with values extracted from the response of the token introspection.
+	ForwardHeaders map[string]string `json:"forwardHeaders,omitempty" toml:"forwardHeaders,omitempty" yaml:"forwardHeaders,omitempty"`
+	// Claims defines an expression to perform validation on the token introspection's response. For example:
+	//     Equals(`grp`, `admin`) && Equals(`scope`, `deploy`)
+	Claims string `json:"claims,omitempty" toml:"claims,omitempty" yaml:"claims,omitempty"`
+}
+
+// SetDefaults sets the default values on a OIDCAuth middleware.
+func (o *OIDCAuth) SetDefaults() {
+	o.Scopes = []string{"openid"}
+}
+
+// OIDCAuthStateCookie carries the state cookie configuration.
+type OIDCAuthStateCookie struct {
+	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
+	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
+	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
+	MaxAge   int    `json:"maxAge,omitempty" toml:"maxAge,omitempty" yaml:"maxAge,omitempty"`
+	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
+	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
+	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
+}
+
+// SetDefaults sets the default values.
+func (s *OIDCAuthStateCookie) SetDefaults() {
+	s.Name = "%s-state"
+	s.MaxAge = 600
+	s.Path = "/"
+	s.HTTPOnly = true
+	s.SameSite = "lax"
+}
+
+// OIDCAuthSession carries session and session cookie configuration.
+type OIDCAuthSession struct {
+	Secret   string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
+	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
+	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
+	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
+	MaxAge   int    `json:"maxAge,omitempty" toml:"maxAge,omitempty" yaml:"maxAge,omitempty"`
+	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
+	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
+	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
+}
+
+// SetDefaults sets the default values.
+func (s *OIDCAuthSession) SetDefaults() {
+	s.Name = "%s-session"
+	s.MaxAge = 3600
+	s.Path = "/"
+	s.HTTPOnly = true
+	s.SameSite = "lax"
 }
