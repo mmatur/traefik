@@ -183,6 +183,20 @@ type OIDCAuth struct {
 // SetDefaults sets the default values on a OIDCAuth middleware.
 func (o *OIDCAuth) SetDefaults() {
 	o.Scopes = []string{"openid"}
+	o.StateCookie = &OIDCAuthStateCookie{
+		Name:     "%s-state",
+		MaxAge:   600,
+		Path:     "/",
+		HTTPOnly: true,
+		SameSite: "lax",
+	}
+	o.Session = &OIDCAuthSession{
+		Name:     "%s-session",
+		MaxAge:   3600,
+		Path:     "/",
+		HTTPOnly: true,
+		SameSite: "lax",
+	}
 }
 
 // OIDCAuthStateCookie carries the state cookie configuration.
@@ -196,15 +210,6 @@ type OIDCAuthStateCookie struct {
 	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
 }
 
-// SetDefaults sets the default values.
-func (s *OIDCAuthStateCookie) SetDefaults() {
-	s.Name = "%s-state"
-	s.MaxAge = 600
-	s.Path = "/"
-	s.HTTPOnly = true
-	s.SameSite = "lax"
-}
-
 // OIDCAuthSession carries session and session cookie configuration.
 type OIDCAuthSession struct {
 	Secret   string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
@@ -215,13 +220,4 @@ type OIDCAuthSession struct {
 	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
 	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
 	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
-}
-
-// SetDefaults sets the default values.
-func (s *OIDCAuthSession) SetDefaults() {
-	s.Name = "%s-session"
-	s.MaxAge = 3600
-	s.Path = "/"
-	s.HTTPOnly = true
-	s.SameSite = "lax"
 }
