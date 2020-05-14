@@ -166,12 +166,15 @@ func (r *DistributedRateLimit) SetDefaults() {
 
 // OIDCAuth holds the configuration for the OIDCAuth middleware.
 type OIDCAuth struct {
-	Source      string               `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
-	RedirectURL string               `json:"redirectUrl,omitempty"  toml:"redirectUrl,omitempty" yaml:"redirectUrl,omitempty"`
-	Scopes      []string             `json:"scopes,omitempty" toml:"scopes,omitempty" yaml:"scopes,omitempty"`
-	AuthParams  map[string]string    `json:"authParams,omitempty" toml:"authParams,omitempty" yaml:"authParams,omitempty"`
-	StateCookie *OIDCAuthStateCookie `json:"stateCookie,omitempty" toml:"stateCookie,omitempty" yaml:"stateCookie,omitempty"`
-	Session     *OIDCAuthSession     `json:"session,omitempty" toml:"session,omitempty" yaml:"session,omitempty"`
+	Source       string               `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
+	RedirectURL  string               `json:"redirectUrl,omitempty"  toml:"redirectUrl,omitempty" yaml:"redirectUrl,omitempty"`
+	LoginURL     string               `json:"loginUrl,omitempty"  toml:"loginUrl,omitempty" yaml:"loginUrl,omitempty"`
+	LogoutURL    string               `json:"logoutUrl,omitempty"  toml:"logoutUrl,omitempty" yaml:"logoutUrl,omitempty"`
+	DisableLogin bool                 `json:"disableLogin,omitempty"  toml:"disableLogin,omitempty" yaml:"disableLogin,omitempty"`
+	Scopes       []string             `json:"scopes,omitempty" toml:"scopes,omitempty" yaml:"scopes,omitempty"`
+	AuthParams   map[string]string    `json:"authParams,omitempty" toml:"authParams,omitempty" yaml:"authParams,omitempty"`
+	StateCookie  *OIDCAuthStateCookie `json:"stateCookie,omitempty" toml:"stateCookie,omitempty" yaml:"stateCookie,omitempty"`
+	Session      *OIDCAuthSession     `json:"session,omitempty" toml:"session,omitempty" yaml:"session,omitempty"`
 
 	// ForwardHeaders defines headers that should be added to the request and populated with values extracted from the response of the token introspection.
 	ForwardHeaders map[string]string `json:"forwardHeaders,omitempty" toml:"forwardHeaders,omitempty" yaml:"forwardHeaders,omitempty"`
