@@ -195,10 +195,12 @@ func (o *OIDCAuth) SetDefaults() {
 	}
 	o.Session = &OIDCAuthSession{
 		Name:     "%s-session",
-		MaxAge:   3600,
+		Expiry:   86400,
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "lax",
+		Refresh:  true,
+		Sliding:  true,
 	}
 }
 
@@ -219,8 +221,10 @@ type OIDCAuthSession struct {
 	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
 	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
 	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
-	MaxAge   int    `json:"maxAge,omitempty" toml:"maxAge,omitempty" yaml:"maxAge,omitempty"`
+	Expiry   int    `json:"expiry,omitempty" toml:"expiry,omitempty" yaml:"expiry,omitempty"`
 	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
 	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
 	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
+	Refresh  bool   `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
+	Sliding  bool   `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
 }
