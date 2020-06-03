@@ -12,6 +12,7 @@ type Plugin struct {
 	InFlightReq        *DistributedInFlightReq `json:"inFlightReq,omitempty" toml:"inFlightReq,omitempty" yaml:"inFlightReq,omitempty"`
 	RateLimit          *DistributedRateLimit   `json:"rateLimit,omitempty" toml:"rateLimit,omitempty" yaml:"rateLimit,omitempty"`
 	ForceCase          *ForceCase              `json:"forceCase,omitempty" toml:"forceCase,omitempty" yaml:"forceCase,omitempty"`
+	HTTPCache          *HTTPCache              `json:"httpCache,omitempty" toml:"httpCache,omitempty" yaml:"httpCache,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -227,4 +228,22 @@ type OIDCAuthSession struct {
 	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
 	Refresh  bool   `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
 	Sliding  bool   `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// HTTPCache holds the HTTP Cache Middleware configuration.
+type HTTPCache struct {
+	MaxTTL               int      `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
+	ResponseCode         []int    `json:"responseCode,omitempty" toml:"responseCode,omitempty" yaml:"responseCode,omitempty"`
+	RequestMethod        []string `json:"requestMethod,omitempty" toml:"requestMethod,omitempty" yaml:"requestMethod,omitempty"`
+	DisableCacheControl  bool     `json:"disableCacheControl,omitempty" toml:"disableCacheControl,omitempty" yaml:"disableCacheControl,omitempty"`
+	AddCacheStatusHeader bool     `json:"addCacheStatusHeader,omitempty" toml:"addCacheStatusHeader,omitempty" yaml:"addCacheStatusHeader,omitempty"`
+	MemoryLimit          string   `json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty"`
+}
+
+// SetDefaults sets default values for an HTTP cache middleware.
+func (h *HTTPCache) SetDefaults() {
+	h.MaxTTL = 300
+	h.RequestMethod = []string{"GET", "HEAD"}
 }
