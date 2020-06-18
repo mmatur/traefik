@@ -90,12 +90,11 @@ func TestProvideWithoutWatch(t *testing.T) {
 			timeout := time.After(time.Second)
 			select {
 			case conf := <-configChan:
-
 				require.NotNil(t, conf.Configuration.HTTP)
 				numServices := len(conf.Configuration.HTTP.Services) + len(conf.Configuration.TCP.Services) + len(conf.Configuration.UDP.Services)
 				numRouters := len(conf.Configuration.HTTP.Routers) + len(conf.Configuration.TCP.Routers) + len(conf.Configuration.UDP.Routers)
-				assert.Equal(t, test.expectedNumService, numServices)
-				assert.Equal(t, test.expectedNumRouter, numRouters)
+				assert.Equal(t, numServices, test.expectedNumService)
+				assert.Equal(t, numRouters, test.expectedNumRouter)
 				require.NotNil(t, conf.Configuration.TLS)
 				assert.Len(t, conf.Configuration.TLS.Certificates, test.expectedNumTLSConf)
 				assert.Len(t, conf.Configuration.TLS.Options, test.expectedNumTLSOptions)
