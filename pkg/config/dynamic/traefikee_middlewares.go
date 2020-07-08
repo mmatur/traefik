@@ -229,14 +229,15 @@ type OIDCAuthStateCookie struct {
 
 // OIDCAuthSession carries session and session cookie configuration.
 type OIDCAuthSession struct {
-	Secret   string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
-	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
-	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
-	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
-	Expiry   *int   `json:"expiry,omitempty" toml:"expiry,omitempty" yaml:"expiry,omitempty"`
-	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
-	HTTPOnly *bool  `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
-	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
-	Refresh  *bool  `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
-	Sliding  *bool  `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
+	Secret     string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
+	RealSecret string `json:"-" toml:"-" yaml:"-"`
+	Name       string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
+	Path       string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
+	Domain     string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
+	Expiry     *int   `json:"expiry,omitempty" toml:"expiry,omitempty" yaml:"expiry,omitempty"`
+	SameSite   string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
+	HTTPOnly   *bool  `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
+	Secure     bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
+	Refresh    *bool  `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
+	Sliding    *bool  `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
 }
