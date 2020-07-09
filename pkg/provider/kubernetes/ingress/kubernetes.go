@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -46,7 +45,7 @@ type Provider struct {
 	lastConfiguration      safe.Safe
 }
 
-// EndpointIngress holds the endpoint information for the Kubernetes provider
+// EndpointIngress holds the endpoint information for the Kubernetes provider.
 type EndpointIngress struct {
 	IP               string `description:"IP used for Kubernetes Ingress endpoints." json:"ip,omitempty" toml:"ip,omitempty" yaml:"ip,omitempty"`
 	Hostname         string `description:"Hostname used for Kubernetes Ingress endpoints." json:"hostname,omitempty" toml:"hostname,omitempty" yaml:"hostname,omitempty"`
@@ -235,11 +234,6 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 		}
 
 		for _, rule := range ingress.Spec.Rules {
-			if err := checkStringQuoteValidity(rule.Host); err != nil {
-				log.FromContext(ctx).Errorf("Invalid syntax for host: %s", rule.Host)
-				continue
-			}
-
 			if err := p.updateIngressStatus(ingress, client); err != nil {
 				log.FromContext(ctx).Errorf("Error while updating ingress status: %v", err)
 			}
@@ -249,11 +243,6 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 			}
 
 			for _, pa := range rule.HTTP.Paths {
-				if err = checkStringQuoteValidity(pa.Path); err != nil {
-					log.FromContext(ctx).Errorf("Invalid syntax for path: %s", pa.Path)
-					continue
-				}
-
 				service, err := loadService(client, ingress.Namespace, pa.Backend)
 				if err != nil {
 					log.FromContext(ctx).
@@ -306,7 +295,7 @@ func (p *Provider) updateIngressStatus(ing *v1beta1.Ingress, k8sClient Client) e
 
 	service, exists, err := k8sClient.GetService(serviceNamespace, serviceName)
 	if err != nil {
-		return fmt.Errorf("cannot get service %s, received error: %s", p.IngressEndpoint.PublishedService, err)
+		return fmt.Errorf("cannot get service %s, received error: %w", p.IngressEndpoint.PublishedService, err)
 	}
 
 	if exists && service.Status.LoadBalancer.Ingress == nil {
@@ -330,7 +319,7 @@ func buildHostRule(host string) string {
 	return "Host(`" + host + "`)"
 }
 
-func shouldProcessIngress(ingressClass string, ingressClassAnnotation string) bool {
+func shouldProcessIngress(ingressClass, ingressClassAnnotation string) bool {
 	return ingressClass == ingressClassAnnotation ||
 		(len(ingressClass) == 0 && ingressClassAnnotation == traefikDefaultIngressClass)
 }
@@ -346,7 +335,7 @@ func getCertificates(ctx context.Context, ingress *v1beta1.Ingress, k8sClient Cl
 		if _, tlsExists := tlsConfigs[configKey]; !tlsExists {
 			secret, exists, err := k8sClient.GetSecret(ingress.Namespace, t.SecretName)
 			if err != nil {
-				return fmt.Errorf("failed to fetch secret %s/%s: %v", ingress.Namespace, t.SecretName, err)
+				return fmt.Errorf("failed to fetch secret %s/%s: %w", ingress.Namespace, t.SecretName, err)
 			}
 			if !exists {
 				return fmt.Errorf("secret %s/%s does not exist", ingress.Namespace, t.SecretName)
@@ -557,11 +546,6 @@ func loadRouter(rule v1beta1.IngressRule, pa v1beta1.HTTPIngressPath, rtConfig *
 	}
 
 	return rt
-}
-
-func checkStringQuoteValidity(value string) error {
-	_, err := strconv.Unquote(`"` + value + `"`)
-	return err
 }
 
 func throttleEvents(ctx context.Context, throttleDuration time.Duration, pool *safe.Pool, eventsChan <-chan interface{}) chan interface{} {

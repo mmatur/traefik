@@ -9,9 +9,7 @@ import (
 	"github.com/containous/traefik/v2/pkg/middlewares"
 )
 
-var (
-	_ middlewares.Stateful = &captureResponseWriterWithCloseNotify{}
-)
+var _ middlewares.Stateful = &captureResponseWriterWithCloseNotify{}
 
 type capturer interface {
 	http.ResponseWriter
@@ -28,7 +26,7 @@ func newCaptureResponseWriter(rw http.ResponseWriter) capturer {
 }
 
 // captureResponseWriter is a wrapper of type http.ResponseWriter
-// that tracks request status and size
+// that tracks request status and size.
 type captureResponseWriter struct {
 	rw     http.ResponseWriter
 	status int

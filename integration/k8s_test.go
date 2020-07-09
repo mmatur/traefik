@@ -24,7 +24,7 @@ import (
 
 var updateExpected = flag.Bool("update_expected", false, "Update expected files in testdata")
 
-// K8sSuite
+// K8sSuite tests suite.
 type K8sSuite struct{ BaseSuite }
 
 func (s *K8sSuite) SetUpSuite(c *check.C) {
@@ -119,7 +119,7 @@ func testConfiguration(c *check.C, path, apiPort string) {
 	newJSON, err := json.MarshalIndent(rtRepr, "", "\t")
 	c.Assert(err, checker.IsNil)
 
-	err = ioutil.WriteFile(expectedJSON, newJSON, 0644)
+	err = ioutil.WriteFile(expectedJSON, newJSON, 0o644)
 	c.Assert(err, checker.IsNil)
 	c.Errorf("We do not want a passing test in file update mode")
 }
@@ -128,7 +128,7 @@ func matchesConfig(wantConfig string, buf *bytes.Buffer) try.ResponseCondition {
 	return func(res *http.Response) error {
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return fmt.Errorf("failed to read response body: %s", err)
+			return fmt.Errorf("failed to read response body: %w", err)
 		}
 
 		if err := res.Body.Close(); err != nil {

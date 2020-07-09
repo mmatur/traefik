@@ -19,7 +19,7 @@ import (
 	checker "github.com/vdemeester/shakers"
 )
 
-// Redis test suites (using libcompose)
+// Redis test suites (using libcompose).
 type RedisSuite struct {
 	BaseSuite
 	kvClient store.Store
@@ -138,7 +138,7 @@ func (s *RedisSuite) TestSimpleConfiguration(c *check.C) {
 	expectedJSON := filepath.FromSlash("testdata/rawdata-redis.json")
 
 	if *updateExpected {
-		err = ioutil.WriteFile(expectedJSON, got, 0666)
+		err = ioutil.WriteFile(expectedJSON, got, 0o666)
 		c.Assert(err, checker.IsNil)
 	}
 
