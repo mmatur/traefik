@@ -19,7 +19,7 @@ import (
 	checker "github.com/vdemeester/shakers"
 )
 
-// Consul test suites (using libcompose)
+// Consul test suites (using libcompose).
 type ConsulSuite struct {
 	BaseSuite
 	kvClient store.Store
@@ -138,7 +138,7 @@ func (s *ConsulSuite) TestSimpleConfiguration(c *check.C) {
 	expectedJSON := filepath.FromSlash("testdata/rawdata-consul.json")
 
 	if *updateExpected {
-		err = ioutil.WriteFile(expectedJSON, got, 0666)
+		err = ioutil.WriteFile(expectedJSON, got, 0o666)
 		c.Assert(err, checker.IsNil)
 	}
 

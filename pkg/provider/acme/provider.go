@@ -27,20 +27,18 @@ import (
 	"github.com/go-acme/lego/v3/registration"
 )
 
-var (
-	// oscpMustStaple enables OSCP stapling as from https://github.com/go-acme/lego/issues/270
-	oscpMustStaple = false
-)
+// oscpMustStaple enables OSCP stapling as from https://github.com/go-acme/lego/issues/270.
+var oscpMustStaple = false
 
-// Configuration holds ACME configuration provided by users
+// Configuration holds ACME configuration provided by users.
 type Configuration struct {
 	Email         string         `description:"Email address used for registration." json:"email,omitempty" toml:"email,omitempty" yaml:"email,omitempty"`
 	CAServer      string         `description:"CA server to use." json:"caServer,omitempty" toml:"caServer,omitempty" yaml:"caServer,omitempty"`
 	Storage       string         `description:"Storage to use." json:"storage,omitempty" toml:"storage,omitempty" yaml:"storage,omitempty"`
 	KeyType       string         `description:"KeyType used for generating certificate private key. Allow value 'EC256', 'EC384', 'RSA2048', 'RSA4096', 'RSA8192'." json:"keyType,omitempty" toml:"keyType,omitempty" yaml:"keyType,omitempty"`
-	DNSChallenge  *DNSChallenge  `description:"Activate DNS-01 Challenge." json:"dnsChallenge,omitempty" toml:"dnsChallenge,omitempty" yaml:"dnsChallenge,omitempty" label:"allowEmpty"`
-	HTTPChallenge *HTTPChallenge `description:"Activate HTTP-01 Challenge." json:"httpChallenge,omitempty" toml:"httpChallenge,omitempty" yaml:"httpChallenge,omitempty" label:"allowEmpty"`
-	TLSChallenge  *TLSChallenge  `description:"Activate TLS-ALPN-01 Challenge." json:"tlsChallenge,omitempty" toml:"tlsChallenge,omitempty" yaml:"tlsChallenge,omitempty" label:"allowEmpty"`
+	DNSChallenge  *DNSChallenge  `description:"Activate DNS-01 Challenge." json:"dnsChallenge,omitempty" toml:"dnsChallenge,omitempty" yaml:"dnsChallenge,omitempty" label:"allowEmpty" file:"allowEmpty"`
+	HTTPChallenge *HTTPChallenge `description:"Activate HTTP-01 Challenge." json:"httpChallenge,omitempty" toml:"httpChallenge,omitempty" yaml:"httpChallenge,omitempty" label:"allowEmpty" file:"allowEmpty"`
+	TLSChallenge  *TLSChallenge  `description:"Activate TLS-ALPN-01 Challenge." json:"tlsChallenge,omitempty" toml:"tlsChallenge,omitempty" yaml:"tlsChallenge,omitempty" label:"allowEmpty" file:"allowEmpty"`
 }
 
 // SetDefaults sets the default values.
@@ -56,14 +54,14 @@ type CertAndStore struct {
 	Store string
 }
 
-// Certificate is a struct which contains all data needed from an ACME certificate
+// Certificate is a struct which contains all data needed from an ACME certificate.
 type Certificate struct {
 	Domain      types.Domain `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
 	Certificate []byte       `json:"certificate,omitempty" toml:"certificate,omitempty" yaml:"certificate,omitempty"`
 	Key         []byte       `json:"key,omitempty" toml:"key,omitempty" yaml:"key,omitempty"`
 }
 
-// DNSChallenge contains DNS challenge Configuration
+// DNSChallenge contains DNS challenge Configuration.
 type DNSChallenge struct {
 	Provider                string         `description:"Use a DNS-01 based challenge provider rather than HTTPS." json:"provider,omitempty" toml:"provider,omitempty" yaml:"provider,omitempty"`
 	DelayBeforeCheck        types.Duration `description:"Assume DNS propagates after a delay in seconds rather than finding and querying nameservers." json:"delayBeforeCheck,omitempty" toml:"delayBeforeCheck,omitempty" yaml:"delayBeforeCheck,omitempty"`
@@ -71,12 +69,12 @@ type DNSChallenge struct {
 	DisablePropagationCheck bool           `description:"Disable the DNS propagation checks before notifying ACME that the DNS challenge is ready. [not recommended]" json:"disablePropagationCheck,omitempty" toml:"disablePropagationCheck,omitempty" yaml:"disablePropagationCheck,omitempty"`
 }
 
-// HTTPChallenge contains HTTP challenge Configuration
+// HTTPChallenge contains HTTP challenge Configuration.
 type HTTPChallenge struct {
 	EntryPoint string `description:"HTTP challenge EntryPoint" json:"entryPoint,omitempty" toml:"entryPoint,omitempty" yaml:"entryPoint,omitempty"`
 }
 
-// TLSChallenge contains TLS challenge Configuration
+// TLSChallenge contains TLS challenge Configuration.
 type TLSChallenge struct{}
 
 // Provider holds configurations of the provider.
@@ -98,22 +96,22 @@ type Provider struct {
 	resolvingDomainsMutex  sync.RWMutex
 }
 
-// SetTLSManager sets the tls manager to use
+// SetTLSManager sets the tls manager to use.
 func (p *Provider) SetTLSManager(tlsManager *traefiktls.Manager) {
 	p.tlsManager = tlsManager
 }
 
-// SetConfigListenerChan initializes the configFromListenerChan
+// SetConfigListenerChan initializes the configFromListenerChan.
 func (p *Provider) SetConfigListenerChan(configFromListenerChan chan dynamic.Configuration) {
 	p.configFromListenerChan = configFromListenerChan
 }
 
-// ListenConfiguration sets a new Configuration into the configFromListenerChan
+// ListenConfiguration sets a new Configuration into the configFromListenerChan.
 func (p *Provider) ListenConfiguration(config dynamic.Configuration) {
 	p.configFromListenerChan <- config
 }
 
-// Init for compatibility reason the BaseProvider implements an empty Init
+// Init for compatibility reason the BaseProvider implements an empty Init.
 func (p *Provider) Init() error {
 	ctx := log.With(context.Background(), log.Str(log.ProviderName, p.ResolverName+".acme"))
 	logger := log.FromContext(ctx)
@@ -125,7 +123,7 @@ func (p *Provider) Init() error {
 	var err error
 	p.account, err = p.Store.GetAccount(p.ResolverName)
 	if err != nil {
-		return fmt.Errorf("unable to get ACME account: %v", err)
+		return fmt.Errorf("unable to get ACME account: %w", err)
 	}
 
 	// Reset Account if caServer changed, thus registration URI can be updated
@@ -136,7 +134,7 @@ func (p *Provider) Init() error {
 
 	p.certificates, err = p.Store.GetCertificates(p.ResolverName)
 	if err != nil {
-		return fmt.Errorf("unable to get ACME certificates : %v", err)
+		return fmt.Errorf("unable to get ACME certificates : %w", err)
 	}
 
 	// Init the currently resolved domain map
@@ -145,7 +143,7 @@ func (p *Provider) Init() error {
 	return nil
 }
 
-func isAccountMatchingCaServer(ctx context.Context, accountURI string, serverURI string) bool {
+func isAccountMatchingCaServer(ctx context.Context, accountURI, serverURI string) bool {
 	logger := log.FromContext(ctx)
 
 	aru, err := url.Parse(accountURI)
@@ -428,13 +426,11 @@ func (p *Provider) resolveCertificate(ctx context.Context, domain types.Domain, 
 		return nil, err
 	}
 
-	// Check provided certificates
+	// Check if provided certificates are not already in progress and lock them if needed
 	uncheckedDomains := p.getUncheckedDomains(ctx, domains, tlsStore)
 	if len(uncheckedDomains) == 0 {
 		return nil, nil
 	}
-
-	p.addResolvingDomains(uncheckedDomains)
 	defer p.removeResolvingDomains(uncheckedDomains)
 
 	logger := log.FromContext(ctx)
@@ -442,7 +438,7 @@ func (p *Provider) resolveCertificate(ctx context.Context, domain types.Domain, 
 
 	client, err := p.getClient()
 	if err != nil {
-		return nil, fmt.Errorf("cannot get ACME client %v", err)
+		return nil, fmt.Errorf("cannot get ACME client %w", err)
 	}
 
 	request := certificate.ObtainRequest{
@@ -453,7 +449,7 @@ func (p *Provider) resolveCertificate(ctx context.Context, domain types.Domain, 
 
 	cert, err := client.Certificate.Obtain(request)
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate a certificate for the domains %v: %v", uncheckedDomains, err)
+		return nil, fmt.Errorf("unable to generate a certificate for the domains %v: %w", uncheckedDomains, err)
 	}
 	if cert == nil {
 		return nil, fmt.Errorf("domains %v do not generate a certificate", uncheckedDomains)
@@ -483,22 +479,13 @@ func (p *Provider) removeResolvingDomains(resolvingDomains []string) {
 	}
 }
 
-func (p *Provider) addResolvingDomains(resolvingDomains []string) {
-	p.resolvingDomainsMutex.Lock()
-	defer p.resolvingDomainsMutex.Unlock()
-
-	for _, domain := range resolvingDomains {
-		p.resolvingDomains[domain] = struct{}{}
-	}
-}
-
-func (p *Provider) addCertificateForDomain(domain types.Domain, certificate []byte, key []byte, tlsStore string) {
+func (p *Provider) addCertificateForDomain(domain types.Domain, certificate, key []byte, tlsStore string) {
 	p.certsChan <- &CertAndStore{Certificate: Certificate{Certificate: certificate, Key: key, Domain: domain}, Store: tlsStore}
 }
 
 // deleteUnnecessaryDomains deletes from the configuration :
 // - Duplicated domains
-// - Domains which are checked by wildcard domain
+// - Domains which are checked by wildcard domain.
 func deleteUnnecessaryDomains(ctx context.Context, domains []types.Domain) []types.Domain {
 	var newDomains []types.Domain
 
@@ -640,7 +627,6 @@ func (p *Provider) renewCertificates(ctx context.Context) {
 				PrivateKey:  cert.Key,
 				Certificate: cert.Certificate.Certificate,
 			}, true, oscpMustStaple)
-
 			if err != nil {
 				logger.Errorf("Error renewing certificate from LE: %v, %v", cert.Domain, err)
 				continue
@@ -657,10 +643,10 @@ func (p *Provider) renewCertificates(ctx context.Context) {
 }
 
 // Get provided certificate which check a domains list (Main and SANs)
-// from static and dynamic provided certificates
+// from static and dynamic provided certificates.
 func (p *Provider) getUncheckedDomains(ctx context.Context, domainsToCheck []string, tlsStore string) []string {
-	p.resolvingDomainsMutex.RLock()
-	defer p.resolvingDomainsMutex.RUnlock()
+	p.resolvingDomainsMutex.Lock()
+	defer p.resolvingDomainsMutex.Unlock()
 
 	log.FromContext(ctx).Debugf("Looking for provided certificate(s) to validate %q...", domainsToCheck)
 
@@ -676,10 +662,17 @@ func (p *Provider) getUncheckedDomains(ctx context.Context, domainsToCheck []str
 		allDomains = append(allDomains, domain)
 	}
 
-	return searchUncheckedDomains(ctx, domainsToCheck, allDomains)
+	uncheckedDomains := searchUncheckedDomains(ctx, domainsToCheck, allDomains)
+
+	// Lock domains that will be resolved by this routine
+	for _, domain := range uncheckedDomains {
+		p.resolvingDomains[domain] = struct{}{}
+	}
+
+	return uncheckedDomains
 }
 
-func searchUncheckedDomains(ctx context.Context, domainsToCheck []string, existentDomains []string) []string {
+func searchUncheckedDomains(ctx context.Context, domainsToCheck, existentDomains []string) []string {
 	var uncheckedDomains []string
 	for _, domainToCheck := range domainsToCheck {
 		if !isDomainAlreadyChecked(domainToCheck, existentDomains) {
@@ -716,7 +709,7 @@ func getX509Certificate(ctx context.Context, cert *Certificate) (*x509.Certifica
 	return crt, err
 }
 
-// getValidDomains checks if given domain is allowed to generate a ACME certificate and return it
+// getValidDomains checks if given domain is allowed to generate a ACME certificate and return it.
 func (p *Provider) getValidDomains(ctx context.Context, domain types.Domain) ([]string, error) {
 	domains := domain.ToStrArray()
 	if len(domains) == 0 {

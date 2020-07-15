@@ -69,7 +69,7 @@ func (c *ConfigurationWatcher) Stop() {
 	close(c.configurationValidatedChan)
 }
 
-// AddListener adds a new listener function used when new configuration is provided
+// AddListener adds a new listener function used when new configuration is provided.
 func (c *ConfigurationWatcher) AddListener(listener func(dynamic.Configuration)) {
 	if c.configurationListeners == nil {
 		c.configurationListeners = make([]func(dynamic.Configuration), 0)
@@ -224,8 +224,8 @@ func (c *ConfigurationWatcher) throttleProviderConfigReload(ctx context.Context,
 				logger.Info("Skipping same configuration")
 				continue
 			}
-			previousConfig = nextConfig
-			ring.In() <- nextConfig
+			previousConfig = *nextConfig.DeepCopy()
+			ring.In() <- *nextConfig.DeepCopy()
 		}
 	}
 }

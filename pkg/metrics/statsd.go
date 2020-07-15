@@ -11,8 +11,10 @@ import (
 	"github.com/go-kit/kit/metrics/statsd"
 )
 
-var statsdClient *statsd.Statsd
-var statsdTicker *time.Ticker
+var (
+	statsdClient *statsd.Statsd
+	statsdTicker *time.Ticker
+)
 
 const (
 	statsdMetricsServiceReqsName      = "service.request.total"
@@ -71,7 +73,7 @@ func RegisterStatsd(ctx context.Context, config *types.Statsd) Registry {
 	return registry
 }
 
-// initStatsdTicker initializes metrics pusher and creates a statsdClient if not created already
+// initStatsdTicker initializes metrics pusher and creates a statsdClient if not created already.
 func initStatsdTicker(ctx context.Context, config *types.Statsd) *time.Ticker {
 	address := config.Address
 	if len(address) == 0 {
@@ -87,7 +89,7 @@ func initStatsdTicker(ctx context.Context, config *types.Statsd) *time.Ticker {
 	return report
 }
 
-// StopStatsd stops internal statsdTicker which controls the pushing of metrics to StatsD Agent and resets it to `nil`
+// StopStatsd stops internal statsdTicker which controls the pushing of metrics to StatsD Agent and resets it to `nil`.
 func StopStatsd() {
 	if statsdTicker != nil {
 		statsdTicker.Stop()

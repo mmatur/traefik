@@ -189,45 +189,58 @@ func (o *OIDCAuth) SetDefaults() {
 	o.Scopes = []string{"openid"}
 	o.StateCookie = &OIDCAuthStateCookie{
 		Name:     "%s-state",
-		MaxAge:   600,
+		MaxAge:   intPtr(600),
 		Path:     "/",
-		HTTPOnly: true,
+		HTTPOnly: boolPtr(true),
 		SameSite: "lax",
 	}
 	o.Session = &OIDCAuthSession{
 		Name:     "%s-session",
-		Expiry:   86400,
+		Expiry:   intPtr(86400),
 		Path:     "/",
-		HTTPOnly: true,
+		HTTPOnly: boolPtr(true),
 		SameSite: "lax",
-		Refresh:  true,
-		Sliding:  true,
+		Refresh:  boolPtr(true),
+		Sliding:  boolPtr(true),
 	}
 }
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func intPtr(v int) *int {
+	return &v
+}
+
+// +k8s:deepcopy-gen=true
 
 // OIDCAuthStateCookie carries the state cookie configuration.
 type OIDCAuthStateCookie struct {
 	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
 	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
 	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
-	MaxAge   int    `json:"maxAge,omitempty" toml:"maxAge,omitempty" yaml:"maxAge,omitempty"`
+	MaxAge   *int   `json:"maxAge,omitempty" toml:"maxAge,omitempty" yaml:"maxAge,omitempty"`
 	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
-	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
+	HTTPOnly *bool  `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
 	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
 }
 
+// +k8s:deepcopy-gen=true
+
 // OIDCAuthSession carries session and session cookie configuration.
 type OIDCAuthSession struct {
-	Secret   string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
-	Name     string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
-	Path     string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
-	Domain   string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
-	Expiry   int    `json:"expiry,omitempty" toml:"expiry,omitempty" yaml:"expiry,omitempty"`
-	SameSite string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
-	HTTPOnly bool   `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
-	Secure   bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
-	Refresh  bool   `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
-	Sliding  bool   `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
+	Secret     string `json:"secret,omitempty" toml:"secret,omitempty" yaml:"secret,omitempty"`
+	RealSecret string `json:"-" toml:"-" yaml:"-"`
+	Name       string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty"`
+	Path       string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
+	Domain     string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
+	Expiry     *int   `json:"expiry,omitempty" toml:"expiry,omitempty" yaml:"expiry,omitempty"`
+	SameSite   string `json:"sameSite,omitempty" toml:"sameSite,omitempty" yaml:"sameSite,omitempty"`
+	HTTPOnly   *bool  `json:"httpOnly,omitempty" toml:"httpOnly,omitempty" yaml:"httpOnly,omitempty"`
+	Secure     bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
+	Refresh    *bool  `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
+	Sliding    *bool  `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
