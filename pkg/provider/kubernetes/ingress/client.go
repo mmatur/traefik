@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containous/traefik/v2/pkg/log"
+	"github.com/golang/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -63,7 +64,7 @@ type clientWrapper struct {
 func newInClusterClient(endpoint string) (*clientWrapper, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create in-cluster configuration: %s", err)
+		return nil, fmt.Errorf("failed to create in-cluster configuration: %w", err)
 	}
 
 	if endpoint != "" {
@@ -97,7 +98,7 @@ func newExternalClusterClient(endpoint, token, caFilePath string) (*clientWrappe
 	if caFilePath != "" {
 		caData, err := ioutil.ReadFile(caFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read CA file %s: %s", caFilePath, err)
+			return nil, fmt.Errorf("failed to read CA file %s: %w", caFilePath, err)
 		}
 
 		config.TLSClientConfig = rest.TLSClientConfig{CAData: caData}
@@ -187,9 +188,7 @@ func (c *clientWrapper) GetIngresses() []*networkingv1beta1.Ingress {
 	return results
 }
 
-func extensionsToNetworking(ing *extensionsv1beta1.Ingress) (*networkingv1beta1.Ingress, error) {
-	log.Warnf("Ingress %s/%s: the apiVersion 'extensions/v1beta1' is deprecated, use 'networking.k8s.io/v1beta1' instead.", ing.Namespace, ing.Name)
-
+func extensionsToNetworking(ing proto.Marshaler) (*networkingv1beta1.Ingress, error) {
 	data, err := ing.Marshal()
 	if err != nil {
 		return nil, err
@@ -216,7 +215,7 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 
 	ing, err := c.factories[c.lookupNamespace(src.Namespace)].Networking().V1beta1().Ingresses().Lister().Ingresses(src.Namespace).Get(src.Name)
 	if err != nil {
-		return fmt.Errorf("failed to get ingress %s/%s: %v", src.Namespace, src.Name, err)
+		return fmt.Errorf("failed to get ingress %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
 	if len(ing.Status.LoadBalancer.Ingress) > 0 {
@@ -232,7 +231,7 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 
 	_, err = c.clientset.NetworkingV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ingCopy)
 	if err != nil {
-		return fmt.Errorf("failed to update ingress status %s/%s: %v", src.Namespace, src.Name, err)
+		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
 	log.Infof("Updated status on ingress %s/%s", src.Namespace, src.Name)
@@ -242,7 +241,7 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, ip, hostname string) error {
 	ing, err := c.factories[c.lookupNamespace(src.Namespace)].Extensions().V1beta1().Ingresses().Lister().Ingresses(src.Namespace).Get(src.Name)
 	if err != nil {
-		return fmt.Errorf("failed to get ingress %s/%s: %v", src.Namespace, src.Name, err)
+		return fmt.Errorf("failed to get ingress %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
 	if len(ing.Status.LoadBalancer.Ingress) > 0 {
@@ -258,7 +257,7 @@ func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, i
 
 	_, err = c.clientset.ExtensionsV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ingCopy)
 	if err != nil {
-		return fmt.Errorf("failed to update ingress status %s/%s: %v", src.Namespace, src.Name, err)
+		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
 	log.Infof("Updated status on ingress %s/%s", src.Namespace, src.Name)

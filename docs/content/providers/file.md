@@ -47,22 +47,22 @@ You can write one of these mutually exclusive configuration elements:
           middlewares = ["my-basic-auth"]
           service = "service-foo"
           rule = "Path(`/foo`)"
-    
-        # Add the middleware
-        [http.middlewares]    
-          [http.middlewares.my-basic-auth.basicAuth]
-            users = ["test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/", 
-                      "test2:$apr1$d9hr9HBB$4HxwgUir3HP4EsggP/QNo0"]
-            usersFile = "etc/traefik/.htpasswd"
-        
-        # Add the service
-        [http.services]
-          [http.services.service-foo]
-            [http.services.service-foo.loadBalancer]
-              [[http.services.service-foo.loadBalancer.servers]]
-                url = "http://foo/"
-              [[http.services.service-foo.loadBalancer.servers]]
-                url = "http://bar/"
+      
+      # Add the middleware
+      [http.middlewares]    
+        [http.middlewares.my-basic-auth.basicAuth]
+          users = ["test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/", 
+                    "test2:$apr1$d9hr9HBB$4HxwgUir3HP4EsggP/QNo0"]
+          usersFile = "etc/traefik/.htpasswd"
+      
+      # Add the service
+      [http.services]
+        [http.services.service-foo]
+          [http.services.service-foo.loadBalancer]
+            [[http.services.service-foo.loadBalancer.servers]]
+              url = "http://foo/"
+            [[http.services.service-foo.loadBalancer.servers]]
+              url = "http://bar/"
     ```
     
     ```yaml tab="YAML"
@@ -191,14 +191,14 @@ providers:
 ### Go Templating
 
 !!! warning
-    Go Templating only works along with dedicated dynamic configuration files.
+    Go Templating only works with dedicated dynamic configuration files.
     Templating does not work in the Traefik main static configuration file.
 
-Traefik allows using Go templating,
-it must be a valid [Go template](https://golang.org/pkg/text/template/),
-augmented with the [sprig template functions](http://masterminds.github.io/sprig/).
+Traefik supports using Go templating to automatically generate repetitive portions of configuration files.
+These sections must be valid [Go templates](https://golang.org/pkg/text/template/),
+augmented with the [Sprig template functions](http://masterminds.github.io/sprig/).
 
-Thus, it's possible to define easily lot of routers, services and TLS certificates as described in the following examples:
+To illustrate, it's possible to easily define multiple routers, services, and TLS certificates as described in the following examples:
 
 ??? example "Configuring Using Templating"
     

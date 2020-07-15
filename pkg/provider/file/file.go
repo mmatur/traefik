@@ -40,7 +40,7 @@ func (p *Provider) SetDefaults() {
 	p.Filename = ""
 }
 
-// Init the provider
+// Init the provider.
 func (p *Provider) Init() error {
 	return nil
 }
@@ -49,7 +49,6 @@ func (p *Provider) Init() error {
 // using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	configuration, err := p.BuildConfiguration()
-
 	if err != nil {
 		return err
 	}
@@ -75,8 +74,8 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 	return nil
 }
 
-// BuildConfiguration loads configuration either from file or a directory specified by 'Filename'/'Directory'
-// and returns a 'Configuration' object
+// BuildConfiguration loads configuration either from file or a directory
+// specified by 'Filename'/'Directory' and returns a 'Configuration' object.
 func (p *Provider) BuildConfiguration() (*dynamic.Configuration, error) {
 	ctx := log.With(context.Background(), log.Str(log.ProviderName, providerName))
 
@@ -94,12 +93,12 @@ func (p *Provider) BuildConfiguration() (*dynamic.Configuration, error) {
 func (p *Provider) addWatcher(pool *safe.Pool, directory string, configurationChan chan<- dynamic.Message, callback func(chan<- dynamic.Message, fsnotify.Event)) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return fmt.Errorf("error creating file watcher: %s", err)
+		return fmt.Errorf("error creating file watcher: %w", err)
 	}
 
 	err = watcher.Add(directory)
 	if err != nil {
-		return fmt.Errorf("error adding file watcher: %s", err)
+		return fmt.Errorf("error adding file watcher: %w", err)
 	}
 
 	// Process events
@@ -201,7 +200,7 @@ func flattenCertificates(ctx context.Context, tlsConfig *dynamic.TLSConfiguratio
 func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory string, configuration *dynamic.Configuration) (*dynamic.Configuration, error) {
 	fileList, err := ioutil.ReadDir(directory)
 	if err != nil {
-		return configuration, fmt.Errorf("unable to read directory %s: %v", directory, err)
+		return configuration, fmt.Errorf("unable to read directory %s: %w", directory, err)
 	}
 
 	if configuration == nil {
@@ -234,7 +233,7 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		if item.IsDir() {
 			configuration, err = p.loadFileConfigFromDirectory(ctx, filepath.Join(directory, item.Name()), configuration)
 			if err != nil {
-				return configuration, fmt.Errorf("unable to load content configuration from subdirectory %s: %v", item, err)
+				return configuration, fmt.Errorf("unable to load content configuration from subdirectory %s: %w", item, err)
 			}
 			continue
 		}
@@ -249,7 +248,7 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 		var c *dynamic.Configuration
 		c, err = p.loadFileConfig(ctx, filepath.Join(directory, item.Name()), true)
 		if err != nil {
-			return configuration, fmt.Errorf("%s: %v", filepath.Join(directory, item.Name()), err)
+			return configuration, fmt.Errorf("%s: %w", filepath.Join(directory, item.Name()), err)
 		}
 
 		for name, conf := range c.HTTP.Routers {
@@ -354,10 +353,10 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 func (p *Provider) CreateConfiguration(ctx context.Context, filename string, funcMap template.FuncMap, templateObjects interface{}) (*dynamic.Configuration, error) {
 	tmplContent, err := readFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error reading configuration file: %s - %s", filename, err)
+		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
 	}
 
-	var defaultFuncMap = sprig.TxtFuncMap()
+	defaultFuncMap := sprig.TxtFuncMap()
 	defaultFuncMap["normalize"] = provider.Normalize
 	defaultFuncMap["split"] = strings.Split
 	for funcID, funcElement := range funcMap {
@@ -377,7 +376,7 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 		return nil, err
 	}
 
-	var renderedTemplate = buffer.String()
+	renderedTemplate := buffer.String()
 	if p.DebugLogGeneratedTemplate {
 		logger := log.FromContext(ctx)
 		logger.Debugf("Template content: %s", tmplContent)
@@ -391,13 +390,13 @@ func (p *Provider) CreateConfiguration(ctx context.Context, filename string, fun
 func (p *Provider) DecodeConfiguration(filename string) (*dynamic.Configuration, error) {
 	content, err := readFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error reading configuration file: %s - %s", filename, err)
+		return nil, fmt.Errorf("error reading configuration file: %s - %w", filename, err)
 	}
 
 	return p.decodeConfiguration(filename, content)
 }
 
-func (p *Provider) decodeConfiguration(filePath string, content string) (*dynamic.Configuration, error) {
+func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Configuration, error) {
 	configuration := &dynamic.Configuration{
 		HTTP: &dynamic.HTTPConfiguration{
 			Routers:     make(map[string]*dynamic.Router),

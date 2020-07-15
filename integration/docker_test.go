@@ -17,14 +17,14 @@ import (
 	checker "github.com/vdemeester/shakers"
 )
 
-// Images to have or pull before the build in order to make it work
-// FIXME handle this offline but loading them before build
+// Images to have or pull before the build in order to make it work.
+// FIXME handle this offline but loading them before build.
 var RequiredImages = map[string]string{
 	"swarm":             "1.0.0",
 	"containous/whoami": "latest",
 }
 
-// Docker test suites
+// Docker tests suite.
 type DockerSuite struct {
 	BaseSuite
 	project *docker.Project
@@ -43,7 +43,7 @@ func (s *DockerSuite) startContainerWithLabels(c *check.C, image string, labels 
 	})
 }
 
-func (s *DockerSuite) startContainerWithNameAndLabels(c *check.C, name string, image string, labels map[string]string, args ...string) string {
+func (s *DockerSuite) startContainerWithNameAndLabels(c *check.C, name, image string, labels map[string]string, args ...string) string {
 	return s.startContainerWithConfig(c, image, d.ContainerConfig{
 		Name:   name,
 		Cmd:    args,

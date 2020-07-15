@@ -19,7 +19,7 @@ import (
 	checker "github.com/vdemeester/shakers"
 )
 
-// Zk test suites (using libcompose)
+// Zk test suites (using libcompose).
 type ZookeeperSuite struct {
 	BaseSuite
 	kvClient store.Store
@@ -138,7 +138,7 @@ func (s *ZookeeperSuite) TestSimpleConfiguration(c *check.C) {
 	expectedJSON := filepath.FromSlash("testdata/rawdata-zk.json")
 
 	if *updateExpected {
-		err = ioutil.WriteFile(expectedJSON, got, 0666)
+		err = ioutil.WriteFile(expectedJSON, got, 0o666)
 		c.Assert(err, checker.IsNil)
 	}
 

@@ -139,7 +139,7 @@ func (p *passTLSClientCert) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 // - the `,` is used to separate certificates
 // - the `;` is used to separate root fields
 // - the value of root fields is always wrapped by double quote
-// - if a field is empty, the field is ignored
+// - if a field is empty, the field is ignored.
 func (p *passTLSClientCert) getCertInfo(ctx context.Context, certs []*x509.Certificate) string {
 	var headerValues []string
 
@@ -235,7 +235,7 @@ func writeParts(ctx context.Context, content io.StringWriter, entries []string, 
 	}
 }
 
-func writePart(ctx context.Context, content io.StringWriter, entry string, prefix string) {
+func writePart(ctx context.Context, content io.StringWriter, entry, prefix string) {
 	if len(entry) > 0 {
 		_, err := content.WriteString(fmt.Sprintf("%s=%s%s", prefix, entry, subFieldSeparator))
 		if err != nil {

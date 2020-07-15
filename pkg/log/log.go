@@ -15,7 +15,7 @@ const (
 	loggerKey contextKey = iota
 )
 
-// Logger the Traefik logger
+// Logger the Traefik logger.
 type Logger interface {
 	logrus.FieldLogger
 	WriterLevel(logrus.Level) *io.PipeWriter
@@ -57,14 +57,14 @@ func GetLevel() logrus.Level {
 	return logrus.GetLevel()
 }
 
-// Str adds a string field
+// Str adds a string field.
 func Str(key, value string) func(logrus.Fields) {
 	return func(fields logrus.Fields) {
 		fields[key] = value
 	}
 }
 
-// With Adds fields
+// With Adds fields.
 func With(ctx context.Context, opts ...func(logrus.Fields)) context.Context {
 	logger := FromContext(ctx)
 
@@ -77,7 +77,7 @@ func With(ctx context.Context, opts ...func(logrus.Fields)) context.Context {
 	return context.WithValue(ctx, loggerKey, logger)
 }
 
-// FromContext Gets the logger from context
+// FromContext Gets the logger from context.
 func FromContext(ctx context.Context) Logger {
 	if ctx == nil {
 		panic("nil context")
@@ -91,17 +91,17 @@ func FromContext(ctx context.Context) Logger {
 	return logger
 }
 
-// WithoutContext Gets the main logger
+// WithoutContext Gets the main logger.
 func WithoutContext() Logger {
 	return mainLogger
 }
 
-// OpenFile opens the log file using the specified path
+// OpenFile opens the log file using the specified path.
 func OpenFile(path string) error {
 	logFilePath = path
 
 	var err error
-	logFile, err = os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err = os.OpenFile(logFilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func OpenFile(path string) error {
 	return nil
 }
 
-// CloseFile closes the log and sets the Output to stdout
+// CloseFile closes the log and sets the Output to stdout.
 func CloseFile() error {
 	logrus.SetOutput(os.Stdout)
 
@@ -120,9 +120,8 @@ func CloseFile() error {
 	return nil
 }
 
-// RotateFile closes and reopens the log file to allow for rotation
-// by an external source.  If the log isn't backed by a file then
-// it does nothing.
+// RotateFile closes and reopens the log file to allow for rotation by an external source.
+// If the log isn't backed by a file then it does nothing.
 func RotateFile() error {
 	logger := FromContext(context.Background())
 

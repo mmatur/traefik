@@ -108,24 +108,24 @@ The Kubernetes Ingress Controller, The Custom Resource Way.
       name: myingressroute
       namespace: default
     
-    spec:
-      entryPoints:
-        - web
+      spec:
+        entryPoints:
+          - web
     
-      routes:
-      - match: Host(`foo`) && PathPrefix(`/bar`)
-        kind: Rule
-        services:
-        - name: whoami
-          port: 80
+        routes:
+          - match: Host(`foo`) && PathPrefix(`/bar`)
+            kind: Rule
+            services:
+            - name: whoami
+              port: 80
     
     ---
     apiVersion: traefik.containo.us/v1alpha1
-      kind: IngressRouteTCP
-      metadata:
-        name: ingressroute.tcp
+    kind: IngressRouteTCP
+    metadata:
+      name: ingressroute.tcp
       namespace: default
-      
+    
       spec:
         entryPoints:
           - tcpep
@@ -135,22 +135,22 @@ The Kubernetes Ingress Controller, The Custom Resource Way.
             services:
               - name: whoamitcp
                 port: 8080
-        
+    
     ---
     apiVersion: traefik.containo.us/v1alpha1
-       kind: IngressRouteUDP
-       metadata:
-         name: ingressroute.udp
-         namespace: default
-         
-       spec:
-         entryPoints:
-           - fooudp
-         routes:
-           - kind: Rule
-             services:
-               - name: whoamiudp
-                 port: 8080
+    kind: IngressRouteUDP
+    metadata:
+      name: ingressroute.udp
+      namespace: default
+    
+      spec:
+        entryPoints:
+          - fooudp
+        routes:
+          - kind: Rule
+            services:
+              - name: whoamiudp
+                port: 8080
     ```
     
     ```yaml tab="Whoami"
@@ -618,10 +618,12 @@ Register the `Middleware` [kind](../../reference/dynamic-configuration/kubernete
 
 !!! important "Cross-provider namespace"
 
-	As Kubernetes also has its own notion of namespace, one should not confuse the kubernetes namespace of a resource
-	(in the reference to the middleware) with the [provider namespace](../../middlewares/overview.md#provider-namespace),
-	when the definition of the middleware comes from another provider.
-	In this context, specifying a namespace when referring to the resource does not make any sense, and will be ignored.
+    As Kubernetes also has its own notion of namespace, one should not confuse the kubernetes namespace of a resource
+    (in the reference to the middleware) with the [provider namespace](../../middlewares/overview.md#provider-namespace),
+    when the definition of the middleware comes from another provider.
+    In this context, specifying a namespace when referring to the resource does not make any sense, and will be ignored.
+    Additionally, when you want to reference a Middleware from the CRD Provider,
+    you have to append the namespace of the resource in the resource-name as Traefik appends the namespace internally automatically.
 
 More information about available middlewares in the dedicated [middlewares section](../../middlewares/overview.md).
 

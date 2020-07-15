@@ -19,7 +19,7 @@ import (
 	checker "github.com/vdemeester/shakers"
 )
 
-// etcd test suites (using libcompose)
+// etcd test suites (using libcompose).
 type EtcdSuite struct {
 	BaseSuite
 	kvClient store.Store
@@ -138,7 +138,7 @@ func (s *EtcdSuite) TestSimpleConfiguration(c *check.C) {
 	expectedJSON := filepath.FromSlash("testdata/rawdata-etcd.json")
 
 	if *updateExpected {
-		err = ioutil.WriteFile(expectedJSON, got, 0666)
+		err = ioutil.WriteFile(expectedJSON, got, 0o666)
 		c.Assert(err, checker.IsNil)
 	}
 

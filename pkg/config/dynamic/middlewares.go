@@ -97,7 +97,7 @@ type Buffering struct {
 
 // +k8s:deepcopy-gen=true
 
-// Chain holds a chain of middlewares
+// Chain holds a chain of middlewares.
 type Chain struct {
 	Middlewares []string `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty"`
 }
@@ -193,13 +193,13 @@ type Headers struct {
 	IsDevelopment           bool              `json:"isDevelopment,omitempty" toml:"isDevelopment,omitempty" yaml:"isDevelopment,omitempty"`
 }
 
-// HasCustomHeadersDefined checks to see if any of the custom header elements have been set
+// HasCustomHeadersDefined checks to see if any of the custom header elements have been set.
 func (h *Headers) HasCustomHeadersDefined() bool {
 	return h != nil && (len(h.CustomResponseHeaders) != 0 ||
 		len(h.CustomRequestHeaders) != 0)
 }
 
-// HasCorsHeadersDefined checks to see if any of the cors header elements have been set
+// HasCorsHeadersDefined checks to see if any of the cors header elements have been set.
 func (h *Headers) HasCorsHeadersDefined() bool {
 	return h != nil && (h.AccessControlAllowCredentials ||
 		len(h.AccessControlAllowHeaders) != 0 ||
@@ -210,7 +210,7 @@ func (h *Headers) HasCorsHeadersDefined() bool {
 		h.AddVaryHeader)
 }
 
-// HasSecureHeadersDefined checks to see if any of the secure header elements have been set
+// HasSecureHeadersDefined checks to see if any of the secure header elements have been set.
 func (h *Headers) HasSecureHeadersDefined() bool {
 	return h != nil && (len(h.AllowedHosts) != 0 ||
 		len(h.HostsProxyHeaders) != 0 ||
@@ -247,7 +247,7 @@ type IPStrategy struct {
 // Get an IP selection strategy.
 // If nil return the RemoteAddr strategy
 // else return a strategy base on the configuration using the X-Forwarded-For Header.
-// Depth override the ExcludedIPs
+// Depth override the ExcludedIPs.
 func (s *IPStrategy) Get() (ip.Strategy, error) {
 	if s == nil {
 		return &ip.RemoteAddrStrategy{}, nil
@@ -288,13 +288,6 @@ type InFlightReq struct {
 	SourceCriterion *SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
 }
 
-// SetDefaults Default values for a InFlightReq.
-func (i *InFlightReq) SetDefaults() {
-	i.SourceCriterion = &SourceCriterion{
-		RequestHost: true,
-	}
-}
-
 // +k8s:deepcopy-gen=true
 
 // PassTLSClientCert holds the TLS client cert headers configuration.
@@ -306,8 +299,8 @@ type PassTLSClientCert struct {
 // +k8s:deepcopy-gen=true
 
 // SourceCriterion defines what criterion is used to group requests as originating from a common source.
-// The precedence order is IPStrategy, then RequestHeaderName.
 // If none are set, the default is to use the request's remote address field.
+// All fields are mutually exclusive.
 type SourceCriterion struct {
 	IPStrategy        *IPStrategy `json:"ipStrategy" toml:"ipStrategy, omitempty"`
 	RequestHeaderName string      `json:"requestHeaderName,omitempty" toml:"requestHeaderName,omitempty" yaml:"requestHeaderName,omitempty"`
@@ -339,9 +332,6 @@ type RateLimit struct {
 func (r *RateLimit) SetDefaults() {
 	r.Burst = 1
 	r.Period = types.Duration(time.Second)
-	r.SourceCriterion = &SourceCriterion{
-		IPStrategy: &IPStrategy{},
-	}
 }
 
 // +k8s:deepcopy-gen=true
@@ -432,7 +422,7 @@ type TLSCLientCertificateDNInfo struct {
 
 // +k8s:deepcopy-gen=true
 
-// Users holds a list of users
+// Users holds a list of users.
 type Users []string
 
 // +k8s:deepcopy-gen=true
@@ -461,7 +451,7 @@ func (c *ClientTLS) CreateTLSConfig() (*tls.Config, error) {
 		if _, errCA := os.Stat(c.CA); errCA == nil {
 			ca, err = ioutil.ReadFile(c.CA)
 			if err != nil {
-				return nil, fmt.Errorf("failed to read CA. %s", err)
+				return nil, fmt.Errorf("failed to read CA. %w", err)
 			}
 		} else {
 			ca = []byte(c.CA)
@@ -490,7 +480,7 @@ func (c *ClientTLS) CreateTLSConfig() (*tls.Config, error) {
 			if errKeyIsFile == nil {
 				cert, err = tls.LoadX509KeyPair(c.Cert, c.Key)
 				if err != nil {
-					return nil, fmt.Errorf("failed to load TLS keypair: %v", err)
+					return nil, fmt.Errorf("failed to load TLS keypair: %w", err)
 				}
 			} else {
 				return nil, fmt.Errorf("tls cert is a file, but tls key is not")
@@ -499,7 +489,7 @@ func (c *ClientTLS) CreateTLSConfig() (*tls.Config, error) {
 			if errKeyIsFile != nil {
 				cert, err = tls.X509KeyPair([]byte(c.Cert), []byte(c.Key))
 				if err != nil {
-					return nil, fmt.Errorf("failed to load TLS keypair: %v", err)
+					return nil, fmt.Errorf("failed to load TLS keypair: %w", err)
 				}
 			} else {
 				return nil, fmt.Errorf("TLS key is a file, but tls cert is not")
