@@ -104,13 +104,13 @@ func (j *JWTAuth) SetDefaults() {
 // HMACAuth holds the HMAC Authentication Middleware configuration.
 type HMACAuth struct {
 	Source          string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
-	ValidateDigest  bool     `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
+	ValidateDigest  *bool    `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
 	EnforcedHeaders []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
 }
 
 // SetDefaults sets default values for an HMAC Authentication middleware.
 func (h *HMACAuth) SetDefaults() {
-	h.ValidateDigest = true
+	h.ValidateDigest = boolPtr(true)
 	h.EnforcedHeaders = []string{
 		"(request-target)",
 		"(created)",
@@ -204,14 +204,6 @@ func (o *OIDCAuth) SetDefaults() {
 	}
 }
 
-func boolPtr(v bool) *bool {
-	return &v
-}
-
-func intPtr(v int) *int {
-	return &v
-}
-
 // +k8s:deepcopy-gen=true
 
 // OIDCAuthStateCookie carries the state cookie configuration.
@@ -240,4 +232,12 @@ type OIDCAuthSession struct {
 	Secure     bool   `json:"secure,omitempty" toml:"secure,omitempty" yaml:"secure,omitempty"`
 	Refresh    *bool  `json:"refresh,omitempty" toml:"refresh,omitempty" yaml:"refresh,omitempty"`
 	Sliding    *bool  `json:"sliding,omitempty" toml:"sliding,omitempty" yaml:"sliding,omitempty"`
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func intPtr(v int) *int {
+	return &v
 }
