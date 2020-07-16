@@ -95,13 +95,13 @@ type JWTAuth struct {
 // HMACAuth holds the HMAC Authentication Middleware configuration.
 type HMACAuth struct {
 	Source          string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
-	ValidateDigest  bool     `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
+	ValidateDigest  *bool    `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
 	EnforcedHeaders []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
 }
 
 // SetDefaults sets default values for an HMAC Authentication middleware.
 func (h *HMACAuth) SetDefaults() {
-	h.ValidateDigest = true
+	h.ValidateDigest = boolPtr(true)
 	h.EnforcedHeaders = []string{
 		"(request-target)",
 		"(created)",
@@ -151,4 +151,8 @@ func (r *DistributedRateLimit) SetDefaults() {
 	r.SourceCriterion = &SourceCriterion{
 		IPStrategy: &IPStrategy{},
 	}
+}
+
+func boolPtr(v bool) *bool {
+	return &v
 }
