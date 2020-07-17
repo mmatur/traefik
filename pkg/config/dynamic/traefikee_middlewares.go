@@ -105,13 +105,13 @@ func (j *JWTAuth) SetDefaults() {
 // HMACAuth holds the HMAC Authentication Middleware configuration.
 type HMACAuth struct {
 	Source          string   `json:"source,omitempty" toml:"source,omitempty" yaml:"source,omitempty"`
-	ValidateDigest  bool     `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
+	ValidateDigest  *bool    `json:"validateDigest,omitempty" toml:"validateDigest,omitempty" yaml:"validateDigest,omitempty"`
 	EnforcedHeaders []string `json:"enforcedHeaders,omitempty" toml:"enforcedHeaders,omitempty" yaml:"enforcedHeaders,omitempty"`
 }
 
 // SetDefaults sets default values for an HMAC Authentication middleware.
 func (h *HMACAuth) SetDefaults() {
-	h.ValidateDigest = true
+	h.ValidateDigest = boolPtr(true)
 	h.EnforcedHeaders = []string{
 		"(request-target)",
 		"(created)",
@@ -205,14 +205,6 @@ func (o *OIDCAuth) SetDefaults() {
 	}
 }
 
-func boolPtr(v bool) *bool {
-	return &v
-}
-
-func intPtr(v int) *int {
-	return &v
-}
-
 // +k8s:deepcopy-gen=true
 
 // OIDCAuthStateCookie carries the state cookie configuration.
@@ -260,4 +252,12 @@ func (h *HTTPCache) SetDefaults() {
 	h.MaxTTL = 300
 	h.RequestMethods = []string{"GET", "HEAD"}
 	h.MemoryLimit = "1Gi"
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func intPtr(v int) *int {
+	return &v
 }
