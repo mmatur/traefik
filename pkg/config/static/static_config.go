@@ -72,7 +72,8 @@ type Configuration struct {
 
 // CertificateResolver contains the configuration for the different types of certificates resolver.
 type CertificateResolver struct {
-	ACME *acmeprovider.Configuration `description:"Enable ACME (Let's Encrypt): automatic SSL." json:"acme,omitempty" toml:"acme,omitempty" yaml:"acme,omitempty" export:"true"`
+	ACME  *acmeprovider.Configuration `description:"Enable ACME (Let's Encrypt): automatic SSL." json:"acme,omitempty" toml:"acme,omitempty" yaml:"acme,omitempty" export:"true"`
+	Vault *VaultPKI                   `description:"Enable Vault PKI" json:"vault,omitempty" toml:"vault,omitempty" yaml:"vault,omitempty" export:"true"`
 }
 
 // Global holds the global configuration.
