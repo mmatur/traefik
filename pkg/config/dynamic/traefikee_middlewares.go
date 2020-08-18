@@ -239,18 +239,15 @@ type OIDCAuthSession struct {
 
 // HTTPCache holds the HTTP Cache Middleware configuration.
 type HTTPCache struct {
-	MaxTTL                   int      `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
-	ResponseCodes            []string `json:"responseCodes,omitempty" toml:"responseCodes,omitempty" yaml:"responseCodes,omitempty"`
-	RequestMethods           []string `json:"requestMethods,omitempty" toml:"requestMethods,omitempty" yaml:"requestMethods,omitempty"`
-	DisableCacheControl      bool     `json:"disableCacheControl,omitempty" toml:"disableCacheControl,omitempty" yaml:"disableCacheControl,omitempty"`
-	DisableCacheStatusHeader bool     `json:"disableCacheStatusHeader,omitempty" toml:"disableCacheStatusHeader,omitempty" yaml:"disableCacheStatusHeader,omitempty"`
-	MemoryLimit              string   `json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty"`
+	MaxTTL                   int    `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
+	DisableCacheStatusHeader bool   `json:"disableCacheStatusHeader,omitempty" toml:"disableCacheStatusHeader,omitempty" yaml:"disableCacheStatusHeader,omitempty"`
+	MemoryLimit              string `json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty"`
+	StalePeriod              int    `json:"stalePeriod,omitempty" toml:"stalePeriod,omitempty" yaml:"stalePeriod,omitempty"`
 }
 
 // SetDefaults sets default values for an HTTP cache middleware.
 func (h *HTTPCache) SetDefaults() {
 	h.MaxTTL = 300
-	h.RequestMethods = []string{"GET", "HEAD"}
 	h.MemoryLimit = "1Gi"
 }
 
