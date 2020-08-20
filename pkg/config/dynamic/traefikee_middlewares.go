@@ -242,7 +242,7 @@ type HTTPCache struct {
 	MaxTTL                   int    `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
 	DisableCacheStatusHeader bool   `json:"disableCacheStatusHeader,omitempty" toml:"disableCacheStatusHeader,omitempty" yaml:"disableCacheStatusHeader,omitempty"`
 	MemoryLimit              string `json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty"`
-	StalePeriod              int    `json:"stalePeriod,omitempty" toml:"stalePeriod,omitempty" yaml:"stalePeriod,omitempty"`
+	MaxStale                 int    `json:"maxStale,omitempty" toml:"maxStale,omitempty" yaml:"maxStale,omitempty"`
 }
 
 // SetDefaults sets default values for an HTTP cache middleware.
