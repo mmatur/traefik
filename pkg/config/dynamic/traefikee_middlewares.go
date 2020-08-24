@@ -239,16 +239,27 @@ type OIDCAuthSession struct {
 
 // HTTPCache holds the HTTP Cache Middleware configuration.
 type HTTPCache struct {
-	MaxTTL                   int    `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
-	DisableCacheStatusHeader bool   `json:"disableCacheStatusHeader,omitempty" toml:"disableCacheStatusHeader,omitempty" yaml:"disableCacheStatusHeader,omitempty"`
-	MemoryLimit              string `json:"memoryLimit,omitempty" toml:"memoryLimit,omitempty" yaml:"memoryLimit,omitempty"`
-	MaxStale                 int    `json:"maxStale,omitempty" toml:"maxStale,omitempty" yaml:"maxStale,omitempty"`
+	MaxTTL                   int               `json:"maxTtl,omitempty" toml:"maxTtl,omitempty" yaml:"maxTtl,omitempty"`
+	DisableCacheStatusHeader bool              `json:"disableCacheStatusHeader,omitempty" toml:"disableCacheStatusHeader,omitempty" yaml:"disableCacheStatusHeader,omitempty"`
+	MaxStale                 int               `json:"maxStale,omitempty" toml:"maxStale,omitempty" yaml:"maxStale,omitempty"`
+	Memory                   *MemoryCacheStore `json:"memory,omitempty" toml:"memory,omitempty" yaml:"memory,omitempty" label:"allowEmpty" file:"allowEmpty"`
 }
 
 // SetDefaults sets default values for an HTTP cache middleware.
 func (h *HTTPCache) SetDefaults() {
 	h.MaxTTL = 300
-	h.MemoryLimit = "1Gi"
+}
+
+// +k8s:deepcopy-gen=true
+
+// MemoryCacheStore holds the configuration for the in memory cache store.
+type MemoryCacheStore struct {
+	Limit string `json:"limit,omitempty" toml:"limit,omitempty" yaml:"limit,omitempty"`
+}
+
+// SetDefaults sets default values for an HTTP cache middleware.
+func (h *MemoryCacheStore) SetDefaults() {
+	h.Limit = "1Gi"
 }
 
 func boolPtr(v bool) *bool {
