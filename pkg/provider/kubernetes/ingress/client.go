@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/containous/traefik/v2/pkg/log"
 	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-version"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -21,7 +23,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const resyncPeriod = 10 * time.Minute
+const (
+	resyncPeriod   = 10 * time.Minute
+	defaultTimeout = 5 * time.Second
+)
 
 type resourceEventHandler struct {
 	ev chan<- interface{}
@@ -45,15 +50,18 @@ func (reh *resourceEventHandler) OnDelete(obj interface{}) {
 type Client interface {
 	WatchAll(namespaces []string, stopCh <-chan struct{}) (<-chan interface{}, error)
 	GetIngresses() []*networkingv1beta1.Ingress
+	GetIngressClass() (*networkingv1beta1.IngressClass, error)
 	GetService(namespace, name string) (*corev1.Service, bool, error)
 	GetSecret(namespace, name string) (*corev1.Secret, bool, error)
 	GetEndpoints(namespace, name string) (*corev1.Endpoints, bool, error)
 	UpdateIngressStatus(ing *networkingv1beta1.Ingress, ip, hostname string) error
+	GetServerVersion() (*version.Version, error)
 }
 
 type clientWrapper struct {
 	clientset            *kubernetes.Clientset
 	factories            map[string]informers.SharedInformerFactory
+	clusterFactory       informers.SharedInformerFactory
 	ingressLabelSelector labels.Selector
 	isNamespaceAll       bool
 	watchedNamespaces    []string
@@ -148,9 +156,27 @@ func (c *clientWrapper) WatchAll(namespaces []string, stopCh <-chan struct{}) (<
 	}
 
 	for _, ns := range namespaces {
-		for t, ok := range c.factories[ns].WaitForCacheSync(stopCh) {
+		for typ, ok := range c.factories[ns].WaitForCacheSync(stopCh) {
 			if !ok {
-				return nil, fmt.Errorf("timed out waiting for controller caches to sync %s in namespace %q", t.String(), ns)
+				return nil, fmt.Errorf("timed out waiting for controller caches to sync %s in namespace %q", typ, ns)
+			}
+		}
+	}
+
+	serverVersion, err := c.GetServerVersion()
+	if err != nil {
+		log.WithoutContext().Errorf("Failed to get server version: %v", err)
+		return eventCh, nil
+	}
+
+	if supportsIngressClass(serverVersion) {
+		c.clusterFactory = informers.NewSharedInformerFactoryWithOptions(c.clientset, resyncPeriod)
+		c.clusterFactory.Networking().V1beta1().IngressClasses().Informer().AddEventHandler(eventHandler)
+		c.clusterFactory.Start(stopCh)
+
+		for typ, ok := range c.clusterFactory.WaitForCacheSync(stopCh) {
+			if !ok {
+				return nil, fmt.Errorf("timed out waiting for controller caches to sync %s", typ)
 			}
 		}
 	}
@@ -229,7 +255,10 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 	ingCopy := ing.DeepCopy()
 	ingCopy.Status = networkingv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{{IP: ip, Hostname: hostname}}}}
 
-	_, err = c.clientset.NetworkingV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ingCopy)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	_, err = c.clientset.NetworkingV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ctx, ingCopy, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
@@ -255,7 +284,10 @@ func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, i
 	ingCopy := ing.DeepCopy()
 	ingCopy.Status = extensionsv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{{IP: ip, Hostname: hostname}}}}
 
-	_, err = c.clientset.ExtensionsV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ingCopy)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	_, err = c.clientset.ExtensionsV1beta1().Ingresses(ingCopy.Namespace).UpdateStatus(ctx, ingCopy, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
@@ -297,6 +329,25 @@ func (c *clientWrapper) GetSecret(namespace, name string) (*corev1.Secret, bool,
 	return secret, exist, err
 }
 
+func (c *clientWrapper) GetIngressClass() (*networkingv1beta1.IngressClass, error) {
+	if c.clusterFactory == nil {
+		return nil, errors.New("failed to find ingressClass: factory not loaded")
+	}
+
+	ingressClasses, err := c.clusterFactory.Networking().V1beta1().IngressClasses().Lister().List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ic := range ingressClasses {
+		if ic.Spec.Controller == traefikDefaultIngressClassController {
+			return ic, nil
+		}
+	}
+
+	return nil, nil
+}
+
 // lookupNamespace returns the lookup namespace key for the given namespace.
 // When listening on all namespaces, it returns the client-go identifier ("")
 // for all-namespaces. Otherwise, it returns the given namespace.
@@ -327,6 +378,16 @@ func (c *clientWrapper) newResourceEventHandler(events chan<- interface{}) cache
 		},
 		Handler: &resourceEventHandler{ev: events},
 	}
+}
+
+// GetServerVersion returns the cluster server version, or an error.
+func (c *clientWrapper) GetServerVersion() (*version.Version, error) {
+	serverVersion, err := c.clientset.Discovery().ServerVersion()
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve server version: %w", err)
+	}
+
+	return version.NewVersion(serverVersion.GitVersion)
 }
 
 // eventHandlerFunc will pass the obj on to the events channel or drop it.
@@ -360,4 +421,12 @@ func (c *clientWrapper) isWatchedNamespace(ns string) bool {
 		}
 	}
 	return false
+}
+
+// IngressClass objects are supported since Kubernetes v1.18.
+// See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class
+func supportsIngressClass(serverVersion *version.Version) bool {
+	ingressClassVersion := version.Must(version.NewVersion("1.18"))
+
+	return ingressClassVersion.LessThanOrEqual(serverVersion)
 }

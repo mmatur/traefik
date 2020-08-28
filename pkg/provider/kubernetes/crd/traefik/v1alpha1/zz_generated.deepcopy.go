@@ -689,8 +689,10 @@ func (in *MiddlewareSpec) DeepCopyInto(out *MiddlewareSpec) {
 	}
 	if in.Plugin != nil {
 		in, out := &in.Plugin, &out.Plugin
-		*out = new(dynamic.Plugin)
-		(*in).DeepCopyInto(*out)
+		*out = make(map[string]dynamic.PluginConf, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
 	}
 	return
 }

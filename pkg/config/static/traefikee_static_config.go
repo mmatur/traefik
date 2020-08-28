@@ -3,7 +3,7 @@ package static
 import (
 	"time"
 
-	"github.com/containous/traefik/v2/pkg/types"
+	"github.com/traefik/paerser/types"
 )
 
 // Plugin holds TraefikEE-specific Provider configuration.

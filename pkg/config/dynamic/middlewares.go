@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containous/traefik/v2/pkg/ip"
-	"github.com/containous/traefik/v2/pkg/types"
+	ptypes "github.com/traefik/paerser/types"
 )
 
 // +k8s:deepcopy-gen=true
@@ -39,7 +39,7 @@ type Middleware struct {
 	Retry             *Retry             `json:"retry,omitempty" toml:"retry,omitempty" yaml:"retry,omitempty"`
 	ContentType       *ContentType       `json:"contentType,omitempty" toml:"contentType,omitempty" yaml:"contentType,omitempty"`
 
-	Plugin *Plugin `json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
+	Plugin map[string]PluginConf `json:"plugin,omitempty" toml:"plugin,omitempty" yaml:"plugin,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -319,7 +319,7 @@ type RateLimit struct {
 
 	// Period, in combination with Average, defines the actual maximum rate, such as:
 	// r = Average / Period. It defaults to a second.
-	Period types.Duration `json:"period,omitempty" toml:"period,omitempty" yaml:"period,omitempty"`
+	Period ptypes.Duration `json:"period,omitempty" toml:"period,omitempty" yaml:"period,omitempty"`
 
 	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
 	// It defaults to 1.
@@ -331,7 +331,7 @@ type RateLimit struct {
 // SetDefaults sets the default values on a RateLimit.
 func (r *RateLimit) SetDefaults() {
 	r.Burst = 1
-	r.Period = types.Duration(time.Second)
+	r.Period = ptypes.Duration(time.Second)
 }
 
 // +k8s:deepcopy-gen=true

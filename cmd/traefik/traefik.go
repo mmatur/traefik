@@ -15,13 +15,16 @@ import (
 	"github.com/containous/traefik/v2/cmd"
 	"github.com/containous/traefik/v2/cmd/healthcheck"
 	cmdVersion "github.com/containous/traefik/v2/cmd/version"
-	"github.com/containous/traefik/v2/pkg/cli"
+	tcli "github.com/containous/traefik/v2/pkg/cli"
 	"github.com/containous/traefik/v2/pkg/collector"
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
+	"github.com/containous/traefik/v2/pkg/config/runtime"
 	"github.com/containous/traefik/v2/pkg/config/static"
 	"github.com/containous/traefik/v2/pkg/log"
 	"github.com/containous/traefik/v2/pkg/metrics"
 	"github.com/containous/traefik/v2/pkg/middlewares/accesslog"
+	"github.com/containous/traefik/v2/pkg/pilot"
+	"github.com/containous/traefik/v2/pkg/plugins"
 	"github.com/containous/traefik/v2/pkg/provider/acme"
 	"github.com/containous/traefik/v2/pkg/provider/aggregator"
 	"github.com/containous/traefik/v2/pkg/provider/traefik"
@@ -35,6 +38,7 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/sirupsen/logrus"
+	"github.com/traefik/paerser/cli"
 	"github.com/vulcand/oxy/roundrobin"
 )
 
@@ -42,7 +46,7 @@ func main() {
 	// traefik config inits
 	tConfig := cmd.NewTraefikConfiguration()
 
-	loaders := []cli.ResourceLoader{&cli.FileLoader{}, &cli.FlagLoader{}, &cli.EnvLoader{}}
+	loaders := []cli.ResourceLoader{&tcli.FileLoader{}, &tcli.FlagLoader{}, &tcli.EnvLoader{}}
 
 	cmdTraefik := &cli.Command{
 		Name: "traefik",
@@ -117,6 +121,12 @@ func runCmd(staticConfiguration *static.Configuration) error {
 
 	ctx := cmd.ContextWithSignal(context.Background())
 
+	if staticConfiguration.Experimental != nil && staticConfiguration.Experimental.DevPlugin != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Minute)
+		defer cancel()
+	}
+
 	if staticConfiguration.Ping != nil {
 		staticConfiguration.Ping.WithContext(ctx)
 	}
@@ -186,11 +196,36 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	ctx := context.Background()
 	routinesPool := safe.NewPool(ctx)
 
-	metricsRegistry := registerMetricClients(staticConfiguration.Metrics)
+	metricRegistries := registerMetricClients(staticConfiguration.Metrics)
+
+	var aviator *pilot.Pilot
+	if isPilotEnabled(staticConfiguration) {
+		pilotRegistry := metrics.RegisterPilot()
+
+		aviator = pilot.New(staticConfiguration.Experimental.Pilot.Token, pilotRegistry, routinesPool)
+		routinesPool.GoCtx(func(ctx context.Context) {
+			aviator.Tick(ctx)
+		})
+
+		metricRegistries = append(metricRegistries, pilotRegistry)
+	}
+
+	metricsRegistry := metrics.NewMultiRegistry(metricRegistries)
 	accessLog := setupAccessLog(staticConfiguration.AccessLog)
 	chainBuilder := middleware.NewChainBuilder(*staticConfiguration, metricsRegistry, accessLog)
 	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry)
-	routerFactory := server.NewRouterFactory(*staticConfiguration, managerFactory, tlsManager, chainBuilder)
+
+	client, plgs, devPlugin, err := initPlugins(staticConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	pluginBuilder, err := plugins.NewBuilder(client, plgs, devPlugin)
+	if err != nil {
+		return nil, err
+	}
+
+	routerFactory := server.NewRouterFactory(*staticConfiguration, managerFactory, tlsManager, chainBuilder, pluginBuilder)
 
 	var defaultEntryPoints []string
 	for name, cfg := range staticConfiguration.EntryPoints {
@@ -224,7 +259,7 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		metricsRegistry.LastConfigReloadSuccessGauge().Set(float64(time.Now().Unix()))
 	})
 
-	watcher.AddListener(switchRouter(routerFactory, acmeProviders, serverEntryPointsTCP, serverEntryPointsUDP))
+	watcher.AddListener(switchRouter(routerFactory, acmeProviders, serverEntryPointsTCP, serverEntryPointsUDP, aviator))
 
 	watcher.AddListener(func(conf dynamic.Configuration) {
 		if metricsRegistry.IsEpEnabled() || metricsRegistry.IsSvcEnabled() {
@@ -258,9 +293,12 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	return server.NewServer(routinesPool, serverEntryPointsTCP, serverEntryPointsUDP, watcher, chainBuilder, accessLog), nil
 }
 
-func switchRouter(routerFactory *server.RouterFactory, acmeProviders []*acme.Provider, serverEntryPointsTCP server.TCPEntryPoints, serverEntryPointsUDP server.UDPEntryPoints) func(conf dynamic.Configuration) {
+func switchRouter(routerFactory *server.RouterFactory, acmeProviders []*acme.Provider, serverEntryPointsTCP server.TCPEntryPoints, serverEntryPointsUDP server.UDPEntryPoints, aviator *pilot.Pilot) func(conf dynamic.Configuration) {
 	return func(conf dynamic.Configuration) {
-		routers, udpRouters := routerFactory.CreateRouters(conf)
+		rtConf := runtime.NewConfig(conf)
+
+		routers, udpRouters := routerFactory.CreateRouters(rtConf)
+
 		for entryPointName, rt := range routers {
 			for _, p := range acmeProviders {
 				if p != nil && p.HTTPChallenge != nil && p.HTTPChallenge.EntryPoint == entryPointName {
@@ -269,6 +307,11 @@ func switchRouter(routerFactory *server.RouterFactory, acmeProviders []*acme.Pro
 				}
 			}
 		}
+
+		if aviator != nil {
+			aviator.SetRuntimeConfiguration(rtConf)
+		}
+
 		serverEntryPointsTCP.Switch(routers)
 		serverEntryPointsUDP.Switch(udpRouters)
 	}
@@ -312,9 +355,9 @@ func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.Pr
 	return resolvers
 }
 
-func registerMetricClients(metricsConfig *types.Metrics) metrics.Registry {
+func registerMetricClients(metricsConfig *types.Metrics) []metrics.Registry {
 	if metricsConfig == nil {
-		return metrics.NewVoidRegistry()
+		return nil
 	}
 
 	var registries []metrics.Registry
@@ -349,7 +392,7 @@ func registerMetricClients(metricsConfig *types.Metrics) metrics.Registry {
 			metricsConfig.InfluxDB.Address, metricsConfig.InfluxDB.PushInterval)
 	}
 
-	return metrics.NewMultiRegistry(registries)
+	return registries
 }
 
 func setupAccessLog(conf *types.AccessLog) *accesslog.Handler {

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/containous/traefik/v2/pkg/config/dynamic"
-	"github.com/containous/traefik/v2/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ptypes "github.com/traefik/paerser/types"
 )
 
 func TestDecodeConfiguration(t *testing.T) {
@@ -123,18 +123,19 @@ func TestDecodeConfiguration(t *testing.T) {
 		"traefik.http.middlewares.Middleware17.stripprefix.prefixes":                               "foobar, fiibar",
 		"traefik.http.middlewares.Middleware18.stripprefixregex.regex":                             "foobar, fiibar",
 		"traefik.http.middlewares.Middleware19.compress":                                           "true",
-
-		"traefik.http.routers.Router0.entrypoints": "foobar, fiibar",
-		"traefik.http.routers.Router0.middlewares": "foobar, fiibar",
-		"traefik.http.routers.Router0.priority":    "42",
-		"traefik.http.routers.Router0.rule":        "foobar",
-		"traefik.http.routers.Router0.tls":         "true",
-		"traefik.http.routers.Router0.service":     "foobar",
-		"traefik.http.routers.Router1.entrypoints": "foobar, fiibar",
-		"traefik.http.routers.Router1.middlewares": "foobar, fiibar",
-		"traefik.http.routers.Router1.priority":    "42",
-		"traefik.http.routers.Router1.rule":        "foobar",
-		"traefik.http.routers.Router1.service":     "foobar",
+		"traefik.http.middlewares.Middleware20.plugin.tomato.aaa":                                  "foo1",
+		"traefik.http.middlewares.Middleware20.plugin.tomato.bbb":                                  "foo2",
+		"traefik.http.routers.Router0.entrypoints":                                                 "foobar, fiibar",
+		"traefik.http.routers.Router0.middlewares":                                                 "foobar, fiibar",
+		"traefik.http.routers.Router0.priority":                                                    "42",
+		"traefik.http.routers.Router0.rule":                                                        "foobar",
+		"traefik.http.routers.Router0.tls":                                                         "true",
+		"traefik.http.routers.Router0.service":                                                     "foobar",
+		"traefik.http.routers.Router1.entrypoints":                                                 "foobar, fiibar",
+		"traefik.http.routers.Router1.middlewares":                                                 "foobar, fiibar",
+		"traefik.http.routers.Router1.priority":                                                    "42",
+		"traefik.http.routers.Router1.rule":                                                        "foobar",
+		"traefik.http.routers.Router1.service":                                                     "foobar",
 
 		"traefik.http.services.Service0.loadbalancer.healthcheck.headers.name0":        "foobar",
 		"traefik.http.services.Service0.loadbalancer.healthcheck.headers.name1":        "foobar",
@@ -375,7 +376,7 @@ func TestDecodeConfiguration(t *testing.T) {
 					RateLimit: &dynamic.RateLimit{
 						Average: 42,
 						Burst:   42,
-						Period:  types.Duration(time.Second),
+						Period:  ptypes.Duration(time.Second),
 						SourceCriterion: &dynamic.SourceCriterion{
 							IPStrategy: &dynamic.IPStrategy{
 								Depth:       42,
@@ -571,6 +572,14 @@ func TestDecodeConfiguration(t *testing.T) {
 								"foobar",
 								"fiibar",
 							},
+						},
+					},
+				},
+				"Middleware20": {
+					Plugin: map[string]dynamic.PluginConf{
+						"tomato": {
+							"aaa": "foo1",
+							"bbb": "foo2",
 						},
 					},
 				},
@@ -827,7 +836,7 @@ func TestEncodeConfiguration(t *testing.T) {
 					RateLimit: &dynamic.RateLimit{
 						Average: 42,
 						Burst:   42,
-						Period:  types.Duration(time.Second),
+						Period:  ptypes.Duration(time.Second),
 						SourceCriterion: &dynamic.SourceCriterion{
 							IPStrategy: &dynamic.IPStrategy{
 								Depth:       42,
@@ -895,6 +904,14 @@ func TestEncodeConfiguration(t *testing.T) {
 						MaxResponseBodyBytes: 42,
 						MemResponseBodyBytes: 42,
 						RetryExpression:      "foobar",
+					},
+				},
+				"Middleware20": {
+					Plugin: map[string]dynamic.PluginConf{
+						"tomato": {
+							"aaa": "foo1",
+							"bbb": "foo2",
+						},
 					},
 				},
 				"Middleware3": {
@@ -1205,6 +1222,8 @@ func TestEncodeConfiguration(t *testing.T) {
 		"traefik.HTTP.Middlewares.Middleware17.StripPrefix.ForceSlash":                             "true",
 		"traefik.HTTP.Middlewares.Middleware18.StripPrefixRegex.Regex":                             "foobar, fiibar",
 		"traefik.HTTP.Middlewares.Middleware19.Compress":                                           "true",
+		"traefik.HTTP.Middlewares.Middleware20.Plugin.tomato.aaa":                                  "foo1",
+		"traefik.HTTP.Middlewares.Middleware20.Plugin.tomato.bbb":                                  "foo2",
 
 		"traefik.HTTP.Routers.Router0.EntryPoints": "foobar, fiibar",
 		"traefik.HTTP.Routers.Router0.Middlewares": "foobar, fiibar",

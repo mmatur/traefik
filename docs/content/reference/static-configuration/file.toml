@@ -151,6 +151,16 @@
       [providers.consulCatalog.endpoint.httpAuth]
         username = "foobar"
         password = "foobar"
+  [providers.ecs]
+    constraints = "foobar"
+    exposedByDefault = true
+    refreshSeconds = 42
+    defaultRule = "foobar"
+    clusters = ["foobar", "foobar"]
+    autoDiscoverClusters = true
+    region = "foobar"
+    accessKeyID = "foobar"
+    secretAccessKey = "foobar"
   [providers.consul]
     rootKey = "foobar"
     endpoints = ["foobar", "foobar"]
@@ -195,6 +205,16 @@
       cert = "foobar"
       key = "foobar"
       insecureSkipVerify = true
+  [providers.http]
+    endpoint = "foobar"
+    pollInterval = 42
+    pollTimeout = 42
+    [providers.http.tls]
+      ca = "foobar"
+      caOptional = true
+      cert = "foobar"
+      key = "foobar"
+      insecureSkipVerify = true
 
 [api]
   insecure = true
@@ -233,6 +253,7 @@
 [ping]
   entryPoint = "foobar"
   manualRouting = true
+  terminatingStatusCode = 42
 
 [log]
   level = "foobar"
@@ -269,6 +290,7 @@
     gen128Bit = true
     propagation = "foobar"
     traceContextHeaderName = "foobar"
+    disableAttemptReconnecting = true
     [tracing.jaeger.collector]
       endpoint = "foobar"
       user = "foobar"
@@ -338,3 +360,17 @@
       [certificatesResolvers.CertificateResolver1.acme.httpChallenge]
         entryPoint = "foobar"
       [certificatesResolvers.CertificateResolver1.acme.tlsChallenge]
+
+[experimental]
+  [experimental.pilot]
+    token = "foobar"
+  [experimental.plugins]
+    [experimental.plugins.Descriptor0]
+      moduleName = "foobar"
+      version = "foobar"
+    [experimental.plugins.Descriptor1]
+      moduleName = "foobar"
+      version = "foobar"
+  [experimental.devPlugin]
+    goPath = "foobar"
+    moduleName = "foobar"

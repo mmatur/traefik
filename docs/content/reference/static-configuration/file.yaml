@@ -161,6 +161,18 @@ providers:
       httpAuth:
         username: foobar
         password: foobar
+  ecs:
+    constraints: foobar
+    exposedByDefault: true
+    refreshSeconds: 42
+    defaultRule: foobar
+    clusters:
+    - foobar
+    - foobar
+    autoDiscoverClusters: true
+    region: foobar
+    accessKeyID: foobar
+    secretAccessKey: foobar
   consul:
     rootKey: foobar
     endpoints:
@@ -213,6 +225,16 @@ providers:
       cert: foobar
       key: foobar
       insecureSkipVerify: true
+  http:
+    endpoint: foobar
+    pollInterval: 42
+    pollTimeout: 42
+    tls:
+      ca: foobar
+      caOptional: true
+      cert: foobar
+      key: foobar
+      insecureSkipVerify: true
 api:
   insecure: true
   dashboard: true
@@ -250,6 +272,7 @@ metrics:
 ping:
   entryPoint: foobar
   manualRouting: true
+  terminatingStatusCode: 42
 log:
   level: foobar
   filePath: foobar
@@ -285,6 +308,7 @@ tracing:
     gen128Bit: true
     propagation: foobar
     traceContextHeaderName: foobar
+    disableAttemptReconnecting: true
     collector:
       endpoint: foobar
       user: foobar
@@ -356,3 +380,16 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: foobar
       tlsChallenge: {}
+experimental:
+  pilot:
+    token: foobar
+  plugins:
+    Descriptor0:
+      moduleName: foobar
+      version: foobar
+    Descriptor1:
+      moduleName: foobar
+      version: foobar
+  devPlugin:
+    goPath: foobar
+    moduleName: foobar
