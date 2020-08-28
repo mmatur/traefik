@@ -6,6 +6,11 @@ import (
 	"github.com/containous/traefik/v2/pkg/types"
 )
 
+// Plugin holds TraefikEE-specific Provider configuration.
+type Plugin struct {
+	Vault *Vault `description:"Enable Vault backend for TLS certificates with default settings." json:"vault" toml:"vault" yaml:"vault" export:"true"`
+}
+
 // Vault configures the Vault provider for TLS certificates.
 type Vault struct {
 	URL   string `description:"URL of the Vault API" json:"url" toml:"url" yaml:"url" export:"true"`
