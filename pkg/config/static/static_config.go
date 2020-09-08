@@ -32,13 +32,13 @@ import (
 	"github.com/containous/traefik/v2/pkg/tracing/zipkin"
 	"github.com/containous/traefik/v2/pkg/types"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
-	legolog "github.com/go-acme/lego/v3/log"
+	legolog "github.com/go-acme/lego/v4/log"
 	"github.com/sirupsen/logrus"
 	ptypes "github.com/traefik/paerser/types"
 )
 
 const (
-	// DefaultInternalEntryPointName the name of the default internal entry point
+	// DefaultInternalEntryPointName the name of the default internal entry point.
 	DefaultInternalEntryPointName = "traefik"
 
 	// DefaultGraceTimeout controls how long Traefik serves pending requests
@@ -48,7 +48,7 @@ const (
 	// DefaultIdleTimeout before closing an idle connection.
 	DefaultIdleTimeout = 180 * time.Second
 
-	// DefaultAcmeCAServer is the default ACME API endpoint
+	// DefaultAcmeCAServer is the default ACME API endpoint.
 	DefaultAcmeCAServer = "https://acme-v02.api.letsencrypt.org/directory"
 )
 

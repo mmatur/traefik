@@ -54,7 +54,7 @@
     "nestif", # Too many false-positive.
     "noctx", # Too strict
     "exhaustive", # Too strict
-    "gofumpt", # Disable until https://github.com/containous/traefik/pull/7002 gets merged
+    "nlreturn", # Too strict
   ]
 
 [issues]
