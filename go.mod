@@ -108,4 +108,5 @@ replace (
 	github.com/gorilla/mux => github.com/containous/mux v0.0.0-20181024131434-c33f32e26898
 	github.com/mailgun/minheap => github.com/containous/minheap v0.0.0-20190809180810-6e71eb837595
 	github.com/mailgun/multibuf => github.com/containous/multibuf v0.0.0-20190809014333-8b6c9a7e6bba
+	github.com/vulcand/oxy => github.com/traefik/oxy v1.1.1-0.20200929140604-2bd045cd4452
 )

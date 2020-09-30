@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	serverUp   = "UP"
-	serverDown = "DOWN"
+	serverUp    = "UP"
+	serverDown  = "DOWN"
+	serverDrain = "DRAIN"
 )
 
 var (
@@ -66,15 +67,15 @@ func (opt Options) String() string {
 }
 
 type backendURL struct {
-	url    *url.URL
-	weight int
+	state string
+	url   *url.URL
 }
 
 // BackendConfig HealthCheck configuration for a backend.
 type BackendConfig struct {
 	Options
-	name         string
-	disabledURLs []backendURL
+	name string
+	urls map[string]backendURL
 }
 
 func (b *BackendConfig) newRequest(serverURL *url.URL) (*http.Request, error) {
@@ -152,39 +153,46 @@ func (hc *HealthCheck) execute(ctx context.Context, backend *BackendConfig) {
 func (hc *HealthCheck) checkBackend(ctx context.Context, backend *BackendConfig) {
 	logger := log.FromContext(ctx)
 
+	if backend.urls == nil {
+		backend.urls = make(map[string]backendURL)
+	}
+
 	enabledURLs := backend.LB.Servers()
-	var newDisabledURLs []backendURL
-	for _, disabledURL := range backend.disabledURLs {
-		if err := checkHealth(disabledURL.url, backend); err == nil {
-			logger.Warnf("Health check up: Returning to server list. Backend: %q URL: %q Weight: %d",
-				backend.name, disabledURL.url.String(), disabledURL.weight)
-			if err = backend.LB.UpsertServer(disabledURL.url, roundrobin.Weight(disabledURL.weight)); err != nil {
-				logger.Error(err)
-			}
-		} else {
-			logger.Warnf("Health check still failing. Backend: %q URL: %q Reason: %s", backend.name, disabledURL.url.String(), err)
-			newDisabledURLs = append(newDisabledURLs, disabledURL)
+	for _, u := range enabledURLs {
+		if _, found := backend.urls[u.String()]; !found {
+			backend.urls[u.String()] = backendURL{state: serverUp, url: u}
 		}
 	}
-	backend.disabledURLs = newDisabledURLs
 
-	for _, enableURL := range enabledURLs {
-		if err := checkHealth(enableURL, backend); err != nil {
-			weight := 1
-			rr, ok := backend.LB.(*roundrobin.RoundRobin)
-			if ok {
-				var gotWeight bool
-				weight, gotWeight = rr.ServerWeight(enableURL)
-				if !gotWeight {
-					weight = 1
-				}
-			}
-			logger.Warnf("Health check failed, removing from server list. Backend: %q URL: %q Weight: %d Reason: %s", backend.name, enableURL.String(), weight, err)
-			if err := backend.LB.RemoveServer(enableURL); err != nil {
+	for _, bURL := range backend.urls {
+		newState, err := checkHealth(bURL.url, backend)
+		if err != nil {
+			logger.Warnf("Health check failed, Backend: %q URL: %q Reason: %v", backend.name, bURL.url.String(), err)
+		}
+		if newState == bURL.state {
+			continue
+		}
+
+		switch newState {
+		case serverUp:
+			logger.Warnf("Health check up: Returning to server list. Backend: %q URL: %q",
+				backend.name, bURL.url.String())
+			// The weight is not entirely correct as it ignores weighted round robin. This will be handled at a later stage.
+			if err = backend.LB.UpsertServer(bURL.url, roundrobin.Weight(1)); err != nil {
 				logger.Error(err)
 			}
-			backend.disabledURLs = append(backend.disabledURLs, backendURL{enableURL, weight})
+		case serverDrain:
+			logger.Debugf("Health check in drain mode. Backend: %q URL: %q", backend.name, bURL.url.String())
+			if err = backend.LB.UpsertServer(bURL.url, roundrobin.Weight(0)); err != nil {
+				logger.Error(err)
+			}
+		case serverDown:
+			logger.Warnf("Health check failed, removing from server list. Backend: %q URL: %q Reason: %v", backend.name, bURL.url.String(), err)
+			if err := backend.LB.RemoveServer(bURL.url); err != nil {
+				logger.Error(err)
+			}
 		}
+		backend.urls[bURL.url.String()] = backendURL{state: newState, url: bURL.url}
 	}
 }
 
@@ -212,10 +220,10 @@ func NewBackendConfig(options Options, backendName string) *BackendConfig {
 
 // checkHealth returns a nil error in case it was successful and otherwise
 // a non-nil error with a meaningful description why the health check failed.
-func checkHealth(serverURL *url.URL, backend *BackendConfig) error {
+func checkHealth(serverURL *url.URL, backend *BackendConfig) (string, error) {
 	req, err := backend.newRequest(serverURL)
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
+		return serverDown, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
 	req = backend.addHeadersAndHost(req)
@@ -233,16 +241,19 @@ func checkHealth(serverURL *url.URL, backend *BackendConfig) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("HTTP request failed: %w", err)
+		return serverDown, fmt.Errorf("HTTP request failed: %w", err)
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("received error status code: %v", resp.StatusCode)
+	switch {
+	case resp.StatusCode == http.StatusGone:
+		return serverDrain, fmt.Errorf("received draining status code: %d", resp.StatusCode)
+	case resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest:
+		return serverDown, fmt.Errorf("received error status code: %d", resp.StatusCode)
 	}
 
-	return nil
+	return serverUp, nil
 }
 
 // NewLBStatusUpdater returns a new LbStatusUpdater.
@@ -275,6 +286,12 @@ func (lb *LbStatusUpdater) RemoveServer(u *url.URL) error {
 func (lb *LbStatusUpdater) UpsertServer(u *url.URL, options ...roundrobin.ServerOption) error {
 	err := lb.BalancerHandler.UpsertServer(u, options...)
 	if err == nil && lb.serviceInfo != nil {
+		if rr, ok := lb.BalancerHandler.(*roundrobin.RoundRobin); ok {
+			if weight, _ := rr.ServerWeight(u); weight == 0 {
+				lb.serviceInfo.UpdateServerStatus(u.String(), serverDrain)
+				return nil
+			}
+		}
 		lb.serviceInfo.UpdateServerStatus(u.String(), serverUp)
 	}
 	return err

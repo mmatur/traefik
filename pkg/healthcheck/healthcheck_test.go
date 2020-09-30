@@ -33,6 +33,7 @@ func TestSetBackendsConfiguration(t *testing.T) {
 		healthSequence             []int
 		expectedNumRemovedServers  int
 		expectedNumUpsertedServers int
+		expectedNumDrainedServers  int
 		expectedGaugeValue         float64
 	}{
 		{
@@ -91,7 +92,28 @@ func TestSetBackendsConfiguration(t *testing.T) {
 			expectedNumUpsertedServers: 1,
 			expectedGaugeValue:         1,
 		},
+		{
+			desc:                       "healthy server toggling to drained",
+			startHealthy:               true,
+			healthSequence:             []int{http.StatusGone},
+			expectedNumRemovedServers:  0,
+			expectedNumUpsertedServers: 1,
+			expectedNumDrainedServers:  1,
+			expectedGaugeValue:         1,
+		},
+		{
+			desc:                       "healthy server toggling to drained to healthy",
+			startHealthy:               false,
+			healthSequence:             []int{http.StatusGone, http.StatusOK},
+			expectedNumRemovedServers:  0,
+			expectedNumUpsertedServers: 2,
+			expectedNumDrainedServers:  1,
+			expectedGaugeValue:         1,
+		},
 	}
+
+	err := roundrobin.SetDefaultWeight(0)
+	require.NoError(t, err)
 
 	for _, test := range testCases {
 		test := test
@@ -117,7 +139,12 @@ func TestSetBackendsConfiguration(t *testing.T) {
 			if test.startHealthy {
 				lb.servers = append(lb.servers, serverURL)
 			} else {
-				backend.disabledURLs = append(backend.disabledURLs, backendURL{url: serverURL, weight: 1})
+				backend.urls = map[string]backendURL{
+					serverURL.String(): {
+						state: serverDown,
+						url:   serverURL,
+					},
+				}
 			}
 
 			collectingMetrics := testhelpers.NewCollectingHealthCheckMetrics()
@@ -149,6 +176,7 @@ func TestSetBackendsConfiguration(t *testing.T) {
 
 			assert.Equal(t, test.expectedNumRemovedServers, lb.numRemovedServers, "removed servers")
 			assert.Equal(t, test.expectedNumUpsertedServers, lb.numUpsertedServers, "upserted servers")
+			assert.Equal(t, test.expectedNumDrainedServers, lb.numDrainedServers, "drained servers")
 			// FIXME re add metrics
 			// assert.Equal(t, test.expectedGaugeValue, collectingMetrics.Gauge.GaugeValue, "ServerUp Gauge")
 		})
@@ -369,6 +397,7 @@ type testLoadBalancer struct {
 	*sync.RWMutex
 	numRemovedServers  int
 	numUpsertedServers int
+	numDrainedServers  int
 	servers            []*url.URL
 	// options is just to make sure that LBStatusUpdater forwards options on Upsert to its BalancerHandler
 	options []roundrobin.ServerOption
@@ -389,6 +418,21 @@ func (lb *testLoadBalancer) RemoveServer(u *url.URL) error {
 func (lb *testLoadBalancer) UpsertServer(u *url.URL, options ...roundrobin.ServerOption) error {
 	lb.Lock()
 	defer lb.Unlock()
+
+	rr, err := roundrobin.New(nil)
+	if err != nil {
+		return err
+	}
+
+	err = rr.UpsertServer(u, options...)
+	if err != nil {
+		return err
+	}
+
+	if weight, _ := rr.ServerWeight(u); weight == 0 {
+		lb.numDrainedServers++
+	}
+
 	lb.numUpsertedServers++
 	lb.servers = append(lb.servers, u)
 	lb.options = append(lb.options, options...)
