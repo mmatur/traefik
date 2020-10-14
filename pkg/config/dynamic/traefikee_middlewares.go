@@ -1,5 +1,7 @@
 package dynamic
 
+import "github.com/containous/traefik/v2/pkg/types"
+
 // +k8s:deepcopy-gen=true
 
 // Plugin holds TraefikEE-specific Middleware configuration.
@@ -151,15 +153,14 @@ type DistributedRateLimit struct {
 	// Burst is the maximum number of requests allowed to arrive in the same arbitrarily small period of time.
 	// It defaults to 1.
 	Burst           int64            `json:"burst,omitempty" toml:"burst,omitempty" yaml:"burst,omitempty"`
+	Period          types.Duration   `json:"period,omitempty" toml:"period,omitempty" yaml:"period,omitempty"`
 	SourceCriterion *SourceCriterion `json:"sourceCriterion,omitempty" toml:"sourceCriterion,omitempty" yaml:"sourceCriterion,omitempty"`
 }
 
 // SetDefaults sets the default values on a DistributedRateLimit.
 func (r *DistributedRateLimit) SetDefaults() {
 	r.Burst = 1
-	r.SourceCriterion = &SourceCriterion{
-		IPStrategy: &IPStrategy{},
-	}
+	r.SourceCriterion = &SourceCriterion{}
 }
 
 // +k8s:deepcopy-gen=true
