@@ -1,3 +1,34 @@
+## [v2.3.2](https://github.com/traefik/traefik/tree/v2.3.2) (2020-10-19)
+[All Commits](https://github.com/traefik/traefik/compare/v2.3.1...v2.3.2)
+
+**Bug fixes:**
+- **[acme]** fix: restrict protocol for TLS Challenge. ([#7400](https://github.com/traefik/traefik/pull/7400) by [ldez](https://github.com/ldez))
+- **[acme]** fix: use provider keytype instead of account keytype. ([#7387](https://github.com/traefik/traefik/pull/7387) by [mmatur](https://github.com/mmatur))
+- **[acme]** acme: Fix race condition in LocalStore during saving. ([#7355](https://github.com/traefik/traefik/pull/7355) by [walkline](https://github.com/walkline))
+- **[plugins]** fix: update Yaegi to v0.9.4 ([#7426](https://github.com/traefik/traefik/pull/7426) by [ldez](https://github.com/ldez))
+- **[udp]** fix: udp json struct tag ([#7375](https://github.com/traefik/traefik/pull/7375) by [mschneider82](https://github.com/mschneider82))
+
+**Documentation:**
+- **[consulcatalog]** fix: Consul Catalog address documentation. ([#7429](https://github.com/traefik/traefik/pull/7429) by [ldez](https://github.com/ldez))
+- **[middleware]** Moving Provider Namespace documentation topic to Configuration Discovery section ([#7423](https://github.com/traefik/traefik/pull/7423) by [AndrewSav](https://github.com/AndrewSav))
+- **[pilot]** fix: pilot static configuration documentation ([#7399](https://github.com/traefik/traefik/pull/7399) by [jbdoumenjou](https://github.com/jbdoumenjou))
+- **[plugins]** Revise Traefik Pilot documentation section ([#7427](https://github.com/traefik/traefik/pull/7427) by [PCM2](https://github.com/PCM2))
+- **[tls]** Adding details about the default TLS options to the documentation ([#7422](https://github.com/traefik/traefik/pull/7422) by [AndrewSav](https://github.com/AndrewSav))
+- doc: add YAML sample. ([#7397](https://github.com/traefik/traefik/pull/7397) by [ldez](https://github.com/ldez))
+- Fix containous links in readme ([#7394](https://github.com/traefik/traefik/pull/7394) by [kevinpollet](https://github.com/kevinpollet))
+- Fix broken logo ([#7390](https://github.com/traefik/traefik/pull/7390) by [Bencey](https://github.com/Bencey))
+
+## [v2.3.1](https://github.com/traefik/traefik/tree/v2.3.1) (2020-09-28)
+[All Commits](https://github.com/traefik/traefik/compare/v2.3.0...v2.3.1)
+
+**Bug fixes:**
+- **[webui]** Fix blank webui on some browsers ([#7364](https://github.com/traefik/traefik/pull/7364) by [matthieuh](https://github.com/matthieuh))
+
+**Documentation:**
+- **[k8s/helm]** Update of the helm repo localisation ([#7352](https://github.com/traefik/traefik/pull/7352) by [dgoujard](https://github.com/dgoujard))
+- restore traefik logo ([#7344](https://github.com/traefik/traefik/pull/7344) by [notsureifkevin](https://github.com/notsureifkevin))
+- Removes invalid items in the changelog. ([#7339](https://github.com/traefik/traefik/pull/7339) by [ldez](https://github.com/ldez))
+
 ## [v2.3.0](https://github.com/traefik/traefik/tree/v2.3.0) (2020-09-23)
 [All Commits](https://github.com/traefik/traefik/compare/v2.2.0-rc1...v2.3.0)
 
@@ -7,16 +38,12 @@
 - **[file]** feat: use parser to load dynamic config from file. ([#6875](https://github.com/traefik/traefik/pull/6875) by [ldez](https://github.com/ldez))
 - **[k8s,k8s/crd,k8s/ingress]** Upgrade Client-go to 0.18.2 ([#6779](https://github.com/traefik/traefik/pull/6779) by [dtomcej](https://github.com/dtomcej))
 - **[k8s,k8s/ingress]** Add new ingressClass support to ingress provider ([#6831](https://github.com/traefik/traefik/pull/6831) by [dtomcej](https://github.com/dtomcej))
-- **[k8s,k8s/ingress]** feat: update more than one LoadBalancer ip ([#6951](https://github.com/traefik/traefik/pull/6951) by [iameli](https://github.com/iameli))
 - **[k8s,k8s/ingress]** Add example for the IngressClass usage ([#7219](https://github.com/traefik/traefik/pull/7219) by [SantoDE](https://github.com/SantoDE))
-- **[kv]** Allows multi-level KV prefixes ([#6664](https://github.com/traefik/traefik/pull/6664) by [niki-timofe](https://github.com/niki-timofe))
-- **[logs,middleware,docker]** Support configuring a HTTP client timeout in the Docker provider ([#7094](https://github.com/traefik/traefik/pull/7094) by [sirlatrom](https://github.com/sirlatrom))
 - **[metrics,pilot]** Pilot metrics provider ([#7139](https://github.com/traefik/traefik/pull/7139) by [rtribotte](https://github.com/rtribotte))
 - **[pilot]** Moves pilot outside the experimental section. ([#7287](https://github.com/traefik/traefik/pull/7287) by [ldez](https://github.com/ldez))
 - **[pilot,plugins]** Traefik Pilot: plugins support and alert system (EXPERIMENTAL FEATURES) ([#7041](https://github.com/traefik/traefik/pull/7041) by [ldez](https://github.com/ldez))
 - **[plugins]** Improve plugins builder. ([#7255](https://github.com/traefik/traefik/pull/7255) by [ldez](https://github.com/ldez))
 - **[provider]** Add HTTP Provider ([#6976](https://github.com/traefik/traefik/pull/6976) by [kevinpollet](https://github.com/kevinpollet))
-- **[service,tls]** add ServersTransport on services ([#7203](https://github.com/traefik/traefik/pull/7203) by [juliens](https://github.com/juliens))
 - **[webui]** Add iOS specific icons ([#6946](https://github.com/traefik/traefik/pull/6946) by [Heisenberg74](https://github.com/Heisenberg74))
 
 **Bug fixes:**
@@ -42,7 +69,6 @@
 - **[k8s]** Add migration documentation for IngressClass ([#7083](https://github.com/traefik/traefik/pull/7083) by [kevinpollet](https://github.com/kevinpollet))
 - **[middleware]** Fixes config samples regarding forceSlash option ([#6811](https://github.com/traefik/traefik/pull/6811) by [volkerw00](https://github.com/volkerw00))
 - **[plugins]** Update availability info ([#7060](https://github.com/traefik/traefik/pull/7060) by [PCM2](https://github.com/PCM2))
-- doc: add security policies. ([#7110](https://github.com/traefik/traefik/pull/7110) by [ldez](https://github.com/ldez))
 - Fix yaml documentation ([#7331](https://github.com/traefik/traefik/pull/7331) by [rtribotte](https://github.com/rtribotte))
 
 **Misc:**
