@@ -10,9 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/metrics"
+	gokitmetrics "github.com/go-kit/kit/metrics"
 	"github.com/traefik/traefik/v2/pkg/config/runtime"
 	"github.com/traefik/traefik/v2/pkg/log"
+	"github.com/traefik/traefik/v2/pkg/metrics"
 	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/vulcand/oxy/roundrobin"
 )
@@ -41,11 +42,8 @@ type BalancerHandler interface {
 	Balancer
 }
 
-// metricsRegistry is a local interface in the health check package,
-// exposing only the required metrics necessary for the health check package.
-// This makes it easier for the tests.
-type metricsRegistry interface {
-	BackendServerUpGauge() metrics.Gauge
+type metricsHealthcheck struct {
+	serverUpGauge gokitmetrics.Gauge
 }
 
 // Options are the public health check options.
@@ -110,7 +108,7 @@ func (b *BackendConfig) addHeadersAndHost(req *http.Request) *http.Request {
 // HealthCheck struct.
 type HealthCheck struct {
 	Backends map[string]*BackendConfig
-	metrics  metricsRegistry
+	metrics  metricsHealthcheck
 	cancel   context.CancelFunc
 }
 
@@ -165,11 +163,18 @@ func (hc *HealthCheck) checkBackend(ctx context.Context, backend *BackendConfig)
 	}
 
 	for _, bURL := range backend.urls {
+		serverUpMetricValue := float64(1)
+
 		newState, err := checkHealth(bURL.url, backend)
 		if err != nil {
 			logger.Warnf("Health check failed, Backend: %q URL: %q Reason: %v", backend.name, bURL.url.String(), err)
 		}
 		if newState == bURL.state {
+			if bURL.state == serverDown {
+				serverUpMetricValue = 0
+			}
+			labelValues := []string{"service", backend.name, "url", bURL.url.String()}
+			hc.metrics.serverUpGauge.With(labelValues...).Set(serverUpMetricValue)
 			continue
 		}
 
@@ -191,22 +196,29 @@ func (hc *HealthCheck) checkBackend(ctx context.Context, backend *BackendConfig)
 			if err := backend.LB.RemoveServer(bURL.url); err != nil {
 				logger.Error(err)
 			}
+			serverUpMetricValue = 0
 		}
 		backend.urls[bURL.url.String()] = backendURL{state: newState, url: bURL.url}
+
+		labelValues := []string{"service", backend.name, "url", bURL.url.String()}
+		hc.metrics.serverUpGauge.With(labelValues...).Set(serverUpMetricValue)
 	}
 }
 
 // GetHealthCheck returns the health check which is guaranteed to be a singleton.
-func GetHealthCheck() *HealthCheck {
+func GetHealthCheck(registry metrics.Registry) *HealthCheck {
 	once.Do(func() {
-		singleton = newHealthCheck()
+		singleton = newHealthCheck(registry)
 	})
 	return singleton
 }
 
-func newHealthCheck() *HealthCheck {
+func newHealthCheck(registry metrics.Registry) *HealthCheck {
 	return &HealthCheck{
 		Backends: make(map[string]*BackendConfig),
+		metrics: metricsHealthcheck{
+			serverUpGauge: registry.ServiceServerUpGauge(),
+		},
 	}
 }
 

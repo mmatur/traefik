@@ -494,6 +494,30 @@ providers:
 
 Defines the polling interval (in seconds) in Swarm Mode.
 
+### `httpClientTimeout`
+
+_Optional, Default=0_
+
+```toml tab="File (TOML)"
+[providers.docker]
+  httpClientTimeout = 300
+  # ...
+```
+
+```yaml tab="File (YAML)"
+providers:
+  docker:
+    httpClientTimeout: 300
+    # ...
+```
+
+```bash tab="CLI"
+--providers.docker.httpClientTimeout=300
+# ...
+```
+
+Defines the client timeout (in seconds) for HTTP connections. If zero, no timeout is set.
+
 ### `watch`
 
 _Optional, Default=true_

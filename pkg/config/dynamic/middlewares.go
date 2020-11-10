@@ -140,10 +140,12 @@ type ErrorPage struct {
 
 // ForwardAuth holds the http forward authentication configuration.
 type ForwardAuth struct {
-	Address             string     `json:"address,omitempty" toml:"address,omitempty" yaml:"address,omitempty"`
-	TLS                 *ClientTLS `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty"`
-	TrustForwardHeader  bool       `json:"trustForwardHeader,omitempty" toml:"trustForwardHeader,omitempty" yaml:"trustForwardHeader,omitempty" export:"true"`
-	AuthResponseHeaders []string   `json:"authResponseHeaders,omitempty" toml:"authResponseHeaders,omitempty" yaml:"authResponseHeaders,omitempty"`
+	Address                  string     `json:"address,omitempty" toml:"address,omitempty" yaml:"address,omitempty"`
+	TLS                      *ClientTLS `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty"`
+	TrustForwardHeader       bool       `json:"trustForwardHeader,omitempty" toml:"trustForwardHeader,omitempty" yaml:"trustForwardHeader,omitempty" export:"true"`
+	AuthResponseHeaders      []string   `json:"authResponseHeaders,omitempty" toml:"authResponseHeaders,omitempty" yaml:"authResponseHeaders,omitempty"`
+	AuthResponseHeadersRegex string     `json:"authResponseHeadersRegex,omitempty" toml:"authResponseHeadersRegex,omitempty" yaml:"authResponseHeadersRegex,omitempty"`
+	AuthRequestHeaders       []string   `json:"authRequestHeaders,omitempty" toml:"authRequestHeaders,omitempty" yaml:"authRequestHeaders,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true
@@ -163,6 +165,8 @@ type Headers struct {
 	AccessControlAllowOrigin string `json:"accessControlAllowOrigin,omitempty" toml:"accessControlAllowOrigin,omitempty" yaml:"accessControlAllowOrigin,omitempty"` // Deprecated
 	// AccessControlAllowOriginList is a list of allowable origins. Can also be a wildcard origin "*".
 	AccessControlAllowOriginList []string `json:"accessControlAllowOriginList,omitempty" toml:"accessControlAllowOriginList,omitempty" yaml:"accessControlAllowOriginList,omitempty"`
+	// AccessControlAllowOriginListRegex is a list of allowable origins written following the Regular Expression syntax (https://golang.org/pkg/regexp/).
+	AccessControlAllowOriginListRegex []string `json:"accessControlAllowOriginListRegex,omitempty" toml:"accessControlAllowOriginListRegex,omitempty" yaml:"accessControlAllowOriginListRegex,omitempty"`
 	// AccessControlExposeHeaders sets valid headers for the response.
 	AccessControlExposeHeaders []string `json:"accessControlExposeHeaders,omitempty" toml:"accessControlExposeHeaders,omitempty" yaml:"accessControlExposeHeaders,omitempty"`
 	// AccessControlMaxAge sets the time that a preflight request may be cached.
@@ -205,6 +209,7 @@ func (h *Headers) HasCorsHeadersDefined() bool {
 		len(h.AccessControlAllowHeaders) != 0 ||
 		len(h.AccessControlAllowMethods) != 0 ||
 		len(h.AccessControlAllowOriginList) != 0 ||
+		len(h.AccessControlAllowOriginListRegex) != 0 ||
 		len(h.AccessControlExposeHeaders) != 0 ||
 		h.AccessControlMaxAge != 0 ||
 		h.AddVaryHeader)
@@ -371,7 +376,8 @@ type ReplacePathRegex struct {
 
 // Retry holds the retry configuration.
 type Retry struct {
-	Attempts int `json:"attempts,omitempty" toml:"attempts,omitempty" yaml:"attempts,omitempty" export:"true"`
+	Attempts        int             `json:"attempts,omitempty" toml:"attempts,omitempty" yaml:"attempts,omitempty"`
+	InitialInterval ptypes.Duration `json:"initialInterval,omitempty" toml:"initialInterval,omitempty" yaml:"initialInterval,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true

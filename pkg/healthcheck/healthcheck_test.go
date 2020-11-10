@@ -147,10 +147,10 @@ func TestSetBackendsConfiguration(t *testing.T) {
 				}
 			}
 
-			collectingMetrics := testhelpers.NewCollectingHealthCheckMetrics()
+			collectingMetrics := &testhelpers.CollectingGauge{}
 			check := HealthCheck{
 				Backends: make(map[string]*BackendConfig),
-				metrics:  collectingMetrics,
+				metrics:  metricsHealthcheck{serverUpGauge: collectingMetrics},
 			}
 
 			wg := sync.WaitGroup{}
@@ -177,8 +177,7 @@ func TestSetBackendsConfiguration(t *testing.T) {
 			assert.Equal(t, test.expectedNumRemovedServers, lb.numRemovedServers, "removed servers")
 			assert.Equal(t, test.expectedNumUpsertedServers, lb.numUpsertedServers, "upserted servers")
 			assert.Equal(t, test.expectedNumDrainedServers, lb.numDrainedServers, "drained servers")
-			// FIXME re add metrics
-			// assert.Equal(t, test.expectedGaugeValue, collectingMetrics.Gauge.GaugeValue, "ServerUp Gauge")
+			assert.Equal(t, test.expectedGaugeValue, collectingMetrics.GaugeValue, "ServerUp Gauge")
 		})
 	}
 }
@@ -546,9 +545,10 @@ func TestNotFollowingRedirects(t *testing.T) {
 		FollowRedirects: false,
 	}, "backendName")
 
+	collectingMetrics := &testhelpers.CollectingGauge{}
 	check := HealthCheck{
 		Backends: make(map[string]*BackendConfig),
-		metrics:  testhelpers.NewCollectingHealthCheckMetrics(),
+		metrics:  metricsHealthcheck{serverUpGauge: collectingMetrics},
 	}
 
 	wg := sync.WaitGroup{}

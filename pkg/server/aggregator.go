@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/go-acme/lego/v4/challenge/tlsalpn01"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/server/provider"
@@ -10,10 +11,11 @@ import (
 func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoints []string) dynamic.Configuration {
 	conf := dynamic.Configuration{
 		HTTP: &dynamic.HTTPConfiguration{
-			Routers:     make(map[string]*dynamic.Router),
-			Middlewares: make(map[string]*dynamic.Middleware),
-			Services:    make(map[string]*dynamic.Service),
-			Models:      make(map[string]*dynamic.Model),
+			Routers:           make(map[string]*dynamic.Router),
+			Middlewares:       make(map[string]*dynamic.Middleware),
+			Services:          make(map[string]*dynamic.Service),
+			Models:            make(map[string]*dynamic.Model),
+			ServersTransports: make(map[string]*dynamic.ServersTransport),
 		},
 		TCP: &dynamic.TCPConfiguration{
 			Routers:  make(map[string]*dynamic.TCPRouter),
@@ -52,6 +54,9 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 			for modelName, model := range configuration.HTTP.Models {
 				conf.HTTP.Models[provider.MakeQualifiedName(pvd, modelName)] = model
 			}
+			for serversTransportName, serversTransport := range configuration.HTTP.ServersTransports {
+				conf.HTTP.ServersTransports[provider.MakeQualifiedName(pvd, serversTransportName)] = serversTransport
+			}
 		}
 
 		if configuration.TCP != nil {
@@ -73,7 +78,13 @@ func mergeConfiguration(configurations dynamic.Configurations, defaultEntryPoint
 		}
 
 		if configuration.TLS != nil {
-			conf.TLS.Certificates = append(conf.TLS.Certificates, configuration.TLS.Certificates...)
+			for _, cert := range configuration.TLS.Certificates {
+				if containsACMETLS1(cert.Stores) && pvd != "tlsalpn.acme" {
+					continue
+				}
+
+				conf.TLS.Certificates = append(conf.TLS.Certificates, cert)
+			}
 
 			for key, store := range configuration.TLS.Stores {
 				if key != "default" {
@@ -155,4 +166,14 @@ func applyModel(cfg dynamic.Configuration) dynamic.Configuration {
 	cfg.HTTP.Routers = rts
 
 	return cfg
+}
+
+func containsACMETLS1(stores []string) bool {
+	for _, store := range stores {
+		if store == tlsalpn01.ACMETLS1Protocol {
+			return true
+		}
+	}
+
+	return false
 }
