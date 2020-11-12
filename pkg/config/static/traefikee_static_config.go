@@ -40,3 +40,12 @@ type VaultPKI struct {
 func (p *VaultPKI) SetDefaults() {
 	p.EnginePath = "pki"
 }
+
+// DistributedACME configures the DistributedACME provider for TLS certificates.
+type DistributedACME struct {
+	URL string `description:"URL of the ACME Agent" json:"url" toml:"url" yaml:"url" export:"true"`
+
+	ClientCertPath string `description:"Path to the client certificate" json:"clientCertPath" toml:"clientCertPath" yaml:"clientCertPath" export:"true"`
+	ClientKeyPath  string `description:"Path to the client key" json:"clientKeyPath" toml:"clientKeyPath" yaml:"clientKeyPath" export:"true"`
+	CAPath         string `description:"Path to the certificate authority" json:"caPath" toml:"caPath" yaml:"caPath" export:"true"`
+}

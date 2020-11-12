@@ -90,6 +90,30 @@ Storage to use. (Default: ```acme.json```)
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_TLSCHALLENGE`:  
 Activate TLS-ALPN-01 Challenge. (Default: ```true```)
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_CAPATH`:  
+Path to the certificate authority
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_CLIENTCERTPATH`:  
+Path to the client certificate
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_CLIENTKEYPATH`:  
+Path to the client key
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_URL`:  
+URL of the ACME Agent
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ENGINEPATH`:  
+Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ROLE`:  
+Role to be used to issue certificates
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TOKEN`:  
+Token used to authenticate with Vault
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_URL`:  
+URL of the Vault server
+
 `TRAEFIK_ENTRYPOINTS_<NAME>`:  
 Entry points definition. (Default: ```false```)
 
@@ -659,6 +683,21 @@ Display additional provider logs. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_MARATHON_WATCH`:  
 Watch provider. (Default: ```true```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_ENGINEPATH`:  
+Path under which the KV secret engine is enabled (Default: ```secret```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_RESCANINTERVAL`:  
+Interval to rescan all certificates for changes (Default: ```60```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_SYNCINTERVAL`:  
+Interval to synchronize new and deleted certificates (Default: ```5```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_TOKEN`:  
+Token used to authenticate with the API
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_URL`:  
+URL of the Vault API
 
 `TRAEFIK_PROVIDERS_PROVIDERSTHROTTLEDURATION`:  
 Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```0```)

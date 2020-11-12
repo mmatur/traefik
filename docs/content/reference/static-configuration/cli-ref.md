@@ -90,6 +90,30 @@ Storage to use. (Default: ```acme.json```)
 `--certificatesresolvers.<name>.acme.tlschallenge`:  
 Activate TLS-ALPN-01 Challenge. (Default: ```true```)
 
+`--certificatesresolvers.<name>.distributedacme.capath`:  
+Path to the certificate authority
+
+`--certificatesresolvers.<name>.distributedacme.clientcertpath`:  
+Path to the client certificate
+
+`--certificatesresolvers.<name>.distributedacme.clientkeypath`:  
+Path to the client key
+
+`--certificatesresolvers.<name>.distributedacme.url`:  
+URL of the ACME Agent
+
+`--certificatesresolvers.<name>.vault.enginepath`:  
+Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
+
+`--certificatesresolvers.<name>.vault.role`:  
+Role to be used to issue certificates
+
+`--certificatesresolvers.<name>.vault.token`:  
+Token used to authenticate with Vault
+
+`--certificatesresolvers.<name>.vault.url`:  
+URL of the Vault server
+
 `--entrypoints.<name>`:  
 Entry points definition. (Default: ```false```)
 
@@ -659,6 +683,21 @@ Display additional provider logs. (Default: ```false```)
 
 `--providers.marathon.watch`:  
 Watch provider. (Default: ```true```)
+
+`--providers.plugin.vault.enginepath`:  
+Path under which the KV secret engine is enabled (Default: ```secret```)
+
+`--providers.plugin.vault.rescaninterval`:  
+Interval to rescan all certificates for changes (Default: ```60```)
+
+`--providers.plugin.vault.syncinterval`:  
+Interval to synchronize new and deleted certificates (Default: ```5```)
+
+`--providers.plugin.vault.token`:  
+Token used to authenticate with the API
+
+`--providers.plugin.vault.url`:  
+URL of the Vault API
 
 `--providers.providersthrottleduration`:  
 Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```0```)
