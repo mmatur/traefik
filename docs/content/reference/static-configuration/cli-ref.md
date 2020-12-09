@@ -90,13 +90,13 @@ Storage to use. (Default: ```acme.json```)
 `--certificatesresolvers.<name>.acme.tlschallenge`:  
 Activate TLS-ALPN-01 Challenge. (Default: ```true```)
 
-`--certificatesresolvers.<name>.distributedacme.capath`:  
+`--certificatesresolvers.<name>.distributedacme.tls.ca`:  
 Path to the certificate authority
 
-`--certificatesresolvers.<name>.distributedacme.clientcertpath`:  
+`--certificatesresolvers.<name>.distributedacme.tls.cert`:  
 Path to the client certificate
 
-`--certificatesresolvers.<name>.distributedacme.clientkeypath`:  
+`--certificatesresolvers.<name>.distributedacme.tls.key`:  
 Path to the client key
 
 `--certificatesresolvers.<name>.distributedacme.url`:  

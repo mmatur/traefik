@@ -45,7 +45,12 @@ func (p *VaultPKI) SetDefaults() {
 type DistributedACME struct {
 	URL string `description:"URL of the ACME Agent" json:"url" toml:"url" yaml:"url" export:"true"`
 
-	ClientCertPath string `description:"Path to the client certificate" json:"clientCertPath" toml:"clientCertPath" yaml:"clientCertPath" export:"true"`
-	ClientKeyPath  string `description:"Path to the client key" json:"clientKeyPath" toml:"clientKeyPath" yaml:"clientKeyPath" export:"true"`
-	CAPath         string `description:"Path to the certificate authority" json:"caPath" toml:"caPath" yaml:"caPath" export:"true"`
+	TLS *DistributedTLS `description:"TLS certificates and keys used for mTLS" json:"tls" toml:"tls" yaml:"tls" export:"true"`
+}
+
+// DistributedTLS configures mTLS for the distributed ACME feature.
+type DistributedTLS struct {
+	Cert string `description:"Path to the client certificate" json:"cert" toml:"cert" yaml:"cert" export:"true"`
+	Key  string `description:"Path to the client key" json:"key" toml:"key" yaml:"key" export:"true"`
+	CA   string `description:"Path to the certificate authority" json:"ca" toml:"ca" yaml:"ca" export:"true"`
 }
