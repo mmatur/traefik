@@ -19,6 +19,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/provider/file"
 	"github.com/traefik/traefik/v2/pkg/provider/http"
 	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd"
+	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/gateway"
 	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/ingress"
 	"github.com/traefik/traefik/v2/pkg/provider/kv/consul"
 	"github.com/traefik/traefik/v2/pkg/provider/kv/etcd"
@@ -176,10 +177,11 @@ type Providers struct {
 	Marathon          *marathon.Provider      `description:"Enable Marathon backend with default settings." json:"marathon,omitempty" toml:"marathon,omitempty" yaml:"marathon,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
 	KubernetesIngress *ingress.Provider       `description:"Enable Kubernetes backend with default settings." json:"kubernetesIngress,omitempty" toml:"kubernetesIngress,omitempty" yaml:"kubernetesIngress,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
 	KubernetesCRD     *crd.Provider           `description:"Enable Kubernetes backend with default settings." json:"kubernetesCRD,omitempty" toml:"kubernetesCRD,omitempty" yaml:"kubernetesCRD,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
+	KubernetesGateway *gateway.Provider       `description:"Enable Kubernetes gateway api provider with default settings." json:"kubernetesGateway,omitempty" toml:"kubernetesGateway,omitempty" yaml:"kubernetesGateway,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
 	Rest              *rest.Provider          `description:"Enable Rest backend with default settings." json:"rest,omitempty" toml:"rest,omitempty" yaml:"rest,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
 	Rancher           *rancher.Provider       `description:"Enable Rancher backend with default settings." json:"rancher,omitempty" toml:"rancher,omitempty" yaml:"rancher,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
-	ConsulCatalog     *consulcatalog.Provider `description:"Enable ConsulCatalog backend with default settings." json:"consulCatalog,omitempty" toml:"consulCatalog,omitempty" yaml:"consulCatalog,omitempty" export:"true"`
-	Ecs               *ecs.Provider           `description:"Enable AWS ECS backend with default settings." json:"ecs,omitempty" toml:"ecs,omitempty" yaml:"ecs,omitempty" export:"true"`
+	ConsulCatalog     *consulcatalog.Provider `description:"Enable ConsulCatalog backend with default settings." json:"consulCatalog,omitempty" toml:"consulCatalog,omitempty" yaml:"consulCatalog,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
+	Ecs               *ecs.Provider           `description:"Enable AWS ECS backend with default settings." json:"ecs,omitempty" toml:"ecs,omitempty" yaml:"ecs,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 
 	Consul    *consul.Provider `description:"Enable Consul backend with default settings." json:"consul,omitempty" toml:"consul,omitempty" yaml:"consul,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
 	Etcd      *etcd.Provider   `description:"Enable Etcd backend with default settings." json:"etcd,omitempty" toml:"etcd,omitempty" yaml:"etcd,omitempty" export:"true" label:"allowEmpty" file:"allowEmpty"`
@@ -231,6 +233,22 @@ func (c *Configuration) SetEffectiveConfiguration() {
 	// Enable anonymous usage when pilot is enabled.
 	if c.Pilot != nil && c.Pilot.Token != "" {
 		c.Global.SendAnonymousUsage = true
+	}
+
+	// Disable Gateway API provider if not enabled in experimental
+	if c.Experimental == nil || !c.Experimental.KubernetesGateway {
+		c.Providers.KubernetesGateway = nil
+	}
+
+	// Configure Gateway API provider
+	if c.Providers.KubernetesGateway != nil {
+		log.WithoutContext().Debugf("Experimental Kubernetes Gateway provider has been activated")
+		entryPoints := make(map[string]gateway.Entrypoint)
+		for epName, entryPoint := range c.EntryPoints {
+			entryPoints[epName] = gateway.Entrypoint{Address: entryPoint.GetAddress(), HasHTTPTLSConf: entryPoint.HTTP.TLS != nil}
+		}
+
+		c.Providers.KubernetesGateway.EntryPoints = entryPoints
 	}
 
 	c.initACMEProvider()

@@ -2,11 +2,14 @@ package ingress
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,16 +37,15 @@ const (
 
 // Provider holds configurations of the provider.
 type Provider struct {
-	Endpoint               string           `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Token                  string           `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty"`
-	CertAuthFilePath       string           `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
-	DisablePassHostHeaders bool             `description:"Kubernetes disable PassHost Headers." json:"disablePassHostHeaders,omitempty" toml:"disablePassHostHeaders,omitempty" yaml:"disablePassHostHeaders,omitempty" export:"true"`
-	Namespaces             []string         `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
-	LabelSelector          string           `description:"Kubernetes Ingress label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
-	IngressClass           string           `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
-	IngressEndpoint        *EndpointIngress `description:"Kubernetes Ingress Endpoint." json:"ingressEndpoint,omitempty" toml:"ingressEndpoint,omitempty" yaml:"ingressEndpoint,omitempty" export:"true"`
-	ThrottleDuration       ptypes.Duration  `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
-	lastConfiguration      safe.Safe
+	Endpoint          string           `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Token             string           `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty"`
+	CertAuthFilePath  string           `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
+	Namespaces        []string         `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
+	LabelSelector     string           `description:"Kubernetes Ingress label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
+	IngressClass      string           `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
+	IngressEndpoint   *EndpointIngress `description:"Kubernetes Ingress Endpoint." json:"ingressEndpoint,omitempty" toml:"ingressEndpoint,omitempty" yaml:"ingressEndpoint,omitempty" export:"true"`
+	ThrottleDuration  ptypes.Duration  `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
+	lastConfiguration safe.Safe
 }
 
 // EndpointIngress holds the endpoint information for the Kubernetes provider.
@@ -53,15 +55,15 @@ type EndpointIngress struct {
 	PublishedService string `description:"Published Kubernetes Service to copy status from." json:"publishedService,omitempty" toml:"publishedService,omitempty" yaml:"publishedService,omitempty"`
 }
 
-func (p *Provider) newK8sClient(ctx context.Context, ingressLabelSelector string) (*clientWrapper, error) {
-	ingLabelSel, err := labels.Parse(ingressLabelSelector)
+func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
+	_, err := labels.Parse(p.LabelSelector)
 	if err != nil {
-		return nil, fmt.Errorf("invalid ingress label selector: %q", ingressLabelSelector)
+		return nil, fmt.Errorf("invalid ingress label selector: %q", p.LabelSelector)
 	}
 
 	logger := log.FromContext(ctx)
 
-	logger.Infof("ingress label selector is: %q", ingLabelSel)
+	logger.Infof("ingress label selector is: %q", p.LabelSelector)
 
 	withEndpoint := ""
 	if p.Endpoint != "" {
@@ -81,11 +83,12 @@ func (p *Provider) newK8sClient(ctx context.Context, ingressLabelSelector string
 		cl, err = newExternalClusterClient(p.Endpoint, p.Token, p.CertAuthFilePath)
 	}
 
-	if err == nil {
-		cl.ingressLabelSelector = ingLabelSel
+	if err != nil {
+		return nil, err
 	}
 
-	return cl, err
+	cl.ingressLabelSelector = p.LabelSelector
+	return cl, nil
 }
 
 // Init the provider.
@@ -99,8 +102,7 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 	ctxLog := log.With(context.Background(), log.Str(log.ProviderName, "kubernetes"))
 	logger := log.FromContext(ctxLog)
 
-	logger.Debugf("Using Ingress label selector: %q", p.LabelSelector)
-	k8sClient, err := p.newK8sClient(ctxLog, p.LabelSelector)
+	k8sClient, err := p.newK8sClient(ctxLog)
 	if err != nil {
 		return err
 	}
@@ -188,15 +190,15 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 		return conf
 	}
 
-	var ingressClass *networkingv1beta1.IngressClass
+	var ingressClasses []*networkingv1beta1.IngressClass
 
 	if supportsIngressClass(serverVersion) {
-		ic, err := client.GetIngressClass()
+		ics, err := client.GetIngressClasses()
 		if err != nil {
-			log.FromContext(ctx).Warnf("Failed to find an ingress class: %v", err)
+			log.FromContext(ctx).Warnf("Failed to list ingress classes: %v", err)
 		}
 
-		ingressClass = ic
+		ingressClasses = ics
 	}
 
 	ingresses := client.GetIngresses()
@@ -205,7 +207,7 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 	for _, ingress := range ingresses {
 		ctx = log.With(ctx, log.Str("ingress", ingress.Name), log.Str("namespace", ingress.Namespace))
 
-		if !p.shouldProcessIngress(p.IngressClass, ingress, ingressClass) {
+		if !p.shouldProcessIngress(ingress, ingressClasses) {
 			continue
 		}
 
@@ -251,6 +253,8 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 			conf.HTTP.Services["default-backend"] = service
 		}
 
+		routers := map[string][]*dynamic.Router{}
+
 		for _, rule := range ingress.Spec.Rules {
 			if err := p.updateIngressStatus(ingress, client); err != nil {
 				log.FromContext(ctx).Errorf("Error while updating ingress status: %v", err)
@@ -274,8 +278,26 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 				conf.HTTP.Services[serviceName] = service
 
 				routerKey := strings.TrimPrefix(provider.Normalize(ingress.Name+"-"+ingress.Namespace+"-"+rule.Host+pa.Path), "-")
+				routers[routerKey] = append(routers[routerKey], loadRouter(rule, pa, rtConfig, serviceName))
+			}
+		}
 
-				conf.HTTP.Routers[routerKey] = loadRouter(rule, pa, rtConfig, serviceName)
+		for routerKey, conflictingRouters := range routers {
+			if len(conflictingRouters) == 1 {
+				conf.HTTP.Routers[routerKey] = conflictingRouters[0]
+				continue
+			}
+
+			log.FromContext(ctx).Debugf("Multiple routers are defined with the same key %q, generating hashes to avoid conflicts", routerKey)
+
+			for _, router := range conflictingRouters {
+				key, err := makeRouterKeyWithHash(routerKey, router.Rule)
+				if err != nil {
+					log.FromContext(ctx).Error(err)
+					continue
+				}
+
+				conf.HTTP.Routers[key] = router
 			}
 		}
 	}
@@ -329,14 +351,20 @@ func (p *Provider) updateIngressStatus(ing *networkingv1beta1.Ingress, k8sClient
 	return k8sClient.UpdateIngressStatus(ing, service.Status.LoadBalancer.Ingress)
 }
 
-func (p *Provider) shouldProcessIngress(providerIngressClass string, ingress *networkingv1beta1.Ingress, ingressClass *networkingv1beta1.IngressClass) bool {
+func (p *Provider) shouldProcessIngress(ingress *networkingv1beta1.Ingress, ingressClasses []*networkingv1beta1.IngressClass) bool {
 	// configuration through the new kubernetes ingressClass
 	if ingress.Spec.IngressClassName != nil {
-		return ingressClass != nil && ingressClass.ObjectMeta.Name == *ingress.Spec.IngressClassName
+		for _, ic := range ingressClasses {
+			if *ingress.Spec.IngressClassName == ic.ObjectMeta.Name {
+				return true
+			}
+		}
+
+		return false
 	}
 
-	return providerIngressClass == ingress.Annotations[annotationKubernetesIngressClass] ||
-		len(providerIngressClass) == 0 && ingress.Annotations[annotationKubernetesIngressClass] == traefikDefaultIngressClass
+	return p.IngressClass == ingress.Annotations[annotationKubernetesIngressClass] ||
+		len(p.IngressClass) == 0 && ingress.Annotations[annotationKubernetesIngressClass] == traefikDefaultIngressClass
 }
 
 func buildHostRule(host string) string {
@@ -479,9 +507,10 @@ func loadService(client Client, namespace string, backend networkingv1beta1.Ingr
 
 	if service.Spec.Type == corev1.ServiceTypeExternalName {
 		protocol := getProtocol(portSpec, portSpec.Name, svcConfig)
+		hostPort := net.JoinHostPort(service.Spec.ExternalName, strconv.Itoa(int(portSpec.Port)))
 
 		svc.LoadBalancer.Servers = []dynamic.Server{
-			{URL: fmt.Sprintf("%s://%s:%d", protocol, service.Spec.ExternalName, portSpec.Port)},
+			{URL: fmt.Sprintf("%s://%s", protocol, hostPort)},
 		}
 
 		return svc, nil
@@ -516,8 +545,10 @@ func loadService(client Client, namespace string, backend networkingv1beta1.Ingr
 		protocol := getProtocol(portSpec, portName, svcConfig)
 
 		for _, addr := range subset.Addresses {
+			hostPort := net.JoinHostPort(addr.IP, strconv.Itoa(int(port)))
+
 			svc.LoadBalancer.Servers = append(svc.LoadBalancer.Servers, dynamic.Server{
-				URL: fmt.Sprintf("%s://%s:%d", protocol, addr.IP, port),
+				URL: fmt.Sprintf("%s://%s", protocol, hostPort),
 			})
 		}
 	}
@@ -536,6 +567,17 @@ func getProtocol(portSpec corev1.ServicePort, portName string, svcConfig *Servic
 	}
 
 	return protocol
+}
+
+func makeRouterKeyWithHash(key, rule string) (string, error) {
+	h := sha256.New()
+	if _, err := h.Write([]byte(rule)); err != nil {
+		return "", err
+	}
+
+	dupKey := fmt.Sprintf("%s-%.10x", key, h.Sum(nil))
+
+	return dupKey, nil
 }
 
 func loadRouter(rule networkingv1beta1.IngressRule, pa networkingv1beta1.HTTPIngressPath, rtConfig *RouterConfig, serviceName string) *dynamic.Router {

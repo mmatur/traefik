@@ -61,6 +61,18 @@ http:
         address: "https://example.com/auth"
 ```
 
+## Forward-Request Headers
+
+The following request properties are provided to the forward-auth target endpoint as `X-Forwarded-` headers.
+
+| Property          | Forward-Request Header |
+|-------------------|------------------------|
+| HTTP Method       | X-Forwarded-Method     |
+| Protocol          | X-Forwarded-Proto      |
+| Host              | X-Forwarded-Host       |
+| Request URI       | X-Forwarded-Uri        |
+| Source IP-Address | X-Forwarded-For        |
+
 ## Configuration Options
 
 ### `address`
@@ -273,7 +285,7 @@ http:
 ### `authRequestHeaders`
 
 The `authRequestHeaders` option is the list of the headers to copy from the request to the authentication server.
-It allows to prevent passing headers that have not to be passed to the authentication server.
+It allows filtering headers that should not be passed to the authentication server.
 If not set or empty then all request headers will be passed.
 
 ```yaml tab="Docker"

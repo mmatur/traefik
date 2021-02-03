@@ -462,7 +462,7 @@ By default, `passHostHeader` is true.
 
 #### ServersTransport
 
-`serversTransport` allows to reference a ServersTransport configuration for the communication between Traefik and your servers.
+`serversTransport` allows to reference a [ServersTransport](./index.md#serverstransport_1) configuration for the communication between Traefik and your servers.
 
 ??? example "Specify a transport -- Using the [File Provider](../../providers/file.md)"
 
@@ -573,7 +573,7 @@ that will be set as client certificates for mTLS.
 http:
   serversTransports:
     mytransport:
-      certficates:
+      certificates:
         - certFile: foo.crt
           keyFile: bar.crt
 ```
@@ -989,6 +989,39 @@ The `address` option (IP:Port) point to a specific instance.
           loadBalancer:
             servers:
               - address: "xx.xx.xx.xx:xx"
+    ```
+
+#### PROXY Protocol
+
+Traefik supports [PROXY Protocol](https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt) version 1 and 2 on TCP Services.
+It can be enabled by setting `proxyProtocol` on the load balancer.
+
+Below are the available options for the PROXY protocol:
+
+- `version` specifies the version of the protocol to be used. Either `1` or `2`.
+
+!!! info "Version"
+
+    Specifying a version is optional. By default the version 2 will be used. 
+
+??? example "A Service with Proxy Protocol v1 -- Using the [File Provider](../../providers/file.md)"
+
+    ```toml tab="TOML"
+    ## Dynamic configuration
+    [tcp.services]
+      [tcp.services.my-service.loadBalancer]
+        [tcp.services.my-service.loadBalancer.proxyProtocol]
+          version = 1
+    ```
+
+    ```yaml tab="YAML"
+    ## Dynamic configuration
+    tcp:
+      services:
+        my-service:
+          loadBalancer:
+            proxyProtocol:
+              version: 1
     ```
 
 #### Termination Delay

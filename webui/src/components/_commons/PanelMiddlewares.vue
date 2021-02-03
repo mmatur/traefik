@@ -231,8 +231,9 @@
               <div class="text-subtitle2">Service</div>
               <q-chip
                 dense
-                class="app-chip app-chip-green">
+                class="app-chip app-chip-green app-chip-overflow">
                 {{ exData(middleware).service }}
+                <q-tooltip>{{ exData(middleware).service }}</q-tooltip>
               </q-chip>
             </div>
           </div>
@@ -329,7 +330,7 @@
                 v-for="(val, key) in exData(middleware).customRequestHeaders" :key="key"
                 dense
                 class="app-chip app-chip-green">
-                {{ val }}
+                {{ key }}: {{ val }}
               </q-chip>
             </div>
           </div>
@@ -343,7 +344,7 @@
                 v-for="(val, key) in exData(middleware).customResponseHeaders" :key="key"
                 dense
                 class="app-chip app-chip-green">
-                {{ val }}
+                {{ key }}: {{ val }}
               </q-chip>
             </div>
           </div>
