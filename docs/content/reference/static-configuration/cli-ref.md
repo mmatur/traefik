@@ -330,6 +330,9 @@ TLS key
 `--providers.consul.username`:  
 KV Username
 
+`--providers.consulcatalog`:  
+Enable ConsulCatalog backend with default settings. (Default: ```false```)
+
 `--providers.consulcatalog.cache`:  
 Use local agent caching for catalog reads. (Default: ```false```)
 
@@ -435,6 +438,9 @@ Use the ip address from the bound port, rather than from the inner network. (Def
 `--providers.docker.watch`:  
 Watch Docker Swarm events. (Default: ```true```)
 
+`--providers.ecs`:  
+Enable AWS ECS backend with default settings. (Default: ```false```)
+
 `--providers.ecs.accesskeyid`:  
 The AWS credentials access key to use for making requests
 
@@ -533,6 +539,9 @@ TLS key
 
 `--providers.kubernetescrd`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
+
+`--providers.kubernetescrd.allowcrossnamespace`:  
+Allow cross namespace resource reference. (Default: ```true```)
 
 `--providers.kubernetescrd.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
