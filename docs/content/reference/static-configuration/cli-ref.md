@@ -142,7 +142,7 @@ Default middlewares for the routers linked to the entry point.
 Applies a permanent redirection. (Default: ```true```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.priority`:  
-Priority of the generated router. (Default: ```2147483647```)
+Priority of the generated router. (Default: ```2147483646```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.scheme`:  
 Scheme used for the redirection. (Default: ```https```)
@@ -208,7 +208,7 @@ plugin's module name.
 plugin's version.
 
 `--global.checknewversion`:  
-Periodically check if a new version has been released. (Default: ```false```)
+Periodically check if a new version has been released. (Default: ```true```)
 
 `--global.sendanonymoususage`:  
 Periodically send anonymous usage statistics. If the option is not specified, it will be enabled by default. (Default: ```false```)
@@ -733,7 +733,7 @@ Token used to authenticate with the API
 URL of the Vault API
 
 `--providers.providersthrottleduration`:  
-Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```0```)
+Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```2```)
 
 `--providers.rancher`:  
 Enable Rancher backend with default settings. (Default: ```false```)
@@ -841,7 +841,7 @@ The amount of time to wait for a server's response headers after fully writing t
 Disable SSL certificate verification. (Default: ```false```)
 
 `--serverstransport.maxidleconnsperhost`:  
-If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```0```)
+If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```200```)
 
 `--serverstransport.rootcas`:  
 Add cert file for self-signed certificate.

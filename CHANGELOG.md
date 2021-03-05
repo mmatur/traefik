@@ -1,3 +1,42 @@
+## [v2.4.6](https://github.com/traefik/traefik/tree/v2.4.6) (2021-03-01)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.5...v2.4.6)
+
+**Bug fixes:**
+- **[plugins]** Update Yaegi to v0.9.13 ([#7928](https://github.com/traefik/traefik/pull/7928) by [ldez](https://github.com/ldez))
+- **[provider]** Fix: wait for file and internal before applying configurations ([#7925](https://github.com/traefik/traefik/pull/7925) by [juliens](https://github.com/juliens))
+
+**Documentation:**
+- **[file]** Fix reflink typo in file provider documentation ([#7913](https://github.com/traefik/traefik/pull/7913) by [vgerak](https://github.com/vgerak))
+- **[k8s/serviceapi]** Fix Kubernetes Gateway API documentation links ([#7914](https://github.com/traefik/traefik/pull/7914) by [kevinpollet](https://github.com/kevinpollet))
+- **[service]** Fix typo in routing/services/index.md ([#7922](https://github.com/traefik/traefik/pull/7922) by [snikch](https://github.com/snikch))
+- Fixing doc for default value of checknewversion ([#7933](https://github.com/traefik/traefik/pull/7933) by [tomMoulard](https://github.com/tomMoulard))
+
+## [v2.4.5](https://github.com/traefik/traefik/tree/v2.4.5) (2021-02-18)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.3...v2.4.5)
+
+**Bug fixes:**
+- **[webui]** Only allow iframes to be loaded from our domain ([#7904](https://github.com/traefik/traefik/pull/7904) by [SantoDE](https://github.com/SantoDE))
+
+## [v2.4.4](https://github.com/traefik/traefik/tree/v2.4.4) (2021-02-18)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.3...v2.4.4)
+
+Release canceled.
+
+## [v2.4.3](https://github.com/traefik/traefik/tree/v2.4.3) (2021-02-15)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.2...v2.4.3)
+
+**Bug fixes:**
+- **[acme]** Fix TLS challenge timeout and validation error ([#7879](https://github.com/traefik/traefik/pull/7879) by [ldez](https://github.com/ldez))
+- **[consulcatalog]** Fixed typo in consul catalog tests ([#7865](https://github.com/traefik/traefik/pull/7865) by [apollo13](https://github.com/apollo13))
+- **[middleware]** Apply content type exclusion on response ([#7888](https://github.com/traefik/traefik/pull/7888) by [jbdoumenjou](https://github.com/jbdoumenjou))
+
+**Documentation:**
+- **[middleware]** Add HEAD as available option for Method ([#7858](https://github.com/traefik/traefik/pull/7858) by [mlandauer](https://github.com/mlandauer))
+- **[middleware]** Middleware documentation fixes ([#7808](https://github.com/traefik/traefik/pull/7808) by [Ullaakut](https://github.com/Ullaakut))
+- **[provider]** Add missing doc about servers transport ([#7894](https://github.com/traefik/traefik/pull/7894) by [ldez](https://github.com/ldez))
+- **[provider]** Provider documentation fixes ([#7823](https://github.com/traefik/traefik/pull/7823) by [Ullaakut](https://github.com/Ullaakut))
+- Fix the static reference documentation for the internal redirection router ([#7860](https://github.com/traefik/traefik/pull/7860) by [jbdoumenjou](https://github.com/jbdoumenjou))
+
 ## [v2.4.2](https://github.com/traefik/traefik/tree/v2.4.2) (2021-02-02)
 [All Commits](https://github.com/traefik/traefik/compare/v2.4.1...v2.4.2)
 
