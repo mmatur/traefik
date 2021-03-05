@@ -763,8 +763,8 @@ github.com/tinylib/msgp v1.0.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDW
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 h1:LnC5Kc/wtumK+WB441p7ynQJzVuNRJiqddSIE3IlSEQ=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/traefik/oxy v1.1.1-0.20200929140604-2bd045cd4452 h1:QdXQMpWvu71/+Z8MdSqRgKO6pfMkUn6gTvYKo4yvLh0=
-github.com/traefik/oxy v1.1.1-0.20200929140604-2bd045cd4452/go.mod h1:ADiMYHi8gkGl2987yQIzDRoXZilANF4WtKaQ92OppKY=
+github.com/traefik/oxy v1.1.1-0.20210223181557-ea2a642f10ea h1:H0qD3g2/sTeR8kuZJdj+rixDxl+LANr3Vs1SImHrWvw=
+github.com/traefik/oxy v1.1.1-0.20210223181557-ea2a642f10ea/go.mod h1:nGeNTWfyYQj3ghi3W8ok7vLSkw7Gkvr0x+G/v8Wk7vM=
 github.com/traefik/paerser v0.1.1 h1:Suj0iA4hTAV6E4Dh5/++TXAj5u6iTwydBlFssIUz+9w=
 github.com/traefik/paerser v0.1.1/go.mod h1:yYnAgdEC2wJH5CgG75qGWC8SsFDEapg09o9RrA6FfrE=
 github.com/traefik/yaegi v0.9.8 h1:sYGKV2d911B9olVsSO/nRmjIh+CQTffAUSzoyv4a4/4=
