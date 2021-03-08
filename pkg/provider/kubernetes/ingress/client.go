@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"
 	"github.com/traefik/traefik/v2/pkg/log"
+	traefikversion "github.com/traefik/traefik/v2/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -26,6 +29,10 @@ const (
 	resyncPeriod   = 10 * time.Minute
 	defaultTimeout = 5 * time.Second
 )
+
+type marshaler interface {
+	Marshal() ([]byte, error)
+}
 
 type resourceEventHandler struct {
 	ev chan<- interface{}
@@ -49,11 +56,11 @@ func (reh *resourceEventHandler) OnDelete(obj interface{}) {
 type Client interface {
 	WatchAll(namespaces []string, stopCh <-chan struct{}) (<-chan interface{}, error)
 	GetIngresses() []*networkingv1beta1.Ingress
-	GetIngressClass() (*networkingv1beta1.IngressClass, error)
+	GetIngressClasses() ([]*networkingv1beta1.IngressClass, error)
 	GetService(namespace, name string) (*corev1.Service, bool, error)
 	GetSecret(namespace, name string) (*corev1.Secret, bool, error)
 	GetEndpoints(namespace, name string) (*corev1.Endpoints, bool, error)
-	UpdateIngressStatus(ing *networkingv1beta1.Ingress, ip, hostname string) error
+	UpdateIngressStatus(ing *networkingv1beta1.Ingress, ingStatus []corev1.LoadBalancerIngress) error
 	GetServerVersion() (*version.Version, error)
 }
 
@@ -116,6 +123,14 @@ func newExternalClusterClient(endpoint, token, caFilePath string) (*clientWrappe
 }
 
 func createClientFromConfig(c *rest.Config) (*clientWrapper, error) {
+	c.UserAgent = fmt.Sprintf(
+		"%s/%s (%s/%s) kubernetes/ingress",
+		filepath.Base(os.Args[0]),
+		traefikversion.Version,
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
+
 	clientset, err := kubernetes.NewForConfig(c)
 	if err != nil {
 		return nil, err
@@ -245,7 +260,7 @@ func (c *clientWrapper) GetIngresses() []*networkingv1beta1.Ingress {
 	return results
 }
 
-func extensionsToNetworking(ing proto.Marshaler) (*networkingv1beta1.Ingress, error) {
+func extensionsToNetworking(ing marshaler) (*networkingv1beta1.Ingress, error) {
 	data, err := ing.Marshal()
 	if err != nil {
 		return nil, err
@@ -261,13 +276,13 @@ func extensionsToNetworking(ing proto.Marshaler) (*networkingv1beta1.Ingress, er
 }
 
 // UpdateIngressStatus updates an Ingress with a provided status.
-func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, hostname string) error {
+func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ingStatus []corev1.LoadBalancerIngress) error {
 	if !c.isWatchedNamespace(src.Namespace) {
 		return fmt.Errorf("failed to get ingress %s/%s: namespace is not within watched namespaces", src.Namespace, src.Name)
 	}
 
 	if src.GetObjectKind().GroupVersionKind().Group != "networking.k8s.io" {
-		return c.updateIngressStatusOld(src, ip, hostname)
+		return c.updateIngressStatusOld(src, ingStatus)
 	}
 
 	ing, err := c.factoriesIngress[c.lookupNamespace(src.Namespace)].Networking().V1beta1().Ingresses().Lister().Ingresses(src.Namespace).Get(src.Name)
@@ -275,16 +290,15 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 		return fmt.Errorf("failed to get ingress %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
-	if len(ing.Status.LoadBalancer.Ingress) > 0 {
-		if ing.Status.LoadBalancer.Ingress[0].Hostname == hostname && ing.Status.LoadBalancer.Ingress[0].IP == ip {
-			// If status is already set, skip update
-			log.Debugf("Skipping status update on ingress %s/%s", ing.Namespace, ing.Name)
-			return nil
-		}
+	logger := log.WithoutContext().WithField("namespace", ing.Namespace).WithField("ingress", ing.Name)
+
+	if isLoadBalancerIngressEquals(ing.Status.LoadBalancer.Ingress, ingStatus) {
+		logger.Debug("Skipping ingress status update")
+		return nil
 	}
 
 	ingCopy := ing.DeepCopy()
-	ingCopy.Status = networkingv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{{IP: ip, Hostname: hostname}}}}
+	ingCopy.Status = networkingv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: ingStatus}}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -294,26 +308,25 @@ func (c *clientWrapper) UpdateIngressStatus(src *networkingv1beta1.Ingress, ip, 
 		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
-	log.Infof("Updated status on ingress %s/%s", src.Namespace, src.Name)
+	logger.Info("Updated ingress status")
 	return nil
 }
 
-func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, ip, hostname string) error {
+func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, ingStatus []corev1.LoadBalancerIngress) error {
 	ing, err := c.factoriesIngress[c.lookupNamespace(src.Namespace)].Extensions().V1beta1().Ingresses().Lister().Ingresses(src.Namespace).Get(src.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get ingress %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
-	if len(ing.Status.LoadBalancer.Ingress) > 0 {
-		if ing.Status.LoadBalancer.Ingress[0].Hostname == hostname && ing.Status.LoadBalancer.Ingress[0].IP == ip {
-			// If status is already set, skip update
-			log.Debugf("Skipping status update on ingress %s/%s", ing.Namespace, ing.Name)
-			return nil
-		}
+	logger := log.WithoutContext().WithField("namespace", ing.Namespace).WithField("ingress", ing.Name)
+
+	if isLoadBalancerIngressEquals(ing.Status.LoadBalancer.Ingress, ingStatus) {
+		logger.Debug("Skipping ingress status update")
+		return nil
 	}
 
 	ingCopy := ing.DeepCopy()
-	ingCopy.Status = extensionsv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: []corev1.LoadBalancerIngress{{IP: ip, Hostname: hostname}}}}
+	ingCopy.Status = extensionsv1beta1.IngressStatus{LoadBalancer: corev1.LoadBalancerStatus{Ingress: ingStatus}}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -323,8 +336,28 @@ func (c *clientWrapper) updateIngressStatusOld(src *networkingv1beta1.Ingress, i
 		return fmt.Errorf("failed to update ingress status %s/%s: %w", src.Namespace, src.Name, err)
 	}
 
-	log.Infof("Updated status on ingress %s/%s", src.Namespace, src.Name)
+	logger.Info("Updated ingress status")
 	return nil
+}
+
+// isLoadBalancerIngressEquals returns true if the given slices are equal, false otherwise.
+func isLoadBalancerIngressEquals(aSlice []corev1.LoadBalancerIngress, bSlice []corev1.LoadBalancerIngress) bool {
+	if len(aSlice) != len(bSlice) {
+		return false
+	}
+
+	aMap := make(map[string]struct{})
+	for _, aIngress := range aSlice {
+		aMap[aIngress.Hostname+aIngress.IP] = struct{}{}
+	}
+
+	for _, bIngress := range bSlice {
+		if _, exists := aMap[bIngress.Hostname+bIngress.IP]; !exists {
+			return false
+		}
+	}
+
+	return true
 }
 
 // GetService returns the named service from the given namespace.
@@ -360,9 +393,9 @@ func (c *clientWrapper) GetSecret(namespace, name string) (*corev1.Secret, bool,
 	return secret, exist, err
 }
 
-func (c *clientWrapper) GetIngressClass() (*networkingv1beta1.IngressClass, error) {
+func (c *clientWrapper) GetIngressClasses() ([]*networkingv1beta1.IngressClass, error) {
 	if c.clusterFactory == nil {
-		return nil, errors.New("failed to find ingressClass: factory not loaded")
+		return nil, errors.New("cluster factory not loaded")
 	}
 
 	ingressClasses, err := c.clusterFactory.Networking().V1beta1().IngressClasses().Lister().List(labels.Everything())
@@ -370,13 +403,14 @@ func (c *clientWrapper) GetIngressClass() (*networkingv1beta1.IngressClass, erro
 		return nil, err
 	}
 
+	var ics []*networkingv1beta1.IngressClass
 	for _, ic := range ingressClasses {
 		if ic.Spec.Controller == traefikDefaultIngressClassController {
-			return ic, nil
+			ics = append(ics, ic)
 		}
 	}
 
-	return nil, nil
+	return ics, nil
 }
 
 // lookupNamespace returns the lookup namespace key for the given namespace.

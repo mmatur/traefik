@@ -160,6 +160,14 @@ For example, to change the passHostHeader behavior, you'd add the label `"traefi
     "traefik.http.services.myservice.loadbalancer.server.scheme": "http"
     ```
 
+??? info "`traefik.http.services.<service_name>.loadbalancer.serverstransport`"
+    
+    See [serverstransport](../services/index.md#serverstransport) for more information.
+    
+    ```json
+    "traefik.http.services.<service_name>.loadbalancer.serverstransport": "foobar"
+    ```
+
 ??? info "`traefik.http.services.<service_name>.loadbalancer.passhostheader`"
     
     See [pass Host header](../services/index.md#pass-host-header) for more information.
@@ -419,6 +427,14 @@ You can declare TCP Routers and/or Services using labels.
     
     ```json
     "traefik.tcp.services.mytcpservice.loadbalancer.terminationdelay": "100"
+    ```
+
+??? info "`traefik.tcp.services.<service_name>.loadbalancer.proxyprotocol.version`"
+        
+    See [PROXY protocol](../services/index.md#proxy-protocol) for more information.
+    
+    ```json
+    "traefik.tcp.services.mytcpservice.loadbalancer.proxyprotocol.version": "1"
     ```
 
 ### UDP

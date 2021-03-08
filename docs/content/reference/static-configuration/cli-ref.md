@@ -69,6 +69,12 @@ Use a DNS-01 based challenge provider rather than HTTPS.
 `--certificatesresolvers.<name>.acme.dnschallenge.resolvers`:  
 Use following DNS servers to resolve the FQDN authority.
 
+`--certificatesresolvers.<name>.acme.eab.hmacencoded`:  
+Base64 encoded HMAC key from External CA.
+
+`--certificatesresolvers.<name>.acme.eab.kid`:  
+Key identifier from External CA.
+
 `--certificatesresolvers.<name>.acme.email`:  
 Email address used for registration.
 
@@ -89,6 +95,45 @@ Storage to use. (Default: ```acme.json```)
 
 `--certificatesresolvers.<name>.acme.tlschallenge`:  
 Activate TLS-ALPN-01 Challenge. (Default: ```true```)
+
+`--certificatesresolvers.<name>.distributedacme.tls.ca`:  
+Path to the certificate authority
+
+`--certificatesresolvers.<name>.distributedacme.tls.cert`:  
+Path to the client certificate
+
+`--certificatesresolvers.<name>.distributedacme.tls.key`:  
+Path to the client key
+
+`--certificatesresolvers.<name>.distributedacme.url`:  
+URL of the ACME Agent
+
+`--certificatesresolvers.<name>.vault.auth`:  
+
+
+`--certificatesresolvers.<name>.vault.auth.approle.path`:  
+Custom path under which AppRole authentication is enabled in Vault (Default: ```approle```)
+
+`--certificatesresolvers.<name>.vault.auth.approle.roleid`:  
+Role ID to use with AppRole authentication
+
+`--certificatesresolvers.<name>.vault.auth.approle.secretid`:  
+Secret ID to use with AppRole authentication
+
+`--certificatesresolvers.<name>.vault.auth.token`:  
+Token used to authenticate with Vault
+
+`--certificatesresolvers.<name>.vault.enginepath`:  
+Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
+
+`--certificatesresolvers.<name>.vault.role`:  
+Role to be used to issue certificates
+
+`--certificatesresolvers.<name>.vault.token`:  
+Token used to authenticate with Vault
+
+`--certificatesresolvers.<name>.vault.url`:  
+URL of the Vault server
 
 `--entrypoints.<name>`:  
 Entry points definition. (Default: ```false```)
@@ -112,7 +157,7 @@ Default middlewares for the routers linked to the entry point.
 Applies a permanent redirection. (Default: ```true```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.priority`:  
-Priority of the generated router. (Default: ```2147483647```)
+Priority of the generated router. (Default: ```2147483646```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.scheme`:  
 Scheme used for the redirection. (Default: ```https```)
@@ -168,6 +213,9 @@ plugin's GOPATH.
 `--experimental.devplugin.modulename`:  
 plugin's module name.
 
+`--experimental.kubernetesgateway`:  
+Allow the Kubernetes gateway api provider usage. (Default: ```false```)
+
 `--experimental.plugins.<name>.modulename`:  
 plugin's module name.
 
@@ -175,7 +223,7 @@ plugin's module name.
 plugin's version.
 
 `--global.checknewversion`:  
-Periodically check if a new version has been released. (Default: ```false```)
+Periodically check if a new version has been released. (Default: ```true```)
 
 `--global.sendanonymoususage`:  
 Periodically send anonymous usage statistics. If the option is not specified, it will be enabled by default. (Default: ```false```)
@@ -385,7 +433,7 @@ Expose containers by default. (Default: ```true```)
 Prefix for consul service tags. Default 'traefik' (Default: ```traefik```)
 
 `--providers.consulcatalog.refreshinterval`:  
-Interval for check Consul API. Default 100ms (Default: ```15```)
+Interval for check Consul API. Default 15s (Default: ```15```)
 
 `--providers.consulcatalog.requireconsistent`:  
 Forces the read to be fully consistent. (Default: ```false```)
@@ -407,6 +455,9 @@ Docker server endpoint. Can be a tcp or a unix socket endpoint. (Default: ```uni
 
 `--providers.docker.exposedbydefault`:  
 Expose containers by default. (Default: ```true```)
+
+`--providers.docker.httpclienttimeout`:  
+Client timeout for HTTP connections. (Default: ```0```)
 
 `--providers.docker.network`:  
 Default Docker network used.
@@ -546,9 +597,6 @@ Allow cross namespace resource reference. (Default: ```true```)
 `--providers.kubernetescrd.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
 
-`--providers.kubernetescrd.disablepasshostheaders`:  
-Kubernetes disable PassHost Headers. (Default: ```false```)
-
 `--providers.kubernetescrd.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).
 
@@ -567,14 +615,32 @@ Ingress refresh throttle duration (Default: ```0```)
 `--providers.kubernetescrd.token`:  
 Kubernetes bearer token (not needed for in-cluster client).
 
+`--providers.kubernetesgateway`:  
+Enable Kubernetes gateway api provider with default settings. (Default: ```false```)
+
+`--providers.kubernetesgateway.certauthfilepath`:  
+Kubernetes certificate authority file path (not needed for in-cluster client).
+
+`--providers.kubernetesgateway.endpoint`:  
+Kubernetes server endpoint (required for external cluster client).
+
+`--providers.kubernetesgateway.labelselector`:  
+Kubernetes label selector to select specific GatewayClasses.
+
+`--providers.kubernetesgateway.namespaces`:  
+Kubernetes namespaces.
+
+`--providers.kubernetesgateway.throttleduration`:  
+Kubernetes refresh throttle duration (Default: ```0```)
+
+`--providers.kubernetesgateway.token`:  
+Kubernetes bearer token (not needed for in-cluster client).
+
 `--providers.kubernetesingress`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
 
 `--providers.kubernetesingress.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
-
-`--providers.kubernetesingress.disablepasshostheaders`:  
-Kubernetes disable PassHost Headers. (Default: ```false```)
 
 `--providers.kubernetesingress.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).
@@ -666,8 +732,38 @@ Display additional provider logs. (Default: ```false```)
 `--providers.marathon.watch`:  
 Watch provider. (Default: ```true```)
 
+`--providers.plugin.vault.auth`:  
+Authentication method to use
+
+`--providers.plugin.vault.auth.approle.path`:  
+Custom path under which AppRole authentication is enabled in Vault (Default: ```approle```)
+
+`--providers.plugin.vault.auth.approle.roleid`:  
+Role ID to use with AppRole authentication
+
+`--providers.plugin.vault.auth.approle.secretid`:  
+Secret ID to use with AppRole authentication
+
+`--providers.plugin.vault.auth.token`:  
+Token used to authenticate with Vault
+
+`--providers.plugin.vault.enginepath`:  
+Path under which the KV secret engine is enabled (Default: ```secret```)
+
+`--providers.plugin.vault.rescaninterval`:  
+Interval to rescan all certificates for changes (Default: ```60```)
+
+`--providers.plugin.vault.syncinterval`:  
+Interval to synchronize new and deleted certificates (Default: ```5```)
+
+`--providers.plugin.vault.token`:  
+Token used to authenticate with the API
+
+`--providers.plugin.vault.url`:  
+URL of the Vault API
+
 `--providers.providersthrottleduration`:  
-Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```0```)
+Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```2```)
 
 `--providers.rancher`:  
 Enable Rancher backend with default settings. (Default: ```false```)
@@ -775,7 +871,7 @@ The amount of time to wait for a server's response headers after fully writing t
 Disable SSL certificate verification. (Default: ```false```)
 
 `--serverstransport.maxidleconnsperhost`:  
-If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```0```)
+If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```200```)
 
 `--serverstransport.rootcas`:  
 Add cert file for self-signed certificate.

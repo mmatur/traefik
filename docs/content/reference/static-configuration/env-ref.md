@@ -69,6 +69,12 @@ Use a DNS-01 based challenge provider rather than HTTPS.
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_DNSCHALLENGE_RESOLVERS`:  
 Use following DNS servers to resolve the FQDN authority.
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_EAB_HMACENCODED`:  
+Base64 encoded HMAC key from External CA.
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_EAB_KID`:  
+Key identifier from External CA.
+
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_EMAIL`:  
 Email address used for registration.
 
@@ -89,6 +95,45 @@ Storage to use. (Default: ```acme.json```)
 
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_ACME_TLSCHALLENGE`:  
 Activate TLS-ALPN-01 Challenge. (Default: ```true```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_TLS_CA`:  
+Path to the certificate authority
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_TLS_CERT`:  
+Path to the client certificate
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_TLS_KEY`:  
+Path to the client key
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_DISTRIBUTEDACME_URL`:  
+URL of the ACME Agent
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH`:  
+
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_APPROLE_PATH`:  
+Custom path under which AppRole authentication is enabled in Vault (Default: ```approle```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_APPROLE_ROLEID`:  
+Role ID to use with AppRole authentication
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_APPROLE_SECRETID`:  
+Secret ID to use with AppRole authentication
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_TOKEN`:  
+Token used to authenticate with Vault
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ENGINEPATH`:  
+Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ROLE`:  
+Role to be used to issue certificates
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TOKEN`:  
+Token used to authenticate with Vault
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_URL`:  
+URL of the Vault server
 
 `TRAEFIK_ENTRYPOINTS_<NAME>`:  
 Entry points definition. (Default: ```false```)
@@ -112,7 +157,7 @@ Default middlewares for the routers linked to the entry point.
 Applies a permanent redirection. (Default: ```true```)
 
 `TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_REDIRECTIONS_ENTRYPOINT_PRIORITY`:  
-Priority of the generated router. (Default: ```2147483647```)
+Priority of the generated router. (Default: ```2147483646```)
 
 `TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_REDIRECTIONS_ENTRYPOINT_SCHEME`:  
 Scheme used for the redirection. (Default: ```https```)
@@ -129,10 +174,10 @@ Default certificate resolver for the routers linked to the entry point.
 `TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_DOMAINS`:  
 Default TLS domains for the routers linked to the entry point.
 
-`TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_DOMAINS[n]_MAIN`:  
+`TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_DOMAINS_n_MAIN`:  
 Default subject name.
 
-`TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_DOMAINS[n]_SANS`:  
+`TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_DOMAINS_n_SANS`:  
 Subject alternative names.
 
 `TRAEFIK_ENTRYPOINTS_<NAME>_HTTP_TLS_OPTIONS`:  
@@ -168,6 +213,9 @@ plugin's GOPATH.
 `TRAEFIK_EXPERIMENTAL_DEVPLUGIN_MODULENAME`:  
 plugin's module name.
 
+`TRAEFIK_EXPERIMENTAL_KUBERNETESGATEWAY`:  
+Allow the Kubernetes gateway api provider usage. (Default: ```false```)
+
 `TRAEFIK_EXPERIMENTAL_PLUGINS_<NAME>_MODULENAME`:  
 plugin's module name.
 
@@ -175,7 +223,7 @@ plugin's module name.
 plugin's version.
 
 `TRAEFIK_GLOBAL_CHECKNEWVERSION`:  
-Periodically check if a new version has been released. (Default: ```false```)
+Periodically check if a new version has been released. (Default: ```true```)
 
 `TRAEFIK_GLOBAL_SENDANONYMOUSUSAGE`:  
 Periodically send anonymous usage statistics. If the option is not specified, it will be enabled by default. (Default: ```false```)
@@ -358,7 +406,7 @@ Expose containers by default. (Default: ```true```)
 Prefix for consul service tags. Default 'traefik' (Default: ```traefik```)
 
 `TRAEFIK_PROVIDERS_CONSULCATALOG_REFRESHINTERVAL`:  
-Interval for check Consul API. Default 100ms (Default: ```15```)
+Interval for check Consul API. Default 15s (Default: ```15```)
 
 `TRAEFIK_PROVIDERS_CONSULCATALOG_REQUIRECONSISTENT`:  
 Forces the read to be fully consistent. (Default: ```false```)
@@ -407,6 +455,9 @@ Docker server endpoint. Can be a tcp or a unix socket endpoint. (Default: ```uni
 
 `TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT`:  
 Expose containers by default. (Default: ```true```)
+
+`TRAEFIK_PROVIDERS_DOCKER_HTTPCLIENTTIMEOUT`:  
+Client timeout for HTTP connections. (Default: ```0```)
 
 `TRAEFIK_PROVIDERS_DOCKER_NETWORK`:  
 Default Docker network used.
@@ -546,9 +597,6 @@ Allow cross namespace resource reference. (Default: ```true```)
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_CERTAUTHFILEPATH`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
 
-`TRAEFIK_PROVIDERS_KUBERNETESCRD_DISABLEPASSHOSTHEADERS`:  
-Kubernetes disable PassHost Headers. (Default: ```false```)
-
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_ENDPOINT`:  
 Kubernetes server endpoint (required for external cluster client).
 
@@ -567,14 +615,32 @@ Ingress refresh throttle duration (Default: ```0```)
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_TOKEN`:  
 Kubernetes bearer token (not needed for in-cluster client).
 
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY`:  
+Enable Kubernetes gateway api provider with default settings. (Default: ```false```)
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_CERTAUTHFILEPATH`:  
+Kubernetes certificate authority file path (not needed for in-cluster client).
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_ENDPOINT`:  
+Kubernetes server endpoint (required for external cluster client).
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_LABELSELECTOR`:  
+Kubernetes label selector to select specific GatewayClasses.
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_NAMESPACES`:  
+Kubernetes namespaces.
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_THROTTLEDURATION`:  
+Kubernetes refresh throttle duration (Default: ```0```)
+
+`TRAEFIK_PROVIDERS_KUBERNETESGATEWAY_TOKEN`:  
+Kubernetes bearer token (not needed for in-cluster client).
+
 `TRAEFIK_PROVIDERS_KUBERNETESINGRESS`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_KUBERNETESINGRESS_CERTAUTHFILEPATH`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
-
-`TRAEFIK_PROVIDERS_KUBERNETESINGRESS_DISABLEPASSHOSTHEADERS`:  
-Kubernetes disable PassHost Headers. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_KUBERNETESINGRESS_ENDPOINT`:  
 Kubernetes server endpoint (required for external cluster client).
@@ -666,8 +732,38 @@ Display additional provider logs. (Default: ```false```)
 `TRAEFIK_PROVIDERS_MARATHON_WATCH`:  
 Watch provider. (Default: ```true```)
 
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_AUTH`:  
+Authentication method to use
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_AUTH_APPROLE_PATH`:  
+Custom path under which AppRole authentication is enabled in Vault (Default: ```approle```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_AUTH_APPROLE_ROLEID`:  
+Role ID to use with AppRole authentication
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_AUTH_APPROLE_SECRETID`:  
+Secret ID to use with AppRole authentication
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_AUTH_TOKEN`:  
+Token used to authenticate with Vault
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_ENGINEPATH`:  
+Path under which the KV secret engine is enabled (Default: ```secret```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_RESCANINTERVAL`:  
+Interval to rescan all certificates for changes (Default: ```60```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_SYNCINTERVAL`:  
+Interval to synchronize new and deleted certificates (Default: ```5```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_TOKEN`:  
+Token used to authenticate with the API
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_URL`:  
+URL of the Vault API
+
 `TRAEFIK_PROVIDERS_PROVIDERSTHROTTLEDURATION`:  
-Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```0```)
+Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```2```)
 
 `TRAEFIK_PROVIDERS_RANCHER`:  
 Enable Rancher backend with default settings. (Default: ```false```)
@@ -775,7 +871,7 @@ The amount of time to wait for a server's response headers after fully writing t
 Disable SSL certificate verification. (Default: ```false```)
 
 `TRAEFIK_SERVERSTRANSPORT_MAXIDLECONNSPERHOST`:  
-If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```0```)
+If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used (Default: ```200```)
 
 `TRAEFIK_SERVERSTRANSPORT_ROOTCAS`:  
 Add cert file for self-signed certificate.

@@ -37,16 +37,15 @@ const (
 
 // Provider holds configurations of the provider.
 type Provider struct {
-	Endpoint               string           `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Token                  string           `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty"`
-	CertAuthFilePath       string           `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
-	DisablePassHostHeaders bool             `description:"Kubernetes disable PassHost Headers." json:"disablePassHostHeaders,omitempty" toml:"disablePassHostHeaders,omitempty" yaml:"disablePassHostHeaders,omitempty" export:"true"`
-	Namespaces             []string         `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
-	LabelSelector          string           `description:"Kubernetes Ingress label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
-	IngressClass           string           `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
-	IngressEndpoint        *EndpointIngress `description:"Kubernetes Ingress Endpoint." json:"ingressEndpoint,omitempty" toml:"ingressEndpoint,omitempty" yaml:"ingressEndpoint,omitempty" export:"true"`
-	ThrottleDuration       ptypes.Duration  `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
-	lastConfiguration      safe.Safe
+	Endpoint          string           `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Token             string           `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty"`
+	CertAuthFilePath  string           `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
+	Namespaces        []string         `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
+	LabelSelector     string           `description:"Kubernetes Ingress label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
+	IngressClass      string           `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
+	IngressEndpoint   *EndpointIngress `description:"Kubernetes Ingress Endpoint." json:"ingressEndpoint,omitempty" toml:"ingressEndpoint,omitempty" yaml:"ingressEndpoint,omitempty" export:"true"`
+	ThrottleDuration  ptypes.Duration  `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
+	lastConfiguration safe.Safe
 }
 
 // EndpointIngress holds the endpoint information for the Kubernetes provider.
@@ -191,15 +190,15 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 		return conf
 	}
 
-	var ingressClass *networkingv1beta1.IngressClass
+	var ingressClasses []*networkingv1beta1.IngressClass
 
 	if supportsIngressClass(serverVersion) {
-		ic, err := client.GetIngressClass()
+		ics, err := client.GetIngressClasses()
 		if err != nil {
-			log.FromContext(ctx).Warnf("Failed to find an ingress class: %v", err)
+			log.FromContext(ctx).Warnf("Failed to list ingress classes: %v", err)
 		}
 
-		ingressClass = ic
+		ingressClasses = ics
 	}
 
 	ingresses := client.GetIngresses()
@@ -208,7 +207,7 @@ func (p *Provider) loadConfigurationFromIngresses(ctx context.Context, client Cl
 	for _, ingress := range ingresses {
 		ctx = log.With(ctx, log.Str("ingress", ingress.Name), log.Str("namespace", ingress.Namespace))
 
-		if !p.shouldProcessIngress(p.IngressClass, ingress, ingressClass) {
+		if !p.shouldProcessIngress(ingress, ingressClasses) {
 			continue
 		}
 
@@ -324,7 +323,7 @@ func (p *Provider) updateIngressStatus(ing *networkingv1beta1.Ingress, k8sClient
 			return errors.New("publishedService or ip or hostname must be defined")
 		}
 
-		return k8sClient.UpdateIngressStatus(ing, p.IngressEndpoint.IP, p.IngressEndpoint.Hostname)
+		return k8sClient.UpdateIngressStatus(ing, []corev1.LoadBalancerIngress{{IP: p.IngressEndpoint.IP, Hostname: p.IngressEndpoint.Hostname}})
 	}
 
 	serviceInfo := strings.Split(p.IngressEndpoint.PublishedService, "/")
@@ -349,17 +348,23 @@ func (p *Provider) updateIngressStatus(ing *networkingv1beta1.Ingress, k8sClient
 		return fmt.Errorf("missing service: %s", p.IngressEndpoint.PublishedService)
 	}
 
-	return k8sClient.UpdateIngressStatus(ing, service.Status.LoadBalancer.Ingress[0].IP, service.Status.LoadBalancer.Ingress[0].Hostname)
+	return k8sClient.UpdateIngressStatus(ing, service.Status.LoadBalancer.Ingress)
 }
 
-func (p *Provider) shouldProcessIngress(providerIngressClass string, ingress *networkingv1beta1.Ingress, ingressClass *networkingv1beta1.IngressClass) bool {
+func (p *Provider) shouldProcessIngress(ingress *networkingv1beta1.Ingress, ingressClasses []*networkingv1beta1.IngressClass) bool {
 	// configuration through the new kubernetes ingressClass
 	if ingress.Spec.IngressClassName != nil {
-		return ingressClass != nil && ingressClass.ObjectMeta.Name == *ingress.Spec.IngressClassName
+		for _, ic := range ingressClasses {
+			if *ingress.Spec.IngressClassName == ic.ObjectMeta.Name {
+				return true
+			}
+		}
+
+		return false
 	}
 
-	return providerIngressClass == ingress.Annotations[annotationKubernetesIngressClass] ||
-		len(providerIngressClass) == 0 && ingress.Annotations[annotationKubernetesIngressClass] == traefikDefaultIngressClass
+	return p.IngressClass == ingress.Annotations[annotationKubernetesIngressClass] ||
+		len(p.IngressClass) == 0 && ingress.Annotations[annotationKubernetesIngressClass] == traefikDefaultIngressClass
 }
 
 func buildHostRule(host string) string {

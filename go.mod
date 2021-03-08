@@ -3,18 +3,15 @@ module github.com/traefik/traefik/v2
 go 1.15
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ExpediaDotCom/haystack-client-go v0.0.0-20190315171017-e7edbdf53a61
 	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/Shopify/sarama v1.23.1 // indirect
 	github.com/abbot/go-http-auth v0.0.0-00010101000000-000000000000
 	github.com/abronan/valkeyrie v0.0.0-20200127174252-ef4277a138cd
 	github.com/aws/aws-sdk-go v1.30.20
-	github.com/c0va23/go-proxyprotocol v0.9.1
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/containerd/containerd v1.3.2 // indirect
 	github.com/containous/alice v0.0.0-20181107144136-d83ebdd94cbd
@@ -22,7 +19,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/cli v0.0.0-20200221155518-740919cc7fc0
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v0.0.0-00010101000000-000000000000
+	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/docker/docker-credential-helpers v0.6.3 // indirect
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82 // indirect
@@ -31,18 +28,18 @@ require (
 	github.com/donovanhide/eventsource v0.0.0-20170630084216-b8f31a59085e // indirect
 	github.com/eapache/channels v1.1.0
 	github.com/elazarl/go-bindata-assetfs v1.0.0
-	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/gambol99/go-marathon v0.0.0-20180614232016-99a156b96fb2
-	github.com/go-acme/lego/v4 v4.1.3
+	github.com/go-acme/lego/v4 v4.2.0
 	github.com/go-check/check v0.0.0-00010101000000-000000000000
 	github.com/go-kit/kit v0.10.1-0.20200915143503-439c4d2ed3ea
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-github/v28 v28.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/consul/api v1.3.0
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/go-version v1.2.0
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/instana/go-sensor v1.5.1
@@ -64,16 +61,18 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/pires/go-proxyproto v0.3.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.3.0
-	github.com/prometheus/client_model v0.1.0
+	github.com/prometheus/client_model v0.2.0
 	github.com/rancher/go-rancher-metadata v0.0.0-20200311180630-7f4c936a06ac
 	github.com/sirupsen/logrus v1.7.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/stvp/go-udp-testing v0.0.0-20191102171040-06b61409b154
 	github.com/tinylib/msgp v1.0.2 // indirect
+	github.com/traefik/gziphandler v1.1.2-0.20210212101304-175e0fad6888
 	github.com/traefik/paerser v0.1.1
-	github.com/traefik/yaegi v0.9.8
+	github.com/traefik/yaegi v0.9.13
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	github.com/unrolled/render v1.0.2
@@ -83,19 +82,20 @@ require (
 	github.com/vulcand/predicate v1.1.0
 	go.elastic.co/apm v1.7.0
 	go.elastic.co/apm/module/apmot v1.7.0
-	golang.org/x/mod v0.2.0
-	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	golang.org/x/mod v0.3.0
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/grpc v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.19.0
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	k8s.io/api v0.18.2
-	k8s.io/apimachinery v0.18.2
-	k8s.io/client-go v0.18.2
-	k8s.io/code-generator v0.18.2
+	k8s.io/api v0.19.2
+	k8s.io/apimachinery v0.19.2
+	k8s.io/client-go v0.19.2
+	k8s.io/code-generator v0.19.2
 	mvdan.cc/xurls/v2 v2.1.0
+	sigs.k8s.io/service-apis v0.1.0
 )
 
 // Docker v19.03.6

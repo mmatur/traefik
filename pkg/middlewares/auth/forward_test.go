@@ -26,6 +26,7 @@ func TestForwardAuthFail(t *testing.T) {
 	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(forward.ProxyAuthenticate, "test")
 		http.Error(w, "Forbidden", http.StatusForbidden)
 	}))
 	t.Cleanup(server.Close)
@@ -48,6 +49,7 @@ func TestForwardAuthFail(t *testing.T) {
 	err = res.Body.Close()
 	require.NoError(t, err)
 
+	assert.Equal(t, "test", res.Header.Get(forward.ProxyAuthenticate))
 	assert.Equal(t, "Forbidden\n", string(body))
 }
 
@@ -57,6 +59,7 @@ func TestForwardAuthSuccess(t *testing.T) {
 		w.Header().Set("X-Auth-Secret", "secret")
 		w.Header().Add("X-Auth-Group", "group1")
 		w.Header().Add("X-Auth-Group", "group2")
+		w.Header().Add("Foo-Bar", "auth-value")
 		fmt.Fprintln(w, "Success")
 	}))
 	t.Cleanup(server.Close)
@@ -65,12 +68,15 @@ func TestForwardAuthSuccess(t *testing.T) {
 		assert.Equal(t, "user@example.com", r.Header.Get("X-Auth-User"))
 		assert.Empty(t, r.Header.Get("X-Auth-Secret"))
 		assert.Equal(t, []string{"group1", "group2"}, r.Header["X-Auth-Group"])
+		assert.Equal(t, "auth-value", r.Header.Get("Foo-Bar"))
+		assert.Empty(t, r.Header.Get("Foo-Baz"))
 		fmt.Fprintln(w, "traefik")
 	})
 
 	auth := dynamic.ForwardAuth{
-		Address:             server.URL,
-		AuthResponseHeaders: []string{"X-Auth-User", "X-Auth-Group"},
+		Address:                  server.URL,
+		AuthResponseHeaders:      []string{"X-Auth-User", "X-Auth-Group"},
+		AuthResponseHeadersRegex: "^Foo-",
 	}
 	middleware, err := NewForward(context.Background(), next, auth, "authTest")
 	require.NoError(t, err)
@@ -80,6 +86,8 @@ func TestForwardAuthSuccess(t *testing.T) {
 
 	req := testhelpers.MustNewRequest(http.MethodGet, ts.URL, nil)
 	req.Header.Set("X-Auth-Group", "admin_group")
+	req.Header.Set("Foo-Bar", "client-value")
+	req.Header.Set("Foo-Baz", "client-value")
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -136,7 +144,7 @@ func TestForwardAuthRedirect(t *testing.T) {
 func TestForwardAuthRemoveHopByHopHeaders(t *testing.T) {
 	authTs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headers := w.Header()
-		for _, header := range forward.HopHeaders {
+		for _, header := range hopHeaders {
 			if header == forward.TransferEncoding {
 				headers.Set(header, "chunked")
 			} else {
@@ -242,6 +250,7 @@ func Test_writeHeader(t *testing.T) {
 	testCases := []struct {
 		name                      string
 		headers                   map[string]string
+		authRequestHeaders        []string
 		trustForwardHeader        bool
 		emptyHost                 bool
 		expectedHeaders           map[string]string
@@ -360,6 +369,47 @@ func Test_writeHeader(t *testing.T) {
 			},
 			trustForwardHeader: false,
 			expectedHeaders: map[string]string{
+				"X-CustomHeader":           "CustomHeader",
+				"X-Forwarded-Proto":        "http",
+				"X-Forwarded-Host":         "foo.bar",
+				"X-Forwarded-Uri":          "/path?q=1",
+				"X-Forwarded-Method":       "GET",
+				forward.ProxyAuthenticate:  "ProxyAuthenticate",
+				forward.ProxyAuthorization: "ProxyAuthorization",
+			},
+			checkForUnexpectedHeaders: true,
+		},
+		{
+			name: "filter forward request headers",
+			headers: map[string]string{
+				"X-CustomHeader": "CustomHeader",
+				"Content-Type":   "multipart/form-data; boundary=---123456",
+			},
+			authRequestHeaders: []string{
+				"X-CustomHeader",
+			},
+			trustForwardHeader: false,
+			expectedHeaders: map[string]string{
+				"x-customHeader":     "CustomHeader",
+				"X-Forwarded-Proto":  "http",
+				"X-Forwarded-Host":   "foo.bar",
+				"X-Forwarded-Uri":    "/path?q=1",
+				"X-Forwarded-Method": "GET",
+			},
+			checkForUnexpectedHeaders: true,
+		},
+		{
+			name: "filter forward request headers doesn't add new headers",
+			headers: map[string]string{
+				"X-CustomHeader": "CustomHeader",
+				"Content-Type":   "multipart/form-data; boundary=---123456",
+			},
+			authRequestHeaders: []string{
+				"X-CustomHeader",
+				"X-Non-Exists-Header",
+			},
+			trustForwardHeader: false,
+			expectedHeaders: map[string]string{
 				"X-CustomHeader":     "CustomHeader",
 				"X-Forwarded-Proto":  "http",
 				"X-Forwarded-Host":   "foo.bar",
@@ -383,9 +433,10 @@ func Test_writeHeader(t *testing.T) {
 
 			forwardReq := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/path?q=1", nil)
 
-			writeHeader(req, forwardReq, test.trustForwardHeader)
+			writeHeader(req, forwardReq, test.trustForwardHeader, test.authRequestHeaders)
 
 			actualHeaders := forwardReq.Header
+
 			expectedHeaders := test.expectedHeaders
 			for key, value := range expectedHeaders {
 				assert.Equal(t, value, actualHeaders.Get(key))

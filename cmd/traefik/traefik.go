@@ -13,6 +13,7 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
+	"github.com/go-acme/lego/v4/challenge"
 	"github.com/sirupsen/logrus"
 	"github.com/traefik/paerser/cli"
 	"github.com/traefik/traefik/v2/autogen/genstatic"
@@ -28,7 +29,6 @@ import (
 	"github.com/traefik/traefik/v2/pkg/metrics"
 	"github.com/traefik/traefik/v2/pkg/middlewares/accesslog"
 	"github.com/traefik/traefik/v2/pkg/pilot"
-	"github.com/traefik/traefik/v2/pkg/plugins"
 	"github.com/traefik/traefik/v2/pkg/provider/acme"
 	"github.com/traefik/traefik/v2/pkg/provider/aggregator"
 	"github.com/traefik/traefik/v2/pkg/provider/traefik"
@@ -173,15 +173,30 @@ func runCmd(staticConfiguration *static.Configuration) error {
 func setupServer(staticConfiguration *static.Configuration) (*server.Server, error) {
 	providerAggregator := aggregator.NewProviderAggregator(*staticConfiguration.Providers)
 
+	ctx := context.Background()
+	routinesPool := safe.NewPool(ctx)
+
 	// adds internal provider
 	err := providerAggregator.AddProvider(traefik.New(*staticConfiguration))
 	if err != nil {
 		return nil, err
 	}
 
-	tlsManager := traefiktls.NewManager()
+	// ACME
 
-	acmeProviders := initACMEProvider(staticConfiguration, &providerAggregator, tlsManager)
+	tlsManager := traefiktls.NewManager()
+	httpChallengeProvider := acme.NewChallengeHTTP()
+
+	// we need to wait at least 2 times the ProvidersThrottleDuration to be sure to handle the challenge.
+	tlsChallengeProvider := acme.NewChallengeTLSALPN(time.Duration(staticConfiguration.Providers.ProvidersThrottleDuration) * 2)
+	err = providerAggregator.AddProvider(tlsChallengeProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	acmeProviders := initACMEProvider(staticConfiguration, &providerAggregator, tlsManager, httpChallengeProvider, tlsChallengeProvider)
+
+	// Entrypoints
 
 	serverEntryPointsTCP, err := server.NewTCPEntryPoints(staticConfiguration.EntryPoints)
 	if err != nil {
@@ -193,91 +208,99 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 		return nil, err
 	}
 
-	ctx := context.Background()
-	routinesPool := safe.NewPool(ctx)
-
-	metricRegistries := registerMetricClients(staticConfiguration.Metrics)
+	// Pilot
 
 	var aviator *pilot.Pilot
+	var pilotRegistry *metrics.PilotRegistry
 	if isPilotEnabled(staticConfiguration) {
-		pilotRegistry := metrics.RegisterPilot()
+		pilotRegistry = metrics.RegisterPilot()
 
 		aviator = pilot.New(staticConfiguration.Pilot.Token, pilotRegistry, routinesPool)
+
 		routinesPool.GoCtx(func(ctx context.Context) {
 			aviator.Tick(ctx)
 		})
+	}
 
+	// Plugins
+
+	pluginBuilder, err := createPluginBuilder(staticConfiguration)
+	if err != nil {
+		return nil, err
+	}
+
+	// Metrics
+
+	metricRegistries := registerMetricClients(staticConfiguration.Metrics)
+	if pilotRegistry != nil {
 		metricRegistries = append(metricRegistries, pilotRegistry)
 	}
-
 	metricsRegistry := metrics.NewMultiRegistry(metricRegistries)
+
+	// Service manager factory
+
+	roundTripperManager := service.NewRoundTripperManager()
+	acmeHTTPHandler := getHTTPChallengeHandler(acmeProviders, httpChallengeProvider)
+	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry, roundTripperManager, acmeHTTPHandler)
+
+	// Router factory
+
 	accessLog := setupAccessLog(staticConfiguration.AccessLog)
 	chainBuilder := middleware.NewChainBuilder(*staticConfiguration, metricsRegistry, accessLog)
-	managerFactory := service.NewManagerFactory(*staticConfiguration, routinesPool, metricsRegistry)
-
-	client, plgs, devPlugin, err := initPlugins(staticConfiguration)
-	if err != nil {
-		return nil, err
-	}
-
-	pluginBuilder, err := plugins.NewBuilder(client, plgs, devPlugin)
-	if err != nil {
-		return nil, err
-	}
-
 	routerFactory := server.NewRouterFactory(*staticConfiguration, managerFactory, tlsManager, chainBuilder, pluginBuilder)
 
-	var defaultEntryPoints []string
-	for name, cfg := range staticConfiguration.EntryPoints {
-		protocol, err := cfg.GetProtocol()
-		if err != nil {
-			// Should never happen because Traefik should not start if protocol is invalid.
-			log.WithoutContext().Errorf("Invalid protocol: %v", err)
-		}
-
-		if protocol != "udp" && name != static.DefaultInternalEntryPointName {
-			defaultEntryPoints = append(defaultEntryPoints, name)
-		}
-	}
-
-	sort.Strings(defaultEntryPoints)
+	// Watcher
 
 	watcher := server.NewConfigurationWatcher(
 		routinesPool,
 		providerAggregator,
 		time.Duration(staticConfiguration.Providers.ProvidersThrottleDuration),
-		defaultEntryPoints,
+		getDefaultsEntrypoints(staticConfiguration),
+		"internal",
 	)
 
+	// TLS
 	watcher.AddListener(func(conf dynamic.Configuration) {
 		ctx := context.Background()
 		tlsManager.UpdateConfigs(ctx, conf.TLS.Stores, conf.TLS.Options, conf.TLS.Certificates)
 	})
 
+	// Metrics
 	watcher.AddListener(func(_ dynamic.Configuration) {
 		metricsRegistry.ConfigReloadsCounter().Add(1)
 		metricsRegistry.LastConfigReloadSuccessGauge().Set(float64(time.Now().Unix()))
 	})
 
-	watcher.AddListener(switchRouter(routerFactory, acmeProviders, serverEntryPointsTCP, serverEntryPointsUDP, aviator))
-
+	// Server Transports
 	watcher.AddListener(func(conf dynamic.Configuration) {
-		if metricsRegistry.IsEpEnabled() || metricsRegistry.IsSvcEnabled() {
-			var eps []string
-			for key := range serverEntryPointsTCP {
-				eps = append(eps, key)
-			}
-
-			metrics.OnConfigurationUpdate(conf, eps)
-		}
+		roundTripperManager.Update(conf.HTTP.ServersTransports)
 	})
 
+	// Switch router
+	watcher.AddListener(switchRouter(routerFactory, serverEntryPointsTCP, serverEntryPointsUDP, aviator))
+
+	// Metrics
+	if metricsRegistry.IsEpEnabled() || metricsRegistry.IsSvcEnabled() {
+		var eps []string
+		for key := range serverEntryPointsTCP {
+			eps = append(eps, key)
+		}
+		watcher.AddListener(func(conf dynamic.Configuration) {
+			metrics.OnConfigurationUpdate(conf, eps)
+		})
+	}
+
+	// TLS challenge
+	watcher.AddListener(tlsChallengeProvider.ListenConfiguration)
+
+	// ACME
 	resolverNames := map[string]struct{}{}
 	for _, p := range acmeProviders {
 		resolverNames[p.ResolverName] = struct{}{}
 		watcher.AddListener(p.ListenConfiguration)
 	}
 
+	// Certificate resolver logs
 	watcher.AddListener(func(config dynamic.Configuration) {
 		for rtName, rt := range config.HTTP.Routers {
 			if rt.TLS == nil || rt.TLS.CertResolver == "" {
@@ -293,23 +316,43 @@ func setupServer(staticConfiguration *static.Configuration) (*server.Server, err
 	return server.NewServer(routinesPool, serverEntryPointsTCP, serverEntryPointsUDP, watcher, chainBuilder, accessLog), nil
 }
 
-func switchRouter(routerFactory *server.RouterFactory, acmeProviders []*acme.Provider, serverEntryPointsTCP server.TCPEntryPoints, serverEntryPointsUDP server.UDPEntryPoints, aviator *pilot.Pilot) func(conf dynamic.Configuration) {
+func getHTTPChallengeHandler(acmeProviders []*acme.Provider, httpChallengeProvider http.Handler) http.Handler {
+	var acmeHTTPHandler http.Handler
+	for _, p := range acmeProviders {
+		if p != nil && p.HTTPChallenge != nil {
+			acmeHTTPHandler = httpChallengeProvider
+			break
+		}
+	}
+	return acmeHTTPHandler
+}
+
+func getDefaultsEntrypoints(staticConfiguration *static.Configuration) []string {
+	var defaultEntryPoints []string
+	for name, cfg := range staticConfiguration.EntryPoints {
+		protocol, err := cfg.GetProtocol()
+		if err != nil {
+			// Should never happen because Traefik should not start if protocol is invalid.
+			log.WithoutContext().Errorf("Invalid protocol: %v", err)
+		}
+
+		if protocol != "udp" && name != static.DefaultInternalEntryPointName {
+			defaultEntryPoints = append(defaultEntryPoints, name)
+		}
+	}
+
+	sort.Strings(defaultEntryPoints)
+	return defaultEntryPoints
+}
+
+func switchRouter(routerFactory *server.RouterFactory, serverEntryPointsTCP server.TCPEntryPoints, serverEntryPointsUDP server.UDPEntryPoints, aviator *pilot.Pilot) func(conf dynamic.Configuration) {
 	return func(conf dynamic.Configuration) {
 		rtConf := runtime.NewConfig(conf)
 
 		routers, udpRouters := routerFactory.CreateRouters(rtConf)
 
-		for entryPointName, rt := range routers {
-			for _, p := range acmeProviders {
-				if p != nil && p.HTTPChallenge != nil && p.HTTPChallenge.EntryPoint == entryPointName {
-					rt.HTTPHandler(p.CreateHandler(rt.GetHTTPHandler()))
-					break
-				}
-			}
-		}
-
 		if aviator != nil {
-			aviator.SetRuntimeConfiguration(rtConf)
+			aviator.SetDynamicConfiguration(conf)
 		}
 
 		serverEntryPointsTCP.Switch(routers)
@@ -318,8 +361,7 @@ func switchRouter(routerFactory *server.RouterFactory, acmeProviders []*acme.Pro
 }
 
 // initACMEProvider creates an acme provider from the ACME part of globalConfiguration.
-func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.ProviderAggregator, tlsManager *traefiktls.Manager) []*acme.Provider {
-	challengeStore := acme.NewLocalChallengeStore()
+func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.ProviderAggregator, tlsManager *traefiktls.Manager, httpChallengeProvider, tlsChallengeProvider challenge.Provider) []*acme.Provider {
 	localStores := map[string]*acme.LocalStore{}
 
 	var resolvers []*acme.Provider
@@ -330,10 +372,11 @@ func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.Pr
 			}
 
 			p := &acme.Provider{
-				Configuration:  resolver.ACME,
-				Store:          localStores[resolver.ACME.Storage],
-				ChallengeStore: challengeStore,
-				ResolverName:   name,
+				Configuration:         resolver.ACME,
+				Store:                 localStores[resolver.ACME.Storage],
+				ResolverName:          name,
+				HTTPChallengeProvider: httpChallengeProvider,
+				TLSChallengeProvider:  tlsChallengeProvider,
 			}
 
 			if err := providerAggregator.AddProvider(p); err != nil {
@@ -343,15 +386,12 @@ func initACMEProvider(c *static.Configuration, providerAggregator *aggregator.Pr
 
 			p.SetTLSManager(tlsManager)
 
-			if p.TLSChallenge != nil {
-				tlsManager.TLSAlpnGetter = p.GetTLSALPNCertificate
-			}
-
 			p.SetConfigListenerChan(make(chan dynamic.Configuration))
 
 			resolvers = append(resolvers, p)
 		}
 	}
+
 	return resolvers
 }
 

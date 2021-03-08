@@ -53,6 +53,83 @@ func TestTranslateNotFoundError(t *testing.T) {
 	}
 }
 
+func TestIsLoadBalancerIngressEquals(t *testing.T) {
+	testCases := []struct {
+		desc          string
+		aSlice        []corev1.LoadBalancerIngress
+		bSlice        []corev1.LoadBalancerIngress
+		expectedEqual bool
+	}{
+		{
+			desc:          "both slices are empty",
+			expectedEqual: true,
+		},
+		{
+			desc: "not the same length",
+			bSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+			},
+			expectedEqual: false,
+		},
+		{
+			desc: "same ordered content",
+			aSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+			},
+			bSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+			},
+			expectedEqual: true,
+		},
+		{
+			desc: "same unordered content",
+			aSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+				{IP: "192.168.1.2", Hostname: "traefik2"},
+			},
+			bSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.2", Hostname: "traefik2"},
+				{IP: "192.168.1.1", Hostname: "traefik"},
+			},
+			expectedEqual: true,
+		},
+		{
+			desc: "different ordered content",
+			aSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+				{IP: "192.168.1.2", Hostname: "traefik2"},
+			},
+			bSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+				{IP: "192.168.1.2", Hostname: "traefik"},
+			},
+			expectedEqual: false,
+		},
+		{
+			desc: "different unordered content",
+			aSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.1", Hostname: "traefik"},
+				{IP: "192.168.1.2", Hostname: "traefik2"},
+			},
+			bSlice: []corev1.LoadBalancerIngress{
+				{IP: "192.168.1.2", Hostname: "traefik3"},
+				{IP: "192.168.1.1", Hostname: "traefik"},
+			},
+			expectedEqual: false,
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			gotEqual := isLoadBalancerIngressEquals(test.aSlice, test.bSlice)
+			assert.Equal(t, test.expectedEqual, gotEqual)
+		})
+	}
+}
+
 func TestClientIgnoresHelmOwnedSecrets(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
