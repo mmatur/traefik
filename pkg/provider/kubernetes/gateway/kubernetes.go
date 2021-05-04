@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/service-apis/apis/v1alpha1"
+	"sigs.k8s.io/gateway-api/apis/v1alpha1"
 )
 
 const providerName = "kubernetesgateway"
@@ -541,23 +541,24 @@ func (p *Provider) makeGatewayStatus(listenerStatuses []v1alpha1.ListenerStatus)
 
 	gatewayStatus.Listeners = listenerStatuses
 
-	// update "Scheduled" status with "ResourcesAvailable" reason
-	gatewayStatus.Conditions = append(gatewayStatus.Conditions, metav1.Condition{
-		Type:               string(v1alpha1.GatewayConditionScheduled),
-		Status:             metav1.ConditionTrue,
-		Reason:             "ResourcesAvailable",
-		Message:            "Resources available",
-		LastTransitionTime: metav1.Now(),
-	})
-
-	// update "Ready" status with "ListenersValid" reason
-	gatewayStatus.Conditions = append(gatewayStatus.Conditions, metav1.Condition{
-		Type:               string(v1alpha1.GatewayConditionReady),
-		Status:             metav1.ConditionTrue,
-		Reason:             "ListenersValid",
-		Message:            "Listeners valid",
-		LastTransitionTime: metav1.Now(),
-	})
+	gatewayStatus.Conditions = append(gatewayStatus.Conditions,
+		// update "Scheduled" status with "ResourcesAvailable" reason
+		metav1.Condition{
+			Type:               string(v1alpha1.GatewayConditionScheduled),
+			Status:             metav1.ConditionTrue,
+			Reason:             "ResourcesAvailable",
+			Message:            "Resources available",
+			LastTransitionTime: metav1.Now(),
+		},
+		// update "Ready" status with "ListenersValid" reason
+		metav1.Condition{
+			Type:               string(v1alpha1.GatewayConditionReady),
+			Status:             metav1.ConditionTrue,
+			Reason:             "ListenersValid",
+			Message:            "Listeners valid",
+			LastTransitionTime: metav1.Now(),
+		},
+	)
 
 	return gatewayStatus, nil
 }
@@ -786,12 +787,12 @@ func loadServices(client Client, namespace string, targets []v1alpha1.HTTPRouteF
 			return nil, nil, errors.New("service not found")
 		}
 
-		if len(service.Spec.Ports) > 1 && forwardTo.Port == 0 {
+		if len(service.Spec.Ports) > 1 && forwardTo.Port == nil {
 			// If the port is unspecified and the backend is a Service
 			// object consisting of multiple port definitions, the route
 			// must be dropped from the Gateway. The controller should
 			// raise the "ResolvedRefs" condition on the Gateway with the
-			// "DroppedRoutes" reason.  The gateway status for this route
+			// "DroppedRoutes" reason. The gateway status for this route
 			// should be updated with a condition that describes the error
 			// more specifically.
 			log.WithoutContext().Errorf("A multiple ports Kubernetes Service cannot be used if unspecified forwardTo.Port")
@@ -803,7 +804,7 @@ func loadServices(client Client, namespace string, targets []v1alpha1.HTTPRouteF
 		var match bool
 
 		for _, p := range service.Spec.Ports {
-			if forwardTo.Port == 0 || p.Port == int32(forwardTo.Port) {
+			if forwardTo.Port == nil || p.Port == int32(*forwardTo.Port) {
 				portName = p.Name
 				portSpec = p
 				match = true
