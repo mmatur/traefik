@@ -10,7 +10,14 @@ import (
 
 // Plugin holds TraefikEE-specific Provider configuration.
 type Plugin struct {
-	Vault *Vault `description:"Enable Vault backend for TLS certificates with default settings." json:"vault" toml:"vault" yaml:"vault" export:"true"`
+	Vault   *Vault              `description:"Enable Vault backend for TLS certificates with default settings." json:"vault" toml:"vault" yaml:"vault" export:"true"`
+	Traefik map[string]*Traefik `description:"Enable Traefik provider." json:"traefik" toml:"traefik" yaml:"traefik" export:"true"`
+}
+
+// Traefik holds Traefik provider configuration.
+type Traefik struct {
+	APIAddr             string `description:"Address of the API." json:"apiAddr" toml:"apiAddr" yaml:"apiAddr" export:"true"`
+	AuthorizationHeader string `description:"Authorization Header." json:"authorizationHeader" toml:"authorizationHeader" yaml:"authorizationHeader" export:"true"`
 }
 
 // Vault configures the Vault provider for TLS certificates.
