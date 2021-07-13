@@ -1,0 +1,38 @@
+name: Test Unit
+
+on:
+  push:
+    branches:
+      - feature/github-action
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test-unit:
+    runs-on: ubuntu-20.04
+    env:
+      PRE_TARGET: ""
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+        id: go
+
+      - name: Installing dependancies
+        run: |
+          go get -u github.com/containous/go-bindata/...
+          go get k8s.io/gengo/...
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          path: go/src/github.com/traefik/traefik
+
+      - name: Tests
+        working-directory: go/src/github.com/traefik/traefik
+        run: |
+          make test-unit

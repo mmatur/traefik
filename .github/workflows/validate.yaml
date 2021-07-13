@@ -1,0 +1,47 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - feature/github-action
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  validate:
+    runs-on: ubuntu-20.04
+    env:
+      PRE_TARGET: ""
+      GOLANGCI_LINT_VERSION: v1.41.1
+      MISSSPELL_VERSION: v0.3.4
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+        id: go
+
+      # https://golangci-lint.run/usage/install#other-ci
+      - name: Install golangci-lint ${{ env.GOLANGCI_LINT_VERSION }}
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
+
+      - name: Install missspell ${{ env.MISSSPELL_VERSION }}
+        run: curl -sfL https://raw.githubusercontent.com/client9/misspell/master/install-misspell.sh | sh -s -- -b $(go env GOPATH)/bin ${MISSSPELL_VERSION}
+
+      - name: Installing dependancies
+        run: |
+          go get -u github.com/containous/go-bindata/...
+          go get k8s.io/gengo/...
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          path: go/src/github.com/traefik/traefik
+
+      - name: Validate
+        working-directory: go/src/github.com/traefik/traefik
+        run: |
+          make validate
