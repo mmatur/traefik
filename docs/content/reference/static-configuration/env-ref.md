@@ -556,7 +556,7 @@ KV Username
 Enable debug logging of generated configuration template. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_FILE_DIRECTORY`:  
-Load dynamic configuration from one or more .toml or .yml files in a directory.
+Load dynamic configuration from one or more .yml or .toml files in a directory.
 
 `TRAEFIK_PROVIDERS_FILE_FILENAME`:  
 Load dynamic configuration from a file.
@@ -595,7 +595,10 @@ TLS key
 Enable Kubernetes backend with default settings. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_ALLOWCROSSNAMESPACE`:  
-Allow cross namespace resource reference. (Default: ```true```)
+Allow cross namespace resource reference. (Default: ```false```)
+
+`TRAEFIK_PROVIDERS_KUBERNETESCRD_ALLOWEXTERNALNAMESERVICES`:  
+Allow ExternalName services. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_CERTAUTHFILEPATH`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
@@ -641,6 +644,9 @@ Kubernetes bearer token (not needed for in-cluster client).
 
 `TRAEFIK_PROVIDERS_KUBERNETESINGRESS`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
+
+`TRAEFIK_PROVIDERS_KUBERNETESINGRESS_ALLOWEXTERNALNAMESERVICES`:  
+Allow ExternalName services. (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_KUBERNETESINGRESS_CERTAUTHFILEPATH`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
