@@ -46,9 +46,9 @@ jobs:
           path: |
             ~/go/pkg/mod              # Module download cache
             ~/.cache/go-build         # Build cache (Linux)
-          key: validate-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-validate-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            validate-go-
+            ${{ runner.os }}-validate-go-
 
       - name: Installing dependencies
         run: |
@@ -64,6 +64,45 @@ jobs:
       - name: Validate
         run: |
           make validate
+
+  validate-generate:
+    runs-on: ubuntu-20.04
+    env:
+      GO_VERSION: 1.16
+      PRE_TARGET: ""
+      GOLANGCI_LINT_VERSION: v1.41.1
+      MISSSPELL_VERSION: v0.3.4
+
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/go/src/github.com/traefik/traefik
+
+    steps:
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: go/src/github.com/traefik/traefik
+          fetch-depth: 0
+
+      # https://github.com/marketplace/actions/cache
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod              # Module download cache
+            ~/.cache/go-build         # Build cache (Linux)
+          key: ${{ runner.os }}-validate-generate-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-validate-generate-go-
+
+      - name: Installing dependencies
+        run: |
+          go install github.com/containous/go-bindata/go-bindata@v1.0.0
 
       - name: go generate
         run: |

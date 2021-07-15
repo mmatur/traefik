@@ -75,9 +75,9 @@ jobs:
             ~/.cache/go-build         # Build cache (Linux)
             ~/Library/Caches/go-build # Build cache (Mac)
             '%LocalAppData%\go-build' # Build cache (Windows)
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-build-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-build-go-
 
       - name: Installing dependencies
         run: |

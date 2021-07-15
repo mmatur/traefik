@@ -44,9 +44,9 @@ jobs:
           path: |
             ~/go/pkg/mod              # Module download cache
             ~/.cache/go-build         # Build cache (Linux)
-          key: test-unit-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-test-unit-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            test-unit-go-
+            ${{ runner.os }}-test-unit-go-
 
       - name: Installing dependencies
         run: |
