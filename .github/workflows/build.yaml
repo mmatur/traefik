@@ -39,11 +39,10 @@ jobs:
 
   build:
     runs-on: ${{ matrix.os }}
-    container:
-      image: golang:1.16
     needs:
       - build-webui
     env:
+      GO_VERSION: 1.16
       CGO_ENABLED: 0
       PRE_TARGET: ""
 
@@ -56,6 +55,10 @@ jobs:
         working-directory: ${{ github.workspace }}/go/src/github.com/traefik/traefik
 
     steps:
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Check out code
         uses: actions/checkout@v2
