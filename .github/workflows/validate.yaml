@@ -6,15 +6,13 @@ on:
       - feature/github-action
     paths-ignore:
       - '**.md'
-      - '**.yaml'
-      - '**.yml'
+      - 'docs/'
   pull_request:
     branches:
       - '*'
     paths-ignore:
       - '**.md'
-      - '**.yaml'
-      - '**.yml'
+      - 'docs/'
 
 jobs:
   validate:

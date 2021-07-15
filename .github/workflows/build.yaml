@@ -6,19 +6,41 @@ on:
       - feature/github-action
     paths-ignore:
       - '**.md'
-      - '**.yaml'
-      - '**.yml'
+      - 'docs/'
   pull_request:
     branches:
       - '*'
     paths-ignore:
       - '**.md'
-      - '**.yaml'
-      - '**.yml'
+      - 'docs/'
 
 jobs:
+  build-webui:
+    runs-on: ubuntu-20.04
+    env:
+      PRE_TARGET: ""
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build webui
+        run: |
+          make generate-webui
+          tar czvf webui.tar.gz ./static/
+
+      - name: Artifact webui
+        uses: actions/upload-artifact@v2
+        with:
+          name: webui.tar.gz
+          path: webui.tar.gz
+
   build:
     runs-on: ${{ matrix.os }}
+    needs:
+      - build-webui
     env:
       GO_VERSION: 1.16
       CGO_ENABLED: 0
@@ -53,13 +75,24 @@ jobs:
             ~/.cache/go-build         # Build cache (Linux)
             ~/Library/Caches/go-build # Build cache (Mac)
             '%LocalAppData%\go-build' # Build cache (Windows)
-          key: ${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.go-version }}-go-
+            ${{ runner.os }}-go-
 
       - name: Installing dependencies
         run: |
           go install github.com/containous/go-bindata/go-bindata@v1.0.0
+          du -hs ~/go/pkg/mod
+
+      - name: Artifact webui
+        uses: actions/download-artifact@v2
+        with:
+          name: webui.tar.gz
+          path: ${{ github.workspace }}/go/src/github.com/traefik/traefik
+
+      - name: Untar webui
+        run: |
+          tar xvf webui.tar.gz
 
       - name: Build
         run: |
