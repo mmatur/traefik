@@ -64,3 +64,18 @@ jobs:
       - name: Validate
         run: |
           make validate
+
+      - name: go generate
+        run: |
+          go generate
+          git diff --exit-code
+
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
+      - name: make generate-crd
+        run: |
+          make generate-crd
+          git diff --exit-code
