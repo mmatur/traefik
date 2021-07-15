@@ -52,7 +52,6 @@ jobs:
       - name: Installing dependencies
         run: |
           go install github.com/containous/go-bindata/go-bindata@v1.0.0
-          go mod tidy
 
       - name: Build
         run: |
