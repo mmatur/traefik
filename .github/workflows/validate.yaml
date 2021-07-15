@@ -33,6 +33,17 @@ jobs:
           path: go/src/github.com/traefik/traefik
           fetch-depth: 0
 
+      # https://github.com/marketplace/actions/cache
+      - name: Cache Go modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod              # Module download cache
+            ~/.cache/go-build         # Build cache (Linux)
+          key: test-unit-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            test-unit-go-
+
       - name: Installing dependencies
         run: |
           go install github.com/containous/go-bindata/go-bindata@v1.0.0
