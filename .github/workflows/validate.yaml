@@ -17,8 +17,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-20.04
+    container:
+      image: golang:1.16
     env:
-      GO_VERSION: 1.16
       PRE_TARGET: ""
       GOLANGCI_LINT_VERSION: v1.41.1
       MISSSPELL_VERSION: v0.3.4
@@ -28,10 +29,6 @@ jobs:
         working-directory: ${{ github.workspace }}/go/src/github.com/traefik/traefik
 
     steps:
-      - name: Set up Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -61,14 +58,6 @@ jobs:
       - name: Install missspell ${{ env.MISSSPELL_VERSION }}
         run: curl -sfL https://raw.githubusercontent.com/client9/misspell/master/install-misspell.sh | sh -s -- -b $(go env GOPATH)/bin ${MISSSPELL_VERSION}
 
-      - name: Size go mod
-        run: |
-          du -hs ~/go/pkg/mod
-
       - name: Validate
         run: |
           make validate
-
-      - name: Size go mod
-        run: |
-          du -hs ~/go/pkg/mod
