@@ -27,7 +27,7 @@ jobs:
 
       - name: Installing dependencies
         run: |
-          go get -u github.com/containous/go-bindata/...
+          go install github.com/containous/go-bindata/go-bindata@v1.0.0
 
       - name: Check out code
         uses: actions/checkout@v2

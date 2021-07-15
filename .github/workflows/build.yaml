@@ -33,7 +33,9 @@ jobs:
 
       - name: Installing dependencies
         run: |
-          go install github.com/containous/go-bindata/...
+          go version
+          go env
+          go install -v github.com/containous/go-bindata/go-bindata@v1.0.0
 
       - name: Check out code
         uses: actions/checkout@v2
