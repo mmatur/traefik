@@ -4,9 +4,17 @@ on:
   push:
     branches:
       - feature/github-action
+    paths-ignore:
+      - '**.md'
+      - '**.yaml'
+      - '**.yml'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - '**.md'
+      - '**.yaml'
+      - '**.yml'
 
 jobs:
   test-unit:
