@@ -10,42 +10,39 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     env:
-      PRE_TARGET: ""
+      GO_VERSION: 1.16
       CGO_ENABLED: 0
-      GOGC: off
+      PRE_TARGET: ""
+
     strategy:
       matrix:
-        os: [ linux, darwin, windows ]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
         arch: [ amd64 ]
+
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/go/src/github.com/traefik/traefik
+
     steps:
-      - name: Set up Go
+      - name: Set up Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
-        id: go
+          go-version: ${{ env.GO_VERSION }}
 
-      - name: Installing dependancies
+      - name: Installing dependencies
         run: |
-          go get -u github.com/containous/go-bindata/...
-          go get k8s.io/gengo/...
+          go install github.com/containous/go-bindata/...
 
       - name: Check out code
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-          path: go/src/github.com/traefik/traefik
 
-      - name: Generate
-        working-directory: go/src/github.com/traefik/traefik
-        run: |
-          ./script/make.sh generate
-
-      - name: Build
-        working-directory: go/src/github.com/traefik/traefik
+      - name: Build on ${{ matrix.os }}
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          ./script/make.sh binary
+          make binary
