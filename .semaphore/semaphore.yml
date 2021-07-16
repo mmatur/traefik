@@ -4,6 +4,7 @@ agent:
   machine:
     type: e1-standard-8
     os_image: ubuntu1804
+
 fail_fast:
   stop:
     when: "branch != 'master'"
@@ -26,13 +27,14 @@ global_job_config:
       - export GOPROXY=https://proxy.golang.org,direct
       - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "${GOPATH}/bin" v1.41.1
       - curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | bash -s -- -b "${GOPATH}/bin"
+      - cache restore traefik-$(checksum go.sum)
       - go get -u github.com/containous/go-bindata/...
       - checkout
 blocks:
   - name: Test Integration Container
     dependencies: []
     run:
-      when: "branch =~ '.*'"
+      when: "branch =~ '.*' OR pull_request =~'.*'"
     task:
       jobs:
         - name: Test Integration Container
@@ -41,10 +43,14 @@ blocks:
             - mkdir -p static # Avoid to generate webui
             - PRE_TARGET="" make binary
             - make test-integration-container
+      epilogue:
+        always:
+          commands:
+            - cache store traefik-$(checksum go.sum) $HOME/go/pkg/mod
   - name: Test Integration Host
     dependencies: []
     run:
-      when: "branch =~ '.*'"
+      when: "branch =~ '.*' OR pull_request =~'.*'"
     task:
       env_vars:
         - name: PRE_TARGET
@@ -52,8 +58,13 @@ blocks:
       jobs:
         - name: Test Integration Host
           commands:
+            - cache restore traefik-$(checksum go.sum)
             - mkdir -p static # Avoid to generate webui
             - make test-integration-host
+      epilogue:
+        always:
+          commands:
+            - cache store traefik-$(checksum go.sum) $HOME/go/pkg/mod
   - name: Release
     dependencies: []
     run:
@@ -79,9 +90,5 @@ blocks:
         - name: Release
           commands:
             - make release-packages
-        - name: Github release
-          commands:
             - gh release create --repo mmatur/traefik --draft --title ${SEMAPHORE_GIT_TAG_NAME} --notes ${SEMAPHORE_GIT_TAG_NAME} ${SEMAPHORE_GIT_TAG_NAME} ./dist/traefik*.tar.gz
-        - name: Docker libray image
-          commands:
             - ./script/deploy.sh
