@@ -42,8 +42,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ~/go/pkg/mod              # Module download cache
-            ~/.cache/go-build         # Build cache (Linux)
+            ~/go/pkg/mod
+            ~/.cache/go-build
           key: ${{ runner.os }}-test-unit-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-test-unit-go-
