@@ -556,7 +556,7 @@ KV Username
 Enable debug logging of generated configuration template. (Default: ```false```)
 
 `--providers.file.directory`:  
-Load dynamic configuration from one or more .toml or .yml files in a directory.
+Load dynamic configuration from one or more .yml or .toml files in a directory.
 
 `--providers.file.filename`:  
 Load dynamic configuration from a file.
@@ -595,7 +595,10 @@ TLS key
 Enable Kubernetes backend with default settings. (Default: ```false```)
 
 `--providers.kubernetescrd.allowcrossnamespace`:  
-Allow cross namespace resource reference. (Default: ```true```)
+Allow cross namespace resource reference. (Default: ```false```)
+
+`--providers.kubernetescrd.allowexternalnameservices`:  
+Allow ExternalName services. (Default: ```false```)
 
 `--providers.kubernetescrd.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
@@ -641,6 +644,9 @@ Kubernetes bearer token (not needed for in-cluster client).
 
 `--providers.kubernetesingress`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
+
+`--providers.kubernetesingress.allowexternalnameservices`:  
+Allow ExternalName services. (Default: ```false```)
 
 `--providers.kubernetesingress.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
