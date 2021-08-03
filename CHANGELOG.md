@@ -1,5 +1,20 @@
-## [v2.4.10](https://github.com/traefik/traefik/tree/v2.4.10) (2021-07-13)
-[All Commits](https://github.com/traefik/traefik/compare/v2.4.9...v2.4.10)
+## [v2.4.13](https://github.com/traefik/traefik/tree/v2.4.13) (2021-07-30)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.12...v2.4.13)
+
+**Bug fixes:**
+- **[authentication,middleware]** Remove hop-by-hop headers define in connection header beore some middleware ([#8319](https://github.com/traefik/traefik/pull/8319) by [ldez](https://github.com/ldez))
+
+## [v2.4.12](https://github.com/traefik/traefik/tree/v2.4.12) (2021-07-26)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.11...v2.4.12)
+
+**Bug fixes:**
+- **[k8s,k8s/ingress]** Get Kubernetes server version early ([#8286](https://github.com/traefik/traefik/pull/8286) by [rtribotte](https://github.com/rtribotte))
+- **[k8s,k8s/ingress]** Don&#39;t remove ingress config on API call failure ([#8185](https://github.com/traefik/traefik/pull/8185) by [dtomcej](https://github.com/dtomcej))
+- **[middleware]** Ratelimiter: use correct ttlSeconds value, and always call Set ([#8254](https://github.com/traefik/traefik/pull/8254) by [mpl](https://github.com/mpl))
+- **[tls]** Check if defaultcertificate is defined in store ([#8274](https://github.com/traefik/traefik/pull/8274) by [dtomcej](https://github.com/dtomcej))
+
+## [v2.4.11](https://github.com/traefik/traefik/tree/v2.4.11) (2021-07-15)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.9...v2.4.11)
 
 **Bug fixes:**
 - **[k8s,k8s/crd,k8s/ingress]** Disable ExternalName Services by default on Kubernetes providers ([#8261](https://github.com/traefik/traefik/pull/8261) by [dtomcej](https://github.com/dtomcej))
@@ -15,6 +30,11 @@
 - Add the list of available provider names ([#8225](https://github.com/traefik/traefik/pull/8225) by [WLun001](https://github.com/WLun001))
 - Fix maintainers-guidelines page title ([#8216](https://github.com/traefik/traefik/pull/8216) by [kubopanda](https://github.com/kubopanda))
 - Typos in contributing section ([#8215](https://github.com/traefik/traefik/pull/8215) by [kubopanda](https://github.com/kubopanda))
+
+## [v2.4.10](https://github.com/traefik/traefik/tree/v2.4.10) (2021-07-13)
+[All Commits](https://github.com/traefik/traefik/compare/v2.4.9...v2.4.10)
+
+Release canceled.
 
 ## [v2.4.9](https://github.com/traefik/traefik/tree/v2.4.9) (2021-06-21)
 [All Commits](https://github.com/traefik/traefik/compare/v2.4.8...v2.4.9)
