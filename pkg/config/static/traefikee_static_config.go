@@ -3,48 +3,7 @@ package static
 import (
 	"errors"
 	"fmt"
-	"time"
-
-	"github.com/traefik/paerser/types"
 )
-
-// Plugin holds TraefikEE-specific Provider configuration.
-type Plugin struct {
-	Vault   *Vault              `description:"Enable Vault backend for TLS certificates with default settings" json:"vault" toml:"vault" yaml:"vault" export:"true"`
-	Traefik map[string]*Traefik `description:"Enable Traefik provider" json:"traefik" toml:"traefik" yaml:"traefik" export:"true"`
-}
-
-// Traefik holds Traefik provider configuration.
-type Traefik struct {
-	APIAddr             string            `description:"Address of the API" json:"apiAddr" toml:"apiAddr" yaml:"apiAddr" export:"true"`
-	AuthorizationHeader string            `description:"Authorization Header" json:"authorizationHeader" toml:"authorizationHeader" yaml:"authorizationHeader" export:"true"`
-	TLS                 *TraefikTLSConfig `description:"Customize TLS configuration to contact the API" json:"tls" toml:"tls" yaml:"tls" export:"true"`
-}
-
-// TraefikTLSConfig configures TLS for the Traefik provider.
-type TraefikTLSConfig struct {
-	CA                 string `description:"Certificate authority to use" json:"ca" toml:"ca" yaml:"ca" export:"true"`
-	InsecureSkipVerify bool   `description:"Whether the provider should trust self-signed certificates" json:"insecureSkipVerify,omitempty" toml:"insecureSkipVerify,omitempty" yaml:"insecureSkipVerify,omitempty"`
-}
-
-// Vault configures the Vault provider for TLS certificates.
-type Vault struct {
-	URL string `description:"URL of the Vault API" json:"url" toml:"url" yaml:"url" export:"true"`
-	// Deprecated: please use Auth.Token instead.
-	Token string    `description:"Token used to authenticate with the API" json:"token" toml:"token" yaml:"token" export:"true"`
-	Auth  VaultAuth `description:"Authentication method to use" json:"auth" toml:"auth" yaml:"auth" export:"true"`
-
-	EnginePath     string         `description:"Path under which the KV secret engine is enabled" json:"enginePath" toml:"enginePath" yaml:"enginePath" export:"true"`
-	SyncInterval   types.Duration `description:"Interval to synchronize new and deleted certificates" json:"syncInterval" toml:"syncInterval" yaml:"syncInterval" export:"true"`
-	RescanInterval types.Duration `description:"Interval to rescan all certificates for changes" json:"rescanInterval" toml:"rescanInterval" yaml:"rescanInterval" export:"true"`
-}
-
-// SetDefaults sets the default values on the Vault provider configuration.
-func (p *Vault) SetDefaults() {
-	p.EnginePath = "secret"
-	p.SyncInterval = types.Duration(5 * time.Second)
-	p.RescanInterval = types.Duration(60 * time.Second)
-}
 
 // VaultPKI configures Vault as a certificate resolver.
 type VaultPKI struct {

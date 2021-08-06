@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/traefik/paerser/file"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
@@ -191,6 +191,10 @@ func (p *Provider) loadFileConfig(ctx context.Context, filename string, parseTem
 		// TLS stores
 		if len(configuration.TLS.Stores) > 0 {
 			for name, store := range configuration.TLS.Stores {
+				if store.DefaultCertificate == nil {
+					continue
+				}
+
 				content, err := store.DefaultCertificate.CertFile.Read()
 				if err != nil {
 					log.FromContext(ctx).Error(err)
@@ -290,8 +294,9 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				ServersTransports: make(map[string]*dynamic.ServersTransport),
 			},
 			TCP: &dynamic.TCPConfiguration{
-				Routers:  make(map[string]*dynamic.TCPRouter),
-				Services: make(map[string]*dynamic.TCPService),
+				Routers:     make(map[string]*dynamic.TCPRouter),
+				Services:    make(map[string]*dynamic.TCPService),
+				Middlewares: make(map[string]*dynamic.TCPMiddleware),
 			},
 			TLS: &dynamic.TLSConfiguration{
 				Stores:  make(map[string]tls.Store),
@@ -367,6 +372,14 @@ func (p *Provider) loadFileConfigFromDirectory(ctx context.Context, directory st
 				logger.WithField(log.RouterName, name).Warn("TCP router already configured, skipping")
 			} else {
 				configuration.TCP.Routers[name] = conf
+			}
+		}
+
+		for name, conf := range c.TCP.Middlewares {
+			if _, exists := configuration.TCP.Middlewares[name]; exists {
+				logger.WithField(log.MiddlewareName, name).Warn("TCP middleware already configured, skipping")
+			} else {
+				configuration.TCP.Middlewares[name] = conf
 			}
 		}
 
@@ -492,8 +505,9 @@ func (p *Provider) decodeConfiguration(filePath, content string) (*dynamic.Confi
 			ServersTransports: make(map[string]*dynamic.ServersTransport),
 		},
 		TCP: &dynamic.TCPConfiguration{
-			Routers:  make(map[string]*dynamic.TCPRouter),
-			Services: make(map[string]*dynamic.TCPService),
+			Routers:     make(map[string]*dynamic.TCPRouter),
+			Services:    make(map[string]*dynamic.TCPService),
+			Middlewares: make(map[string]*dynamic.TCPMiddleware),
 		},
 		TLS: &dynamic.TLSConfiguration{
 			Stores:  make(map[string]tls.Store),

@@ -489,29 +489,31 @@ func (th *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func TestLBStatusUpdater(t *testing.T) {
 	lb := &testLoadBalancer{RWMutex: &sync.RWMutex{}}
 	svInfo := &runtime.ServiceInfo{}
-	lbsu := NewLBStatusUpdater(lb, svInfo)
+	lbsu := NewLBStatusUpdater(lb, svInfo, nil)
 	newServer, err := url.Parse("http://foo.com")
 	assert.NoError(t, err)
+
 	err = lbsu.UpsertServer(newServer, roundrobin.Weight(1))
 	assert.NoError(t, err)
-	assert.Equal(t, len(lbsu.Servers()), 1)
-	assert.Equal(t, len(lbsu.BalancerHandler.(*testLoadBalancer).Options()), 1)
+	assert.Len(t, lbsu.Servers(), 1)
+	assert.Len(t, lbsu.BalancerHandler.(*testLoadBalancer).Options(), 1)
+
 	statuses := svInfo.GetAllStatus()
-	assert.Equal(t, len(statuses), 1)
+	assert.Len(t, statuses, 1)
 	for k, v := range statuses {
-		assert.Equal(t, k, newServer.String())
-		assert.Equal(t, v, serverUp)
-		break
+		assert.Equal(t, newServer.String(), k)
+		assert.Equal(t, serverUp, v)
 	}
+
 	err = lbsu.RemoveServer(newServer)
 	assert.NoError(t, err)
-	assert.Equal(t, len(lbsu.Servers()), 0)
+	assert.Len(t, lbsu.Servers(), 0)
+
 	statuses = svInfo.GetAllStatus()
-	assert.Equal(t, len(statuses), 1)
+	assert.Len(t, statuses, 1)
 	for k, v := range statuses {
-		assert.Equal(t, k, newServer.String())
-		assert.Equal(t, v, serverDown)
-		break
+		assert.Equal(t, newServer.String(), k)
+		assert.Equal(t, serverDown, v)
 	}
 }
 

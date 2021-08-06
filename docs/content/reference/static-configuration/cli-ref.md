@@ -141,6 +141,9 @@ Entry points definition. (Default: ```false```)
 `--entrypoints.<name>.address`:  
 Entry point address.
 
+`--entrypoints.<name>.enablehttp3`:  
+Enable HTTP3. (Default: ```false```)
+
 `--entrypoints.<name>.forwardedheaders.insecure`:  
 Trust all forwarded headers. (Default: ```false```)
 
@@ -207,14 +210,20 @@ ReadTimeout is the maximum duration for reading the entire request, including th
 `--entrypoints.<name>.transport.respondingtimeouts.writetimeout`:  
 WriteTimeout is the maximum duration before timing out writes of the response. If zero, no timeout is set. (Default: ```0```)
 
-`--experimental.devplugin.gopath`:  
-plugin's GOPATH.
+`--entrypoints.<name>.udp.timeout`:  
+Timeout defines how long to wait on an idle session before releasing the related resources. (Default: ```3```)
 
-`--experimental.devplugin.modulename`:  
-plugin's module name.
+`--experimental.http3`:  
+Enable HTTP3. (Default: ```false```)
 
 `--experimental.kubernetesgateway`:  
 Allow the Kubernetes gateway api provider usage. (Default: ```false```)
+
+`--experimental.localplugins.<name>`:  
+Local plugins configuration. (Default: ```false```)
+
+`--experimental.localplugins.<name>.modulename`:  
+plugin's module name.
 
 `--experimental.plugins.<name>.modulename`:  
 plugin's module name.
@@ -261,6 +270,9 @@ Enable metrics on entry points. (Default: ```true```)
 `--metrics.datadog.address`:  
 Datadog's address. (Default: ```localhost:8125```)
 
+`--metrics.datadog.addrouterslabels`:  
+Enable metrics on routers. (Default: ```false```)
+
 `--metrics.datadog.addserviceslabels`:  
 Enable metrics on services. (Default: ```true```)
 
@@ -275,6 +287,9 @@ Enable metrics on entry points. (Default: ```true```)
 
 `--metrics.influxdb.address`:  
 InfluxDB address. (Default: ```localhost:8089```)
+
+`--metrics.influxdb.addrouterslabels`:  
+Enable metrics on routers. (Default: ```false```)
 
 `--metrics.influxdb.addserviceslabels`:  
 Enable metrics on services. (Default: ```true```)
@@ -303,6 +318,9 @@ Prometheus metrics exporter type. (Default: ```false```)
 `--metrics.prometheus.addentrypointslabels`:  
 Enable metrics on entry points. (Default: ```true```)
 
+`--metrics.prometheus.addrouterslabels`:  
+Enable metrics on routers. (Default: ```false```)
+
 `--metrics.prometheus.addserviceslabels`:  
 Enable metrics on services. (Default: ```true```)
 
@@ -323,6 +341,9 @@ Enable metrics on entry points. (Default: ```true```)
 
 `--metrics.statsd.address`:  
 StatsD address. (Default: ```localhost:8125```)
+
+`--metrics.statsd.addrouterslabels`:  
+Enable metrics on routers. (Default: ```false```)
 
 `--metrics.statsd.addserviceslabels`:  
 Enable metrics on services. (Default: ```true```)
@@ -387,6 +408,12 @@ Enable ConsulCatalog backend with default settings. (Default: ```false```)
 `--providers.consulcatalog.cache`:  
 Use local agent caching for catalog reads. (Default: ```false```)
 
+`--providers.consulcatalog.connectaware`:  
+Enable Consul Connect support. (Default: ```false```)
+
+`--providers.consulcatalog.connectbydefault`:  
+Consider every service as Connect capable by default. (Default: ```false```)
+
 `--providers.consulcatalog.constraints`:  
 Constraints is an expression that Traefik matches against the container's labels to determine whether to create any route for that container.
 
@@ -394,7 +421,7 @@ Constraints is an expression that Traefik matches against the container's labels
 Default rule. (Default: ```Host(`{{ normalize .Name }}`)```)
 
 `--providers.consulcatalog.endpoint.address`:  
-The address of the Consul server (Default: ```127.0.0.1:8500```)
+The address of the Consul server
 
 `--providers.consulcatalog.endpoint.datacenter`:  
 Data center to use. If not provided, the default agent data center is used
@@ -440,6 +467,9 @@ Interval for check Consul API. Default 15s (Default: ```15```)
 
 `--providers.consulcatalog.requireconsistent`:  
 Forces the read to be fully consistent. (Default: ```false```)
+
+`--providers.consulcatalog.servicename`:  
+Name of the Traefik service in Consul Catalog (needs to be registered via the orchestrator or manually). (Default: ```traefik```)
 
 `--providers.consulcatalog.stale`:  
 Use stale consistency for catalog reads. (Default: ```false```)
@@ -645,6 +675,9 @@ Kubernetes bearer token (not needed for in-cluster client).
 `--providers.kubernetesingress`:  
 Enable Kubernetes backend with default settings. (Default: ```false```)
 
+`--providers.kubernetesingress.allowemptyservices`:  
+Allow creation of services without endpoints. (Default: ```false```)
+
 `--providers.kubernetesingress.allowexternalnameservices`:  
 Allow ExternalName services. (Default: ```false```)
 
@@ -655,7 +688,7 @@ Kubernetes certificate authority file path (not needed for in-cluster client).
 Kubernetes server endpoint (required for external cluster client).
 
 `--providers.kubernetesingress.ingressclass`:  
-Value of kubernetes.io/ingress.class annotation to watch for.
+Value of kubernetes.io/ingress.class annotation or IngressClass name to watch for.
 
 `--providers.kubernetesingress.ingressendpoint.hostname`:  
 Hostname used for Kubernetes Ingress endpoints.
@@ -741,35 +774,8 @@ Display additional provider logs. (Default: ```false```)
 `--providers.marathon.watch`:  
 Watch provider. (Default: ```true```)
 
-`--providers.plugin.vault.auth`:  
-Authentication method to use
-
-`--providers.plugin.vault.auth.approle.path`:  
-Custom path under which AppRole authentication is enabled in Vault (Default: ```approle```)
-
-`--providers.plugin.vault.auth.approle.roleid`:  
-Role ID to use with AppRole authentication
-
-`--providers.plugin.vault.auth.approle.secretid`:  
-Secret ID to use with AppRole authentication
-
-`--providers.plugin.vault.auth.token`:  
-Token used to authenticate with Vault
-
-`--providers.plugin.vault.enginepath`:  
-Path under which the KV secret engine is enabled (Default: ```secret```)
-
-`--providers.plugin.vault.rescaninterval`:  
-Interval to rescan all certificates for changes (Default: ```60```)
-
-`--providers.plugin.vault.syncinterval`:  
-Interval to synchronize new and deleted certificates (Default: ```5```)
-
-`--providers.plugin.vault.token`:  
-Token used to authenticate with the API
-
-`--providers.plugin.vault.url`:  
-URL of the Vault API
+`--providers.plugin.<name>`:  
+Plugins configuration.
 
 `--providers.providersthrottleduration`:  
 Backends throttle duration: minimum duration between 2 events from providers before applying a new configuration. It avoids unnecessary reloads if multiples events are sent in a short amount of time. (Default: ```2```)
