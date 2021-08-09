@@ -141,6 +141,7 @@ type ServersLoadBalancer struct {
 	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
 	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
+	APIPortal          *APIPortal          `json:"apiportal,omitempty" toml:"apiportal,omitempty" yaml:"apiportal,omitempty" export:"true"`
 }
 
 // Mergeable tells if the given service is mergeable.
@@ -164,6 +165,13 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 func (l *ServersLoadBalancer) SetDefaults() {
 	defaultPassHostHeader := true
 	l.PassHostHeader = &defaultPassHostHeader
+}
+
+// +k8s:deepcopy-gen=true
+
+// APIPortal configures the Traefik Enterprise API Portal spec endpoint.
+type APIPortal struct {
+	Path string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty" file:"allowEmpty"`
 }
 
 // +k8s:deepcopy-gen=true

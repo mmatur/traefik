@@ -430,6 +430,9 @@
         [http.services.Service0.loadBalancer.responseForwarding]
           flushInterval = "foobar"
 
+        [http.services.Service0.loadBalancer.apiportal]
+          path = "foo/spec.json"
+
 [tcp]
   [tcp.routers]
     [tcp.routers.TCPRouter0]
