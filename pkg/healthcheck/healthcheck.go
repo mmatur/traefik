@@ -74,8 +74,9 @@ func (opt Options) String() string {
 }
 
 type backendURL struct {
-	state string
-	url   *url.URL
+	state  string
+	url    *url.URL
+	weight int
 }
 
 // BackendConfig HealthCheck configuration for a backend.
@@ -165,10 +166,21 @@ func (hc *HealthCheck) checkServersLB(ctx context.Context, backend *BackendConfi
 		backend.urls = make(map[string]backendURL)
 	}
 
+	rr, isRR := backend.LB.(*roundrobin.RoundRobin)
+
 	enabledURLs := backend.LB.Servers()
 	for _, u := range enabledURLs {
+		weight := 1
+		if isRR {
+			var gotWeight bool
+			weight, gotWeight = rr.ServerWeight(u)
+			if !gotWeight {
+				weight = 1
+			}
+		}
+
 		if _, found := backend.urls[u.String()]; !found {
-			backend.urls[u.String()] = backendURL{state: serverUp, url: u}
+			backend.urls[u.String()] = backendURL{state: serverUp, url: u, weight: weight}
 		}
 	}
 
@@ -177,7 +189,8 @@ func (hc *HealthCheck) checkServersLB(ctx context.Context, backend *BackendConfi
 
 		newState, err := checkHealth(bURL.url, backend)
 		if err != nil {
-			logger.Warnf("Health check failed, Backend: %q URL: %q Reason: %v", backend.name, bURL.url.String(), err)
+			logger.Warnf("Health check failed, Backend: %q URL: %q Weight: %d Reason: %v",
+				backend.name, bURL.url.String(), bURL.weight, err)
 		}
 		if newState == bURL.state {
 			if bURL.state == serverDown {
@@ -190,10 +203,9 @@ func (hc *HealthCheck) checkServersLB(ctx context.Context, backend *BackendConfi
 
 		switch newState {
 		case serverUp:
-			logger.Warnf("Health check up: Returning to server list. Backend: %q URL: %q",
-				backend.name, bURL.url.String())
-			// The weight is not entirely correct as it ignores weighted round robin. This will be handled at a later stage.
-			if err = backend.LB.UpsertServer(bURL.url, roundrobin.Weight(1)); err != nil {
+			logger.Warnf("Health check up: Returning to server list. Backend: %q URL: %q Weight: %d",
+				backend.name, bURL.url.String(), bURL.weight)
+			if err = backend.LB.UpsertServer(bURL.url, roundrobin.Weight(bURL.weight)); err != nil {
 				logger.Error(err)
 			}
 		case serverDrain:
@@ -208,7 +220,7 @@ func (hc *HealthCheck) checkServersLB(ctx context.Context, backend *BackendConfi
 			}
 			serverUpMetricValue = 0
 		}
-		backend.urls[bURL.url.String()] = backendURL{state: newState, url: bURL.url}
+		backend.urls[bURL.url.String()] = backendURL{state: newState, url: bURL.url, weight: bURL.weight}
 
 		labelValues := []string{"service", backend.name, "url", bURL.url.String()}
 		hc.metrics.serverUpGauge.With(labelValues...).Set(serverUpMetricValue)

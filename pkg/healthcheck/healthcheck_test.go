@@ -141,8 +141,9 @@ func TestSetBackendsConfiguration(t *testing.T) {
 			} else {
 				backend.urls = map[string]backendURL{
 					serverURL.String(): {
-						state: serverDown,
-						url:   serverURL,
+						state:  serverDown,
+						url:    serverURL,
+						weight: 2,
 					},
 				}
 			}
