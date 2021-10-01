@@ -12,15 +12,13 @@ git config --global user.email "$TRAEFIKER_EMAIL"
 git config --global user.name "Traefiker"
 
 # load ssh key
-echo "Loading key..."
-openssl aes-256-cbc -K $encrypted_83c521e11abe_key -iv $encrypted_83c521e11abe_iv -in .travis/traefiker_rsa.enc -out ~/.ssh/traefiker_rsa -d
 eval "$(ssh-agent -s)"
-chmod 600 ~/.ssh/traefiker_rsa
-ssh-add ~/.ssh/traefiker_rsa
+chmod 600 /home/semaphore/.ssh/traefiker_rsa_new
+ssh-add /home/semaphore/.ssh/traefiker_rsa_new
 
 # update traefik-library-image repo (official Docker image)
 echo "Updating traefik-library-imag repo..."
-git clone git@github.com:traefik/traefik-library-image.git
+git clone git@github.com:mmatur/traefik-library-image.git
 cd traefik-library-image
 ./updatev1.sh $VERSION
 git add -A
