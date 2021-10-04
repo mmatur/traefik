@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [ -n "$TRAVIS_TAG" ]; then
+if [ -n "$SEMAPHORE_GIT_TAG_NAME" ]; then
   echo "Deploying..."
 else
   echo "Skipping deploy"
