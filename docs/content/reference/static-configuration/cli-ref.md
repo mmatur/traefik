@@ -129,6 +129,12 @@ Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
 `--certificatesresolvers.<name>.vault.role`:  
 Role to be used to issue certificates
 
+`--certificatesresolvers.<name>.vault.tls.cabundle`:  
+Certificate Authority bundle to use for TLS communication
+
+`--certificatesresolvers.<name>.vault.tls.insecureskipverify`:  
+Whether the client should verify the TLS certificate (Default: ```false```)
+
 `--certificatesresolvers.<name>.vault.token`:  
 Token used to authenticate with Vault
 
