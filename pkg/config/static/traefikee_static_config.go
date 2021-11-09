@@ -16,6 +16,7 @@ type Plugin struct {
 // Vault configures the Vault provider for TLS certificates.
 type Vault struct {
 	URL string `description:"URL of the Vault API" json:"url" toml:"url" yaml:"url" export:"true"`
+	TLS *TLS   `description:"TLS configuration" json:"tls" toml:"tls" yaml:"tls" export:"true"`
 	// Deprecated: please use Auth.Token instead.
 	Token string    `description:"Token used to authenticate with the API" json:"token" toml:"token" yaml:"token" export:"true"`
 	Auth  VaultAuth `description:"Authentication method to use" json:"auth" toml:"auth" yaml:"auth" export:"true"`
@@ -35,6 +36,7 @@ func (p *Vault) SetDefaults() {
 // VaultPKI configures Vault as a certificate resolver.
 type VaultPKI struct {
 	URL string `description:"URL of the Vault server" json:"url" toml:"url" yaml:"url" export:"true"`
+	TLS *TLS   `description:"TLS configuration" json:"tls" toml:"tls" yaml:"tls" export:"true"`
 	// Deprecated: please use Auth.Token instead.
 	Token string    `description:"Token used to authenticate with Vault" json:"token" toml:"token" yaml:"token" export:"true"`
 	Auth  VaultAuth `json:"auth" toml:"auth" yaml:"auth" export:"true"`
@@ -46,6 +48,12 @@ type VaultPKI struct {
 // SetDefaults sets the default values on the Vault provider configuration.
 func (p *VaultPKI) SetDefaults() {
 	p.EnginePath = "pki"
+}
+
+// TLS configures TLS communication.
+type TLS struct {
+	CABundle           string `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle" export:"true"`
+	InsecureSkipVerify bool   `description:"Whether the client should verify the TLS certificate" json:"insecureSkipVerify" toml:"insecureSkipVerify" yaml:"insecureSkipVerify" export:"true"`
 }
 
 // VaultAuth describes authentication methods for Vault providers.

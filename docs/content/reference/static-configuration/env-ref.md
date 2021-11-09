@@ -129,6 +129,12 @@ Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ROLE`:  
 Role to be used to issue certificates
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_CABUNDLE`:  
+Certificate Authority bundle to use for TLS communication
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_INSECURESKIPVERIFY`:  
+Whether the client should verify the TLS certificate (Default: ```false```)
+
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TOKEN`:  
 Token used to authenticate with Vault
 
@@ -764,6 +770,12 @@ Interval to rescan all certificates for changes (Default: ```60```)
 
 `TRAEFIK_PROVIDERS_PLUGIN_VAULT_SYNCINTERVAL`:  
 Interval to synchronize new and deleted certificates (Default: ```5```)
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_TLS_CABUNDLE`:  
+Certificate Authority bundle to use for TLS communication
+
+`TRAEFIK_PROVIDERS_PLUGIN_VAULT_TLS_INSECURESKIPVERIFY`:  
+Whether the client should verify the TLS certificate (Default: ```false```)
 
 `TRAEFIK_PROVIDERS_PLUGIN_VAULT_TOKEN`:  
 Token used to authenticate with the API
