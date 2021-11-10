@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/traefik/paerser/types"
+	"github.com/traefik/traefik/v2/pkg/tls"
 )
 
 // Plugin holds TraefikEE-specific Provider configuration.
@@ -52,8 +53,8 @@ func (p *VaultPKI) SetDefaults() {
 
 // TLS configures TLS communication.
 type TLS struct {
-	CABundle           string `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle" export:"true"`
-	InsecureSkipVerify bool   `description:"Whether the client should verify the TLS certificate" json:"insecureSkipVerify" toml:"insecureSkipVerify" yaml:"insecureSkipVerify" export:"true"`
+	CABundle           tls.FileOrContent `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle" export:"true"`
+	InsecureSkipVerify bool              `description:"Whether the client should verify the TLS certificate" json:"insecureSkipVerify" toml:"insecureSkipVerify" yaml:"insecureSkipVerify" export:"true"`
 }
 
 // VaultAuth describes authentication methods for Vault providers.
