@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -55,7 +55,7 @@ func (p *Provider) Init() error {
 	if p.TLS != nil {
 		tlsConfig, err := p.TLS.CreateTLSConfig(context.Background())
 		if err != nil {
-			return fmt.Errorf("unable to create TLS configuration: %w", err)
+			return fmt.Errorf("unable to create client TLS configuration: %w", err)
 		}
 
 		p.httpClient.Transport = &http.Transport{
@@ -139,7 +139,7 @@ func (p *Provider) fetchConfigurationData() ([]byte, error) {
 		return nil, fmt.Errorf("received non-ok response code: %d", res.StatusCode)
 	}
 
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 // decodeConfiguration decodes and returns the dynamic configuration from the given data.

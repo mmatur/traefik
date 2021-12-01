@@ -80,7 +80,6 @@
     endpoint = "foobar"
     token = "foobar"
     certAuthFilePath = "foobar"
-    disablePassHostHeaders = true
     namespaces = ["foobar", "foobar"]
     labelSelector = "foobar"
     ingressClass = "foobar"
@@ -92,7 +91,6 @@
     endpoint = "foobar"
     token = "foobar"
     certAuthFilePath = "foobar"
-    disablePassHostHeaders = true
     namespaces = ["foobar", "foobar"]
     labelSelector = "foobar"
     ingressClass = "foobar"
@@ -369,7 +367,6 @@
         accessControlAllowCredentials = true
         accessControlAllowHeaders = ["foobar", "foobar"]
         accessControlAllowMethods = ["foobar", "foobar"]
-        accessControlAllowOrigin = "foobar"
         accessControlAllowOriginList = ["foobar", "foobar"]
         accessControlExposeHeaders = ["foobar", "foobar"]
         accessControlMaxAge = 42
@@ -432,6 +429,9 @@
             name1 = "foobar"
         [http.services.Service0.loadBalancer.responseForwarding]
           flushInterval = "foobar"
+
+        [http.services.Service0.loadBalancer.apiportal]
+          path = "foo/spec.json"
 
 [tcp]
   [tcp.routers]
