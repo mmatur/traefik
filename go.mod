@@ -72,7 +72,7 @@ require (
 	github.com/tinylib/msgp v1.0.2 // indirect
 	github.com/traefik/gziphandler v1.1.2-0.20210212101304-175e0fad6888
 	github.com/traefik/paerser v0.1.4
-	github.com/traefik/yaegi v0.9.17
+	github.com/traefik/yaegi v0.11.1
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible
 	github.com/unrolled/render v1.0.2
@@ -83,7 +83,7 @@ require (
 	go.elastic.co/apm v1.7.0
 	go.elastic.co/apm/module/apmot v1.7.0
 	golang.org/x/mod v0.4.2
-	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d
+	golang.org/x/net v0.0.0-20211209124913-491a49abca63
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	google.golang.org/grpc v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.19.0
