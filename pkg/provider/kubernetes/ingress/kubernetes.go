@@ -530,6 +530,7 @@ func (p *Provider) loadService(client Client, namespace string, backend networki
 
 	if svcConfig != nil && svcConfig.Service != nil {
 		svc.LoadBalancer.Sticky = svcConfig.Service.Sticky
+		svc.LoadBalancer.APIPortal = svcConfig.Service.APIPortal
 
 		if svcConfig.Service.PassHostHeader != nil {
 			svc.LoadBalancer.PassHostHeader = svcConfig.Service.PassHostHeader

@@ -131,6 +131,7 @@ func TestLoadConfigurationFromIngresses(t *testing.T) {
 									},
 								},
 								ServersTransport: "foobar@file",
+								APIPortal:        &dynamic.APIPortal{Path: "path.json"},
 							},
 						},
 					},

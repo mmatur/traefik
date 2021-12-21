@@ -107,6 +107,7 @@ func Test_parseServiceConfig(t *testing.T) {
 				"traefik.ingress.kubernetes.io/service.serverstransport":       "foobar@file",
 				"traefik.ingress.kubernetes.io/service.passhostheader":         "true",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie":          "true",
+				"traefik.ingress.kubernetes.io/service.apiportal.path":         "path.json",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.httponly": "true",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.name":     "foobar",
 				"traefik.ingress.kubernetes.io/service.sticky.cookie.secure":   "true",
@@ -114,6 +115,7 @@ func Test_parseServiceConfig(t *testing.T) {
 			},
 			expected: &ServiceConfig{
 				Service: &ServiceIng{
+					APIPortal: &dynamic.APIPortal{Path: "path.json"},
 					Sticky: &dynamic.Sticky{
 						Cookie: &dynamic.Cookie{
 							Name:     "foobar",

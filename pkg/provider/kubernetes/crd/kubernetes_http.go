@@ -305,6 +305,11 @@ func (c configBuilder) buildServersLB(namespace string, svc v1alpha1.LoadBalance
 
 	lb.Sticky = svc.Sticky
 
+	lb.APIPortal, err = c.loadAPIPortal(namespace, svc)
+	if err != nil {
+		return nil, err
+	}
+
 	lb.ServersTransport, err = c.makeServersTransportKey(namespace, svc.ServersTransport)
 	if err != nil {
 		return nil, err
@@ -330,6 +335,27 @@ func (c *configBuilder) makeServersTransportKey(parentNamespace string, serversT
 	}
 
 	return provider.Normalize(makeID(parentNamespace, serversTransportName)), nil
+}
+
+// loadAPIPortal loads the API Portal config from service annotations.
+// Intended to support TraefikEE API Portal dynamic configuration.
+func (c configBuilder) loadAPIPortal(parentNamespace string, svc v1alpha1.LoadBalancerSpec) (*dynamic.APIPortal, error) {
+	namespace := namespaceOrFallback(svc, parentNamespace)
+	sanitizedName := strings.TrimSuffix(svc.Name, providerNamespaceSeparator+providerName)
+	service, exists, err := c.client.GetService(namespace, sanitizedName)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf("kubernetes service not found: %s/%s", namespace, sanitizedName)
+	}
+
+	path, found := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.path"]
+	if !found {
+		return nil, nil
+	}
+
+	return &dynamic.APIPortal{Path: path}, nil
 }
 
 func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBalancerSpec) ([]dynamic.Server, error) {

@@ -141,7 +141,8 @@ type ServersLoadBalancer struct {
 	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
 	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
-	APIPortal          *APIPortal          `json:"apiportal,omitempty" toml:"apiportal,omitempty" yaml:"apiportal,omitempty" export:"true"`
+	// Defines the path to get OpenAPI specification for Traefikee API Portal.
+	APIPortal *APIPortal `json:"apiportal,omitempty" toml:"apiportal,omitempty" yaml:"apiportal,omitempty" export:"true"`
 }
 
 // Mergeable tells if the given service is mergeable.
