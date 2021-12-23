@@ -15,6 +15,7 @@ type VaultPKI struct {
 	Token string    `description:"Token used to authenticate with Vault" json:"token" toml:"token" yaml:"token" export:"true"`
 	Auth  VaultAuth `json:"auth" toml:"auth" yaml:"auth" export:"true"`
 
+	Namespace  string `description:"Namespace of the Vault PKI secret engine" json:"namespace" toml:"namespace" yaml:"namespace" export:"true"`
 	EnginePath string `description:"Path under which the Vault PKI secret engine is enabled" json:"enginePath" toml:"enginePath" yaml:"enginePath" export:"true"`
 	Role       string `description:"Role to be used to issue certificates" json:"role" toml:"role" yaml:"role" export:"true"`
 }

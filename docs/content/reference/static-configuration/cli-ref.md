@@ -126,6 +126,9 @@ Token used to authenticate with Vault
 `--certificatesresolvers.<name>.vault.enginepath`:  
 Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
 
+`--certificatesresolvers.<name>.vault.namespace`:  
+Namespace of the Vault PKI secret engine
+
 `--certificatesresolvers.<name>.vault.role`:  
 Role to be used to issue certificates
 

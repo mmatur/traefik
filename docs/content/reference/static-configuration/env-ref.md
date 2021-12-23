@@ -126,6 +126,9 @@ Token used to authenticate with Vault
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ENGINEPATH`:  
 Path under which the Vault PKI secret engine is enabled (Default: ```pki```)
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_NAMESPACE`:  
+Namespace of the Vault PKI secret engine
+
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_ROLE`:  
 Role to be used to issue certificates
 
