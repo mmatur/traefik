@@ -9,15 +9,15 @@ import (
 
 // VaultPKI configures Vault as a certificate resolver.
 type VaultPKI struct {
-	URL string `description:"URL of the Vault server" json:"url" toml:"url" yaml:"url" export:"true"`
+	URL string `description:"URL of the Vault server" json:"url" toml:"url" yaml:"url"`
 	TLS *TLS   `description:"TLS configuration" json:"tls" toml:"tls" yaml:"tls" export:"true"`
 	// Deprecated: please use Auth.Token instead.
-	Token string    `description:"Token used to authenticate with Vault" json:"token" toml:"token" yaml:"token" export:"true"`
+	Token string    `description:"Token used to authenticate with Vault" json:"token" toml:"token" yaml:"token"`
 	Auth  VaultAuth `json:"auth" toml:"auth" yaml:"auth" export:"true"`
 
-	Namespace  string `description:"Namespace of the Vault PKI secret engine" json:"namespace" toml:"namespace" yaml:"namespace" export:"true"`
-	EnginePath string `description:"Path under which the Vault PKI secret engine is enabled" json:"enginePath" toml:"enginePath" yaml:"enginePath" export:"true"`
-	Role       string `description:"Role to be used to issue certificates" json:"role" toml:"role" yaml:"role" export:"true"`
+	Namespace  string `description:"Namespace of the Vault PKI secret engine" json:"namespace" toml:"namespace" yaml:"namespace"`
+	EnginePath string `description:"Path under which the Vault PKI secret engine is enabled" json:"enginePath" toml:"enginePath" yaml:"enginePath"`
+	Role       string `description:"Role to be used to issue certificates" json:"role" toml:"role" yaml:"role"`
 }
 
 // SetDefaults sets the default values on the Vault provider configuration.
@@ -27,7 +27,7 @@ func (p *VaultPKI) SetDefaults() {
 
 // TLS configures TLS communication.
 type TLS struct {
-	CABundle           tls.FileOrContent `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle" export:"true"`
+	CABundle           tls.FileOrContent `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle"`
 	InsecureSkipVerify bool              `description:"Whether the client should verify the TLS certificate" json:"insecureSkipVerify" toml:"insecureSkipVerify" yaml:"insecureSkipVerify" export:"true"`
 }
 
@@ -82,14 +82,13 @@ func (p *AppRole) Validate() error {
 
 // DistributedACME configures the DistributedACME provider for TLS certificates.
 type DistributedACME struct {
-	URL string `description:"URL of the ACME Agent" json:"url" toml:"url" yaml:"url" export:"true"`
-
+	URL string          `description:"URL of the ACME Agent" json:"url" toml:"url" yaml:"url"`
 	TLS *DistributedTLS `description:"TLS certificates and keys used for mTLS" json:"tls" toml:"tls" yaml:"tls" export:"true"`
 }
 
 // DistributedTLS configures mTLS for the distributed ACME feature.
 type DistributedTLS struct {
-	Cert string `description:"Path to the client certificate" json:"cert" toml:"cert" yaml:"cert" export:"true"`
-	Key  string `description:"Path to the client key" json:"key" toml:"key" yaml:"key" export:"true"`
-	CA   string `description:"Path to the certificate authority" json:"ca" toml:"ca" yaml:"ca" export:"true"`
+	Cert string `description:"Path to the client certificate" json:"cert" toml:"cert" yaml:"cert"`
+	Key  string `description:"Path to the client key" json:"key" toml:"key" yaml:"key"`
+	CA   string `description:"Path to the certificate authority" json:"ca" toml:"ca" yaml:"ca"`
 }
