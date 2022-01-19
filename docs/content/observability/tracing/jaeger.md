@@ -18,7 +18,7 @@ tracing:
 
 !!! warning
     Traefik is able to send data over the compact thrift protocol to the [Jaeger agent](https://www.jaegertracing.io/docs/deployment/#agent)
-    or a [Jaeger collector](https://www.jaegertracing.io/docs/deployment/#collectors).
+    or a [Jaeger collector](https://www.jaegertracing.io/docs/deployment/#collector).
 
 #### `samplingServerURL`
 
