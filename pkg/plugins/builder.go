@@ -21,29 +21,15 @@ const devPluginName = "dev"
 // Constructor creates a plugin handler.
 type Constructor func(context.Context, http.Handler) (http.Handler, error)
 
-// pluginContext The static part of a plugin configuration.
-type pluginContext struct {
-	// GoPath plugin's GOPATH
-	GoPath string `json:"goPath,omitempty" toml:"goPath,omitempty" yaml:"goPath,omitempty"`
-
-	// Import plugin's import/package
-	Import string `json:"import,omitempty" toml:"import,omitempty" yaml:"import,omitempty"`
-
-	// BasePkg plugin's base package name (optional)
-	BasePkg string `json:"basePkg,omitempty" toml:"basePkg,omitempty" yaml:"basePkg,omitempty"`
-
-	interpreter *interp.Interpreter
-}
-
 // Builder is a plugin builder.
 type Builder struct {
-	descriptors map[string]pluginContext
+	middlewareBuilders map[string]*middlewareBuilder
 }
 
 // NewBuilder creates a new Builder.
 func NewBuilder(client *Client, plugins map[string]Descriptor, devPlugin *DevPlugin) (*Builder, error) {
 	pb := &Builder{
-		descriptors: map[string]pluginContext{},
+		middlewareBuilders: map[string]*middlewareBuilder{},
 	}
 
 	for pName, desc := range plugins {
@@ -71,12 +57,12 @@ func NewBuilder(client *Client, plugins map[string]Descriptor, devPlugin *DevPlu
 			return nil, fmt.Errorf("%s: failed to import plugin code %q: %w", desc.ModuleName, manifest.Import, err)
 		}
 
-		pb.descriptors[pName] = pluginContext{
-			interpreter: i,
-			GoPath:      client.GoPath(),
-			Import:      manifest.Import,
-			BasePkg:     manifest.BasePkg,
+		middleware, err := newMiddlewareBuilder(i, manifest.BasePkg, manifest.Import)
+		if err != nil {
+			return nil, err
 		}
+
+		pb.middlewareBuilders[pName] = middleware
 	}
 
 	if devPlugin != nil {
@@ -103,12 +89,12 @@ func NewBuilder(client *Client, plugins map[string]Descriptor, devPlugin *DevPlu
 			return nil, fmt.Errorf("%s: failed to import plugin code %q: %w", devPlugin.ModuleName, manifest.Import, err)
 		}
 
-		pb.descriptors[devPluginName] = pluginContext{
-			interpreter: i,
-			GoPath:      devPlugin.GoPath,
-			Import:      manifest.Import,
-			BasePkg:     manifest.BasePkg,
+		middleware, err := newMiddlewareBuilder(i, manifest.BasePkg, manifest.Import)
+		if err != nil {
+			return nil, err
 		}
+
+		pb.middlewareBuilders[devPluginName] = middleware
 	}
 
 	return pb, nil
@@ -116,11 +102,11 @@ func NewBuilder(client *Client, plugins map[string]Descriptor, devPlugin *DevPlu
 
 // Build builds a plugin.
 func (b Builder) Build(pName string, config map[string]interface{}, middlewareName string) (Constructor, error) {
-	if b.descriptors == nil {
+	if b.middlewareBuilders == nil {
 		return nil, fmt.Errorf("plugin: no plugin definition in the static configuration: %s", pName)
 	}
 
-	descriptor, ok := b.descriptors[pName]
+	descriptor, ok := b.middlewareBuilders[pName]
 	if !ok {
 		return nil, fmt.Errorf("plugin: unknown plugin type: %s", pName)
 	}
@@ -133,23 +119,59 @@ func (b Builder) Build(pName string, config map[string]interface{}, middlewareNa
 	return m.NewHandler, err
 }
 
-// Middleware is a HTTP handler plugin wrapper.
-type Middleware struct {
-	middlewareName string
+type middlewareBuilder struct {
 	fnNew          reflect.Value
-	config         reflect.Value
+	fnCreateConfig reflect.Value
 }
 
-func newMiddleware(descriptor pluginContext, config map[string]interface{}, middlewareName string) (*Middleware, error) {
-	basePkg := descriptor.BasePkg
+func newMiddlewareBuilder(i *interp.Interpreter, basePkg, imp string) (*middlewareBuilder, error) {
 	if basePkg == "" {
-		basePkg = strings.ReplaceAll(path.Base(descriptor.Import), "-", "_")
+		basePkg = strings.ReplaceAll(path.Base(imp), "-", "_")
 	}
 
-	vConfig, err := descriptor.interpreter.Eval(basePkg + `.CreateConfig()`)
+	fnNew, err := i.Eval(basePkg + `.New`)
 	if err != nil {
-		return nil, fmt.Errorf("plugin: failed to eval CreateConfig: %w", err)
+		return nil, fmt.Errorf("failed to eval New: %w", err)
 	}
+
+	fnCreateConfig, err := i.Eval(basePkg + `.CreateConfig`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to eval CreateConfig: %w", err)
+	}
+
+	return &middlewareBuilder{
+		fnNew:          fnNew,
+		fnCreateConfig: fnCreateConfig,
+	}, nil
+}
+
+func (p middlewareBuilder) newHandler(ctx context.Context, next http.Handler, cfg reflect.Value, middlewareName string) (http.Handler, error) {
+	args := []reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(next), cfg, reflect.ValueOf(middlewareName)}
+	results := p.fnNew.Call(args)
+
+	if len(results) > 1 && results[1].Interface() != nil {
+		err, ok := results[1].Interface().(error)
+		if !ok {
+			return nil, fmt.Errorf("invalid error type: %T", results[0].Interface())
+		}
+		return nil, err
+	}
+
+	handler, ok := results[0].Interface().(http.Handler)
+	if !ok {
+		return nil, fmt.Errorf("invalid handler type: %T", results[0].Interface())
+	}
+
+	return handler, nil
+}
+
+func (p middlewareBuilder) createConfig(config map[string]interface{}) (reflect.Value, error) {
+	results := p.fnCreateConfig.Call(nil)
+	if len(results) != 1 {
+		return reflect.Value{}, fmt.Errorf("invalid number of return for the CreateConfig function: %d", len(results))
+	}
+
+	vConfig := results[0]
 
 	cfg := &mapstructure.DecoderConfig{
 		DecodeHook:       mapstructure.StringToSliceHookFunc(","),
@@ -159,39 +181,38 @@ func newMiddleware(descriptor pluginContext, config map[string]interface{}, midd
 
 	decoder, err := mapstructure.NewDecoder(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("plugin: failed to create configuration decoder: %w", err)
+		return reflect.Value{}, fmt.Errorf("failed to create configuration decoder: %w", err)
 	}
 
 	err = decoder.Decode(config)
 	if err != nil {
-		return nil, fmt.Errorf("plugin: failed to decode configuration: %w", err)
+		return reflect.Value{}, fmt.Errorf("failed to decode configuration: %w", err)
 	}
 
-	fnNew, err := descriptor.interpreter.Eval(basePkg + `.New`)
+	return vConfig, nil
+}
+
+// Middleware is an HTTP handler plugin wrapper.
+type Middleware struct {
+	middlewareName string
+	config         reflect.Value
+	builder        *middlewareBuilder
+}
+
+func newMiddleware(builder *middlewareBuilder, config map[string]interface{}, middlewareName string) (*Middleware, error) {
+	vConfig, err := builder.createConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("plugin: failed to eval New: %w", err)
+		return nil, err
 	}
 
 	return &Middleware{
 		middlewareName: middlewareName,
-		fnNew:          fnNew,
 		config:         vConfig,
+		builder:        builder,
 	}, nil
 }
 
 // NewHandler creates a new HTTP handler.
 func (m *Middleware) NewHandler(ctx context.Context, next http.Handler) (http.Handler, error) {
-	args := []reflect.Value{reflect.ValueOf(ctx), reflect.ValueOf(next), m.config, reflect.ValueOf(m.middlewareName)}
-	results := m.fnNew.Call(args)
-
-	if len(results) > 1 && results[1].Interface() != nil {
-		return nil, results[1].Interface().(error)
-	}
-
-	handler, ok := results[0].Interface().(http.Handler)
-	if !ok {
-		return nil, fmt.Errorf("plugin: invalid handler type: %T", results[0].Interface())
-	}
-
-	return handler, nil
+	return m.builder.newHandler(ctx, next, m.config, m.middlewareName)
 }
