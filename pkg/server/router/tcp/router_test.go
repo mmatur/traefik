@@ -337,9 +337,26 @@ func TestRuntimeConfiguration(t *testing.T) {
 }
 
 func TestDomainFronting(t *testing.T) {
+	tlsOptionsBase := map[string]traefiktls.Options{
+		"default": {
+			MinVersion: "VersionTLS10",
+		},
+		"host1@file": {
+			MinVersion: "VersionTLS12",
+		},
+		"host1@crd": {
+			MinVersion: "VersionTLS12",
+		},
+	}
+
+	entryPoints := []string{"web"}
+
 	tests := []struct {
 		desc           string
 		routers        map[string]*runtime.RouterInfo
+		tlsOptions     map[string]traefiktls.Options
+		host           string
+		ServerName     string
 		expectedStatus int
 	}{
 		{
@@ -347,7 +364,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -356,12 +373,15 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS:         &dynamic.RouterTLSConfig{},
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusMisdirectedRequest,
 		},
 		{
@@ -369,7 +389,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -378,7 +398,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -386,6 +406,9 @@ func TestDomainFronting(t *testing.T) {
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusOK,
 		},
 		{
@@ -393,7 +416,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -402,7 +425,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`) && PathPrefix(`/foo`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "default",
@@ -411,7 +434,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-3@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -419,6 +442,9 @@ func TestDomainFronting(t *testing.T) {
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusMisdirectedRequest,
 		},
 		{
@@ -426,7 +452,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -435,7 +461,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`) && PathPrefix(`/bar`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -444,7 +470,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-3@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -452,6 +478,9 @@ func TestDomainFronting(t *testing.T) {
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusOK,
 		},
 		{
@@ -459,7 +488,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -468,7 +497,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@crd": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1",
@@ -476,6 +505,9 @@ func TestDomainFronting(t *testing.T) {
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusMisdirectedRequest,
 		},
 		{
@@ -483,7 +515,7 @@ func TestDomainFronting(t *testing.T) {
 			routers: map[string]*runtime.RouterInfo{
 				"router-1@file": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host1.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1@crd",
@@ -492,7 +524,7 @@ func TestDomainFronting(t *testing.T) {
 				},
 				"router-2@crd": {
 					Router: &dynamic.Router{
-						EntryPoints: []string{"web"},
+						EntryPoints: entryPoints,
 						Rule:        "Host(`host2.local`)",
 						TLS: &dynamic.RouterTLSConfig{
 							Options: "host1@crd",
@@ -500,25 +532,63 @@ func TestDomainFronting(t *testing.T) {
 					},
 				},
 			},
+			tlsOptions:     tlsOptionsBase,
+			host:           "host1.local",
+			ServerName:     "host2.local",
 			expectedStatus: http.StatusOK,
+		},
+		{
+			desc: "Request is misdirected when server name is empty and the host name is an FQDN, but router's rule is not",
+			routers: map[string]*runtime.RouterInfo{
+				"router-1@file": {
+					Router: &dynamic.Router{
+						EntryPoints: entryPoints,
+						Rule:        "Host(`host1.local`)",
+						TLS: &dynamic.RouterTLSConfig{
+							Options: "host1@file",
+						},
+					},
+				},
+			},
+			tlsOptions: map[string]traefiktls.Options{
+				"default": {
+					MinVersion: "VersionTLS13",
+				},
+				"host1@file": {
+					MinVersion: "VersionTLS12",
+				},
+			},
+			host:           "host1.local.",
+			expectedStatus: http.StatusMisdirectedRequest,
+		},
+		{
+			desc: "Request is misdirected when server name is empty and the host name is not FQDN, but router's rule is",
+			routers: map[string]*runtime.RouterInfo{
+				"router-1@file": {
+					Router: &dynamic.Router{
+						EntryPoints: entryPoints,
+						Rule:        "Host(`host1.local.`)",
+						TLS: &dynamic.RouterTLSConfig{
+							Options: "host1@file",
+						},
+					},
+				},
+			},
+			tlsOptions: map[string]traefiktls.Options{
+				"default": {
+					MinVersion: "VersionTLS13",
+				},
+				"host1@file": {
+					MinVersion: "VersionTLS12",
+				},
+			},
+			host:           "host1.local",
+			expectedStatus: http.StatusMisdirectedRequest,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			entryPoints := []string{"web"}
-			tlsOptions := map[string]traefiktls.Options{
-				"default": {
-					MinVersion: "VersionTLS10",
-				},
-				"host1@file": {
-					MinVersion: "VersionTLS12",
-				},
-				"host1@crd": {
-					MinVersion: "VersionTLS12",
-				},
-			}
-
 			conf := &runtime.Configuration{
 				Routers: test.routers,
 			}
@@ -526,7 +596,7 @@ func TestDomainFronting(t *testing.T) {
 			serviceManager := tcp.NewManager(conf)
 
 			tlsManager := traefiktls.NewManager()
-			tlsManager.UpdateConfigs(context.Background(), map[string]traefiktls.Store{}, tlsOptions, []*traefiktls.CertAndStores{})
+			tlsManager.UpdateConfigs(context.Background(), map[string]traefiktls.Store{}, test.tlsOptions, []*traefiktls.CertAndStores{})
 
 			httpsHandler := map[string]http.Handler{
 				"web": http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {}),
@@ -540,9 +610,9 @@ func TestDomainFronting(t *testing.T) {
 			require.True(t, ok)
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.Host = "host1.local"
+			req.Host = test.host
 			req.TLS = &tls.ConnectionState{
-				ServerName: "host2.local",
+				ServerName: test.ServerName,
 			}
 
 			rw := httptest.NewRecorder()
