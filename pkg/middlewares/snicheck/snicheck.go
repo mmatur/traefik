@@ -7,9 +7,8 @@ import (
 
 	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/pkg/middlewares/requestdecorator"
+	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
 )
-
-const defaultTLSConfigName = "default"
 
 // SNICheck is an HTTP handler that checks whether the TLS configuration for the server name is the same as for the host header.
 type SNICheck struct {
@@ -80,7 +79,7 @@ func findTLSOptionName(tlsOptionsForHost map[string]string, host string, fqdn bo
 		return name
 	}
 
-	return defaultTLSConfigName
+	return traefiktls.DefaultTLSConfigName
 }
 
 func findTLSOptName(tlsOptionsForHost map[string]string, host string, fqdn bool) string {

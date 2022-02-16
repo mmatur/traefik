@@ -118,10 +118,31 @@ metrics:
 ```toml tab="File (TOML)"
 [metrics]
   [metrics.datadog]
-    pushInterval = 10s
+    pushInterval = "10s"
 ```
 
 ```bash tab="CLI"
 --metrics.datadog.pushInterval=10s
 ```
 
+#### `prefix`
+
+_Optional, Default="traefik"_
+
+The prefix to use for metrics collection.
+
+```yaml tab="File (YAML)"
+metrics:
+  datadog:
+    prefix: traefik
+```
+
+```toml tab="File (TOML)"
+[metrics]
+  [metrics.datadog]
+    prefix = "traefik"
+```
+
+```bash tab="CLI"
+--metrics.datadog.prefix=traefik
+```

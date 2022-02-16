@@ -59,7 +59,6 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 				"bar": {
 					TCPRouter: &dynamic.TCPRouter{
-
 						EntryPoints: []string{"web"},
 						Service:     "foo-service",
 						Rule:        "HostSNI(`foo.bar`)",
@@ -136,7 +135,6 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 				"bar": {
 					Router: &dynamic.Router{
-
 						EntryPoints: []string{"web"},
 						Service:     "foo-service",
 						Rule:        "Host(`bar.foo`) && PathPrefix(`/path`)",
@@ -240,7 +238,6 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 				"bar": {
 					TCPRouter: &dynamic.TCPRouter{
-
 						EntryPoints: []string{"web"},
 						Service:     "foo-service",
 						Rule:        "HostSNI(`foo.bar`)",

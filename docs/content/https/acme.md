@@ -23,6 +23,8 @@ Certificates are requested for domain names retrieved from the router's [dynamic
 
 You can read more about this retrieval mechanism in the following section: [ACME Domain Definition](#domain-definition).
 
+!!! warning "Defining an [ACME challenge type](#the-different-acme-challenges) is a requirement for a certificate resolver to be functional."
+
 !!! important "Defining a certificates resolver does not result in all routers automatically using it. Each router that is supposed to use the resolver must [reference](../routing/routers/index.md#certresolver) it."
 
 ??? note "Configuration Reference"
@@ -140,7 +142,11 @@ Please check the [configuration examples below](#configuration-examples) for mor
 
 Traefik automatically tracks the expiry date of ACME certificates it generates.
 
-If there are less than 30 days remaining before the certificate expires, Traefik will attempt to renew it automatically.
+By default, Traefik manages 90 days certificates,
+and starts to renew certificates 30 days before their expiry.
+
+When using a certificates resolver that issues certificates with custom durations,
+one can configure the certificates' duration with the [`certificatesDuration`](#certificatesduration) option.
 
 !!! info ""
     Certificates that are no longer used may still be renewed, as Traefik does not currently check if the certificate is being used before renewing.
@@ -153,6 +159,8 @@ When using LetsEncrypt with kubernetes, there are some known caveats with both t
     If you intend to run multiple instances of Traefik with LetsEncrypt, please ensure you read the sections on those provider pages.
 
 ## The Different ACME Challenges
+
+!!! warning "Defining one ACME challenge is a requirement for a certificate resolver to be functional."
 
 !!! important "Defining a certificates resolver does not result in all routers automatically using it. Each router that is supposed to use the resolver must [reference](../routing/routers/index.md#certresolver) it."
 
@@ -321,10 +329,11 @@ For complete details, refer to your provider's _Additional configuration_ link.
 | [Glesys](https://glesys.com/)                               | `glesys`       | `GLESYS_API_USER`, `GLESYS_API_KEY`, `GLESYS_DOMAIN`                                                                                        | [Additional configuration](https://go-acme.github.io/lego/dns/glesys)       |
 | [GoDaddy](https://godaddy.com/)                             | `godaddy`      | `GODADDY_API_KEY`, `GODADDY_API_SECRET`                                                                                                     | [Additional configuration](https://go-acme.github.io/lego/dns/godaddy)      |
 | [Google Cloud DNS](https://cloud.google.com/dns/docs/)      | `gcloud`       | `GCE_PROJECT`, Application Default Credentials [^2] [^3], [`GCE_SERVICE_ACCOUNT_FILE`]                                                      | [Additional configuration](https://go-acme.github.io/lego/dns/gcloud)       |
-| [Hetzner](https://hetzner.com)                              | `hetzner`      | `HETZNER_API_KEY`                                                                                                                           | [Additional configuration](https://go-acme.github.io/lego/dns/hetzner)      |
+| [Hetzner](https://www.hetzner.com)                          | `hetzner`      | `HETZNER_API_KEY`                                                                                                                           | [Additional configuration](https://go-acme.github.io/lego/dns/hetzner)      |
 | [hosting.de](https://www.hosting.de)                        | `hostingde`    | `HOSTINGDE_API_KEY`, `HOSTINGDE_ZONE_NAME`                                                                                                  | [Additional configuration](https://go-acme.github.io/lego/dns/hostingde)    |
 | [Hosttech](https://www.hosttech.eu)                         | `hosttech`     | `HOSTTECH_API_KEY`                                                                                                                          | [Additional configuration](https://go-acme.github.io/lego/dns/hosttech)     |
 | [HyperOne](https://www.hyperone.com)                        | `hyperone`     | `HYPERONE_PASSPORT_LOCATION`, `HYPERONE_LOCATION_ID`                                                                                        | [Additional configuration](https://go-acme.github.io/lego/dns/hyperone)     |
+| [Hurricane Electric](https://dns.he.net)                    | `hurricane`    | `HURRICANE_TOKENS` [^6]                                                                                                                     | [Additional configuration](https://go-acme.github.io/lego/dns/hurricane)    |
 | [IBM Cloud (SoftLayer)](https://www.ibm.com/cloud/)         | `ibmcloud`     | `SOFTLAYER_USERNAME`, `SOFTLAYER_API_KEY`                                                                                                   | [Additional configuration](https://go-acme.github.io/lego/dns/ibmcloud)     |
 | [IIJ](https://www.iij.ad.jp/)                               | `iij`          | `IIJ_API_ACCESS_KEY`, `IIJ_API_SECRET_KEY`, `IIJ_DO_SERVICE_CODE`                                                                           | [Additional configuration](https://go-acme.github.io/lego/dns/iij)          |
 | [Infoblox](https://www.infoblox.com/)                       | `infoblox`     | `INFOBLOX_USER`, `INFOBLOX_PASSWORD`, `INFOBLOX_HOST`                                                                                       | [Additional configuration](https://go-acme.github.io/lego/dns/infoblox)     |
@@ -383,11 +392,12 @@ For complete details, refer to your provider's _Additional configuration_ link.
 | HTTP request                                                | `httpreq`      | `HTTPREQ_ENDPOINT`, `HTTPREQ_MODE`, `HTTPREQ_USERNAME`, `HTTPREQ_PASSWORD` [^1]                                                             | [Additional configuration](https://go-acme.github.io/lego/dns/httpreq)      |
 | manual                                                      | `manual`       | none, but you need to run Traefik interactively [^4], turn on debug log to see instructions and press <kbd>Enter</kbd>.                     |                                                                             |
 
-[^1]: more information about the HTTP message format can be found [here](https://go-acme.github.io/lego/dns/httpreq/)
-[^2]: [providing_credentials_to_your_application](https://cloud.google.com/docs/authentication/production)
+[^1]: More information about the HTTP message format can be found [here](https://go-acme.github.io/lego/dns/httpreq/).
+[^2]: [Providing credentials to your application](https://cloud.google.com/docs/authentication/production).
 [^3]: [google/default.go](https://github.com/golang/oauth2/blob/36a7019397c4c86cf59eeab3bc0d188bac444277/google/default.go#L61-L76)
 [^4]: `docker stack` remark: there is no way to support terminal attached to container when deploying with `docker stack`, so you might need to run container with `docker run -it` to generate certificates using `manual` provider.
 [^5]: The `Global API Key` needs to be used, not the `Origin CA Key`.
+[^6]: As explained in the [LEGO hurricane configuration](https://go-acme.github.io/lego/dns/hurricane/#credentials), each domain or wildcard (record name) needs a token. So each update of record name must be followed by an update of the `HURRICANE_TOKENS` variable, and a restart of Traefik.
 
 !!! info "`delayBeforeCheck`"
     By default, the `provider` verifies the TXT record _before_ letting ACME verify.
@@ -534,6 +544,50 @@ docker run -v "/my/host/acme:/etc/traefik/acme" traefik
 
 !!! warning
     For concurrency reasons, this file cannot be shared across multiple instances of Traefik.
+
+### `certificatesDuration`
+
+_Optional, Default=2160_
+
+The `certificatesDuration` option defines the certificates' duration in hours.
+It defaults to `2160` (90 days) to follow Let's Encrypt certificates' duration.
+
+!!! warning "Traefik cannot manage certificates with a duration lower than 1 hour."
+
+```yaml tab="File (YAML)"
+certificatesResolvers:
+  myresolver:
+    acme:
+      # ...
+      certificatesDuration: 72
+      # ...
+```
+
+```toml tab="File (TOML)"
+[certificatesResolvers.myresolver.acme]
+  # ...
+  certificatesDuration=72
+  # ...
+```
+
+```bash tab="CLI"
+# ...
+--certificatesresolvers.myresolver.acme.certificatesduration=72
+# ...
+```
+
+`certificatesDuration` is used to calculate two durations:
+
+- `Renew Period`: the period before the end of the certificate duration, during which the certificate should be renewed.
+- `Renew Interval`: the interval between renew attempts.
+
+| Certificate Duration | Renew Period      | Renew Interval          |
+|----------------------|-------------------|-------------------------|
+| >= 1 year            | 4 months          | 1 week                  |
+| >= 90 days           | 30 days           | 1 day                   |
+| >= 7 days            | 1 day             | 1 hour                  |
+| >= 24 hours          | 6 hours           | 10 min                  |
+| < 24 hours           | 20 min            | 1 min                   |
 
 ### `preferredChain`
 
