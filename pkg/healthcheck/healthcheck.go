@@ -45,7 +45,7 @@ type BalancerHandler interface {
 }
 
 // BalancerStatusHandler is an http Handler that does load-balancing,
-// andupdates its parents of its status.
+// and updates its parents of its status.
 type BalancerStatusHandler interface {
 	BalancerHandler
 	StatusUpdater
