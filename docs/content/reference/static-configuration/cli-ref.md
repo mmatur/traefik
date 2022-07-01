@@ -123,6 +123,12 @@ Role ID to use with AppRole authentication
 `--certificatesresolvers.<name>.vault.auth.approle.secretid`:  
 Secret ID to use with AppRole authentication
 
+`--certificatesresolvers.<name>.vault.auth.kubernetes.path`:  
+Custom path under which Kubernetes authentication is enabled in Vault (Default: ```kubernetes```)
+
+`--certificatesresolvers.<name>.vault.auth.kubernetes.role`:  
+Role to use with Kubernetes authentication
+
 `--certificatesresolvers.<name>.vault.auth.token`:  
 Token used to authenticate with Vault
 

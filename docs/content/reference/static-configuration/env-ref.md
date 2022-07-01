@@ -123,6 +123,12 @@ Role ID to use with AppRole authentication
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_APPROLE_SECRETID`:  
 Secret ID to use with AppRole authentication
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_KUBERNETES_PATH`:  
+Custom path under which Kubernetes authentication is enabled in Vault (Default: ```kubernetes```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_KUBERNETES_ROLE`:  
+Role to use with Kubernetes authentication
+
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_AUTH_TOKEN`:  
 Token used to authenticate with Vault
 

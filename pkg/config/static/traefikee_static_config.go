@@ -3,6 +3,8 @@ package static
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/traefik/traefik/v2/pkg/tls"
 )
@@ -33,23 +35,26 @@ type TLS struct {
 
 // VaultAuth describes authentication methods for Vault providers.
 type VaultAuth struct {
-	Token   string   `description:"Token used to authenticate with Vault" json:"token" yaml:"token" toml:"token"`
-	AppRole *AppRole `json:"appRole" yaml:"appRole" toml:"appRole"`
+	Token      string      `description:"Token used to authenticate with Vault" json:"token" yaml:"token" toml:"token"`
+	AppRole    *AppRole    `description:"Configures the Vault AppRole authentication" json:"appRole" yaml:"appRole" toml:"appRole"`
+	Kubernetes *Kubernetes `description:"Configures the Vault Kubernetes authentication" json:"kubernetes" yaml:"kubernetes" toml:"kubernetes"`
 }
 
 // Validate validates that exactly one authentication method is present and that it is valid.
 func (a VaultAuth) Validate() error {
-	if a.Token == "" && a.AppRole == nil {
-		return errors.New("at least token or appRole must be set")
-	}
-
-	if a.Token != "" && a.AppRole != nil {
-		return errors.New("multiple authentication methods set")
+	if err := ensureOneFieldSet(&a); err != nil {
+		return fmt.Errorf("invalid authentication method: %w", err)
 	}
 
 	if a.AppRole != nil {
 		if err := a.AppRole.Validate(); err != nil {
 			return fmt.Errorf("appRole: %w", err)
+		}
+	}
+
+	if a.Kubernetes != nil {
+		if err := a.Kubernetes.Validate(); err != nil {
+			return fmt.Errorf("kubernetes: %w", err)
 		}
 	}
 
@@ -80,6 +85,26 @@ func (p *AppRole) Validate() error {
 	return nil
 }
 
+// Kubernetes configures the Vault Kubernetes authentication.
+type Kubernetes struct {
+	Role string `description:"Role to use with Kubernetes authentication" json:"role" yaml:"role" toml:"role"`
+	Path string `description:"Custom path under which Kubernetes authentication is enabled in Vault" json:"path" yaml:"path" toml:"path"`
+}
+
+// SetDefaults sets the default values on the Kubernetes configuration.
+func (k *Kubernetes) SetDefaults() {
+	k.Path = "kubernetes"
+}
+
+// Validate validates the Kubernetes configuration.
+func (k *Kubernetes) Validate() error {
+	if k.Role == "" {
+		return errors.New("role must be set")
+	}
+
+	return nil
+}
+
 // DistributedACME configures the DistributedACME provider for TLS certificates.
 type DistributedACME struct {
 	URL string          `description:"URL of the ACME Agent" json:"url" toml:"url" yaml:"url"`
@@ -91,4 +116,28 @@ type DistributedTLS struct {
 	Cert string `description:"Path to the client certificate" json:"cert" toml:"cert" yaml:"cert"`
 	Key  string `description:"Path to the client key" json:"key" toml:"key" yaml:"key"`
 	CA   string `description:"Path to the certificate authority" json:"ca" toml:"ca" yaml:"ca"`
+}
+
+// ensureOneFieldSet ensures exactly one field is set in the given structure.
+func ensureOneFieldSet(s interface{}) error {
+	var set, available []string
+	v := reflect.ValueOf(s).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		// Get the property name as specified in the configuration. Using the YAML struct tag
+		// here, but they (JSON and TOML) are all set to the same value, so it doesn't matter:
+		propertyName := strings.TrimSuffix(v.Type().Field(i).Tag.Get("yaml"), ",omitempty")
+		available = append(available, propertyName)
+
+		if !v.Field(i).IsZero() {
+			set = append(set, propertyName)
+		}
+	}
+
+	if len(set) == 0 {
+		return fmt.Errorf("one of %q must be set", strings.Join(available, ", "))
+	}
+	if len(set) > 1 {
+		return fmt.Errorf("only one of the following can be set: %q", strings.Join(set, ", "))
+	}
+	return nil
 }
