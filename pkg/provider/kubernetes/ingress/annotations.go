@@ -45,7 +45,7 @@ type ServiceIng struct {
 	ServersTransport string          `json:"serversTransport,omitempty"`
 	PassHostHeader   *bool           `json:"passHostHeader"`
 	Sticky           *dynamic.Sticky `json:"sticky,omitempty" label:"allowEmpty"`
-	// Defines the path to get OpenAPI specification for Traefikee API Portal.
+	// APIPortal configures how this service is exposed on the API portal.
 	APIPortal *dynamic.APIPortal `json:"apiportal,omitempty"`
 }
 

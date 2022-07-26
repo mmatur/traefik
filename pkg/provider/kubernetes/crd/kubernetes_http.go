@@ -356,12 +356,80 @@ func (c configBuilder) loadAPIPortal(parentNamespace string, svc v1alpha1.LoadBa
 		return nil, fmt.Errorf("kubernetes service not found: %s/%s", namespace, sanitizedName)
 	}
 
-	path, found := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.path"]
-	if !found {
+	// First, check whether we have at least one annotation concerning API Portal configuration.
+	// We don't want to break the old behavior where if we have none, the API Portal configuration is nil.
+	var hasAnno bool
+	for anno := range service.Annotations {
+		if strings.HasPrefix(anno, "traefik.ingress.kubernetes.io/service.apiportal") {
+			hasAnno = true
+			break
+		}
+	}
+	if !hasAnno {
 		return nil, nil
 	}
 
-	return &dynamic.APIPortal{Path: path}, nil
+	var apiPortal dynamic.APIPortal
+	// This annotation is deprecated, load it first.
+	if path, ok := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.path"]; ok {
+		apiPortal.DefaultPath = path
+	}
+	// Then load the new annotation, overwriting the old one if it was set.
+	if path, ok := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.defaultPath"]; ok {
+		apiPortal.DefaultPath = path
+	}
+
+	const groupsPrefix = "traefik.ingress.kubernetes.io/service.apiportal.groups."
+	groups := make(map[string]dynamic.APIPortalGroup)
+	for anno, val := range service.Annotations {
+		if !strings.HasPrefix(anno, groupsPrefix) {
+			continue
+		}
+
+		parts := strings.Split(strings.TrimPrefix(anno, groupsPrefix), ".")
+		// We want to be able to handle all 3 scenarios stemming from either one of
+		// these kinds of annotations, or both:
+		// annotations:
+		// 	traefik.ingress.kubernetes.io/service.apiportal.groups.firstGroup: ""
+		// 	traefik.ingress.kubernetes.io/service.apiportal.groups.firstGroup.path: /somewhere/spec.json
+		// case 1 handles the first annotation, but makes sure it does not delete
+		// information we got from the second one if it had been read first.
+		// case 2 takes care of the second annotation, regardless of whether the first annotation exists.
+		switch len(parts) {
+		case 1: // No option specified.
+			group := parts[0]
+
+			// If already existing, this means it has more specific configuration already set,
+			// i.e.: an options was given for this group. Don't overwrite it.
+			if _, ok := groups[group]; ok {
+				continue
+			}
+
+			groups[group] = dynamic.APIPortalGroup{}
+
+		case 2: // Option given.
+			group, option := parts[0], parts[1]
+
+			switch option {
+			case "path":
+				cfg := groups[group]
+				cfg.Path = val
+				groups[group] = cfg
+
+			default:
+				return nil, fmt.Errorf("unexpected property %q", option)
+			}
+
+		default:
+			return nil, fmt.Errorf("unexpected amount of parts in annotation: %d", len(parts))
+		}
+	}
+
+	if len(groups) > 0 {
+		apiPortal.Groups = groups
+	}
+
+	return &apiPortal, nil
 }
 
 func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBalancerSpec) ([]dynamic.Server, error) {

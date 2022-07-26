@@ -3824,7 +3824,7 @@ func TestLoadIngressRoutes(t *testing.T) {
 		},
 		{
 			desc:  "Simple Ingress Route, with API Portal path annotation",
-			paths: []string{"with_api_portal_path_annotation.yml"},
+			paths: []string{"with_api_portal_deprecated_path_annotation.yml"},
 			expected: &dynamic.Configuration{
 				UDP: &dynamic.UDPConfiguration{
 					Routers:  map[string]*dynamic.UDPRouter{},
@@ -3857,7 +3857,10 @@ func TestLoadIngressRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								APIPortal:      &dynamic.APIPortal{Path: "path.json"},
+								APIPortal: &dynamic.APIPortal{
+									Path:        "",
+									DefaultPath: "path.json",
+								},
 							},
 						},
 					},
@@ -3901,7 +3904,10 @@ func TestLoadIngressRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: Bool(true),
-								APIPortal:      &dynamic.APIPortal{Path: "path.json"},
+								APIPortal: &dynamic.APIPortal{
+									Path:        "",
+									DefaultPath: "path.json",
+								},
 							},
 						},
 						"default-wrr": {
@@ -3910,6 +3916,58 @@ func TestLoadIngressRoutes(t *testing.T) {
 									{
 										Name:   "default-whoami-80",
 										Weight: Int(1),
+									},
+								},
+							},
+						},
+					},
+					ServersTransports: map[string]*dynamic.ServersTransport{},
+				},
+				TLS: &dynamic.TLSConfiguration{},
+			},
+		},
+		{
+			desc:  "Simple Ingress Route, with API Portal groups and default path annotation",
+			paths: []string{"with_api_portal_groups_and_default_path_annotation.yml"},
+			expected: &dynamic.Configuration{
+				UDP: &dynamic.UDPConfiguration{
+					Routers:  map[string]*dynamic.UDPRouter{},
+					Services: map[string]*dynamic.UDPService{},
+				},
+				TCP: &dynamic.TCPConfiguration{
+					Routers:     map[string]*dynamic.TCPRouter{},
+					Middlewares: map[string]*dynamic.TCPMiddleware{},
+					Services:    map[string]*dynamic.TCPService{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers: map[string]*dynamic.Router{
+						"default-test-route-6b204d94623b3df4370c": {
+							EntryPoints: []string{"foo"},
+							Service:     "default-test-route-6b204d94623b3df4370c",
+							Rule:        "Host(`foo.com`) && PathPrefix(`/bar`)",
+							Priority:    12,
+						},
+					},
+					Middlewares: map[string]*dynamic.Middleware{},
+					Services: map[string]*dynamic.Service{
+						"default-test-route-6b204d94623b3df4370c": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{
+										URL: "http://10.10.0.1:80",
+									},
+									{
+										URL: "http://10.10.0.2:80",
+									},
+								},
+								PassHostHeader: Bool(true),
+								APIPortal: &dynamic.APIPortal{
+									Path:        "",
+									DefaultPath: "path.json",
+									Groups: map[string]dynamic.APIPortalGroup{
+										"firstGroup":  {},
+										"secondGroup": {Path: "/somewhere/spec.json"},
+										"thirdGroup":  {Path: "/elsewhere/spec.json"},
 									},
 								},
 							},

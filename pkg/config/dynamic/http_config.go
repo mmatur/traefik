@@ -157,7 +157,7 @@ type ServersLoadBalancer struct {
 	PassHostHeader     *bool               `json:"passHostHeader" toml:"passHostHeader" yaml:"passHostHeader" export:"true"`
 	ResponseForwarding *ResponseForwarding `json:"responseForwarding,omitempty" toml:"responseForwarding,omitempty" yaml:"responseForwarding,omitempty" export:"true"`
 	ServersTransport   string              `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
-	// Defines the path to get OpenAPI specification for Traefikee API Portal.
+	// APIPortal configures how this service is exposed on the API portal.
 	APIPortal *APIPortal `json:"apiportal,omitempty" toml:"apiportal,omitempty" yaml:"apiportal,omitempty" export:"true"`
 }
 
@@ -188,7 +188,18 @@ func (l *ServersLoadBalancer) SetDefaults() {
 
 // APIPortal configures the Traefik Enterprise API Portal spec endpoint.
 type APIPortal struct {
-	Path string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty" file:"allowEmpty"`
+	// Deprecated: use DefaultPath instead.
+	Path string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
+	// DefaultPath overrides the default spec path set in the static configuration for this service.
+	DefaultPath string `json:"defaultPath,omitempty" toml:"defaultPath,omitempty" yaml:"defaultPath,omitempty"`
+	// Groups is a way to expose multiple APIs of a single service through different API Portals. Map key is the group name.
+	Groups map[string]APIPortalGroup `json:"groups" toml:"groups" yaml:"groups"`
+}
+
+// APIPortalGroup configures a Traefik Enterprise API Portal group.
+type APIPortalGroup struct {
+	// Path overrides both the default spec path in the static configuration and the default path set on the service, only for this group.
+	Path string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
 }
 
 // +k8s:deepcopy-gen=true

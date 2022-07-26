@@ -1,0 +1,50 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: test.route
+  namespace: default
+spec:
+  entryPoints:
+    - foo
+  routes:
+  - match: Host(`foo.com`) && PathPrefix(`/bar`)
+    kind: Rule
+    priority: 12
+    services:
+    - name: whoami
+      port: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/service.apiportal.defaultPath: path.json
+    traefik.ingress.kubernetes.io/service.apiportal.groups.firstGroup: ""
+    traefik.ingress.kubernetes.io/service.apiportal.groups.secondGroup.path: /somewhere/spec.json
+    traefik.ingress.kubernetes.io/service.apiportal.groups.thirdGroup.path: /elsewhere/spec.json
+
+spec:
+  ports:
+    - name: web
+      port: 80
+  selector:
+    app: traefiklabs
+    task: whoami
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: whoami
+  namespace: default
+
+subsets:
+  - addresses:
+      - ip: 10.10.0.1
+      - ip: 10.10.0.2
+    ports:
+      - name: web
+        port: 80
