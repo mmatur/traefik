@@ -188,10 +188,8 @@ func (l *ServersLoadBalancer) SetDefaults() {
 
 // APIPortal configures the Traefik Enterprise API Portal spec endpoint.
 type APIPortal struct {
-	// Deprecated: use DefaultPath instead.
+	// Path overrides the default spec path set in the static configuration for this service.
 	Path string `json:"path,omitempty" toml:"path,omitempty" yaml:"path,omitempty"`
-	// DefaultPath overrides the default spec path set in the static configuration for this service.
-	DefaultPath string `json:"defaultPath,omitempty" toml:"defaultPath,omitempty" yaml:"defaultPath,omitempty"`
 	// Groups is a way to expose multiple APIs of a single service through different API Portals. Map key is the group name.
 	Groups map[string]APIPortalGroup `json:"groups" toml:"groups" yaml:"groups"`
 }

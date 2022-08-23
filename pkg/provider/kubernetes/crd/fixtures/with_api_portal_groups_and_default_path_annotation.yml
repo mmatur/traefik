@@ -21,7 +21,7 @@ metadata:
   name: whoami
   namespace: default
   annotations:
-    traefik.ingress.kubernetes.io/service.apiportal.defaultPath: path.json
+    traefik.ingress.kubernetes.io/service.apiportal.path: path.json
     traefik.ingress.kubernetes.io/service.apiportal.groups.firstGroup: ""
     traefik.ingress.kubernetes.io/service.apiportal.groups.secondGroup.path: /somewhere/spec.json
     traefik.ingress.kubernetes.io/service.apiportal.groups.thirdGroup.path: /elsewhere/spec.json

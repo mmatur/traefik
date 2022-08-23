@@ -370,13 +370,8 @@ func (c configBuilder) loadAPIPortal(parentNamespace string, svc v1alpha1.LoadBa
 	}
 
 	var apiPortal dynamic.APIPortal
-	// This annotation is deprecated, load it first.
 	if path, ok := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.path"]; ok {
-		apiPortal.DefaultPath = path
-	}
-	// Then load the new annotation, overwriting the old one if it was set.
-	if path, ok := service.Annotations["traefik.ingress.kubernetes.io/service.apiportal.defaultPath"]; ok {
-		apiPortal.DefaultPath = path
+		apiPortal.Path = path
 	}
 
 	const groupsPrefix = "traefik.ingress.kubernetes.io/service.apiportal.groups."
