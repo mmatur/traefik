@@ -59,6 +59,7 @@ type Provider struct {
 	Network                 string           `description:"Default Docker network used." json:"network,omitempty" toml:"network,omitempty" yaml:"network,omitempty" export:"true"`
 	SwarmModeRefreshSeconds ptypes.Duration  `description:"Polling interval for swarm mode." json:"swarmModeRefreshSeconds,omitempty" toml:"swarmModeRefreshSeconds,omitempty" yaml:"swarmModeRefreshSeconds,omitempty" export:"true"`
 	HTTPClientTimeout       ptypes.Duration  `description:"Client timeout for HTTP connections." json:"httpClientTimeout,omitempty" toml:"httpClientTimeout,omitempty" yaml:"httpClientTimeout,omitempty" export:"true"`
+	AllowEmptyServices      bool             `description:"Disregards the Docker containers health checks with respect to the creation or removal of the corresponding services." json:"allowEmptyServices,omitempty" toml:"allowEmptyServices,omitempty" yaml:"allowEmptyServices,omitempty" export:"true"`
 	defaultRuleTpl          *template.Template
 }
 
@@ -410,10 +411,15 @@ func parseContainer(container dockertypes.ContainerJSON) dockerData {
 		if container.NetworkSettings.Networks != nil {
 			dData.NetworkSettings.Networks = make(map[string]*networkData)
 			for name, containerNetwork := range container.NetworkSettings.Networks {
+				addr := containerNetwork.IPAddress
+				if addr == "" {
+					addr = containerNetwork.GlobalIPv6Address
+				}
+
 				dData.NetworkSettings.Networks[name] = &networkData{
 					ID:   containerNetwork.NetworkID,
 					Name: name,
-					Addr: containerNetwork.IPAddress,
+					Addr: addr,
 				}
 			}
 		}

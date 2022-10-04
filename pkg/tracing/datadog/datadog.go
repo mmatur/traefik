@@ -46,26 +46,6 @@ func (c *Config) SetDefaults() {
 
 // Setup sets up the tracer.
 func (c *Config) Setup(serviceName string) (opentracing.Tracer, io.Closer, error) {
-	if c.GlobalTag != "" {
-		log.WithoutContext().Warn(`Datadog: option "globalTag" is deprecated, please use "globalTags" instead.`)
-
-		parts := strings.SplitN(c.GlobalTag, ":", 2)
-
-		key, value := parts[0], ""
-		if len(parts) == 2 {
-			value = parts[1]
-		}
-
-		// Don't override a tag already defined with the new option.
-		if _, ok := c.GlobalTags[key]; !ok {
-			if c.GlobalTags == nil {
-				c.GlobalTags = make(map[string]string)
-			}
-
-			c.GlobalTags[key] = value
-		}
-	}
-
 	opts := []datadog.StartOption{
 		datadog.WithAgentAddr(c.LocalAgentHostPort),
 		datadog.WithServiceName(serviceName),
@@ -80,6 +60,17 @@ func (c *Config) Setup(serviceName string) (opentracing.Tracer, io.Closer, error
 
 	for k, v := range c.GlobalTags {
 		opts = append(opts, datadog.WithGlobalTag(k, v))
+	}
+
+	if c.GlobalTag != "" {
+		log.WithoutContext().Warn(`Datadog: option "globalTag" is deprecated, please use "globalTags" instead.`)
+
+		key, value, _ := strings.Cut(c.GlobalTag, ":")
+
+		// Don't override a tag already defined with the new option.
+		if _, ok := c.GlobalTags[key]; !ok {
+			opts = append(opts, datadog.WithGlobalTag(key, value))
+		}
 	}
 
 	if c.PrioritySampling {

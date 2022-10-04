@@ -11,7 +11,7 @@ func (p *Provider) Refresh() error {
 	}
 	p.certificates = certificates
 
-	p.refreshCertificates()
+	p.configurationChan <- p.buildMessage()
 
 	return nil
 }
