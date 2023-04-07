@@ -647,8 +647,8 @@ github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeME
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
 github.com/gin-gonic/gin v1.7.4/go.mod h1:jD2toBW3GZUr5UMcdrwQA10I7RuaFOl/SGeDjXkfUtY=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
-github.com/go-acme/lego/v4 v4.10.0 h1:G4Cgq4lsPxCjqsTKsqhUjRs3oKAGVMFPhvrl6kzzs44=
-github.com/go-acme/lego/v4 v4.10.0/go.mod h1:EMbf0Jmqwv94nJ5WL9qWnSXIBZnvsS9gNypansHGc6U=
+github.com/go-acme/lego/v4 v4.10.2 h1:5eW3qmda5v/LP21v1Hj70edKY1jeFZQwO617tdkwp6Q=
+github.com/go-acme/lego/v4 v4.10.2/go.mod h1:EMbf0Jmqwv94nJ5WL9qWnSXIBZnvsS9gNypansHGc6U=
 github.com/go-asn1-ber/asn1-ber v1.3.1/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-chi/chi/v5 v5.0.0/go.mod h1:BBug9lr0cqtdAhsu6R4AAdvufI0/XBzAQSsUqJpoZOs=
 github.com/go-cmd/cmd v1.0.5/go.mod h1:y8q8qlK5wQibcw63djSl/ntiHUHXHGdCkPk0j4QeW4s=
@@ -1776,8 +1776,8 @@ github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6Ac
 github.com/vmihailenco/msgpack/v4 v4.3.12/go.mod h1:gborTTJjAo/GWTqqRjrLCn9pgNN+NXzzngzBKDPIqw4=
 github.com/vmihailenco/tagparser v0.1.1/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
 github.com/vmware/govmomi v0.18.0/go.mod h1:URlwyTFZX72RmxtxuaFL2Uj3fD1JTvZdx59bHWk6aFU=
-github.com/vulcand/oxy/v2 v2.0.0-20221121151423-d5cb734e4467 h1:Dbv3KJLgwtDKLpCZzTf1ISeG5ZYudPaLfTdYi4O2dSU=
-github.com/vulcand/oxy/v2 v2.0.0-20221121151423-d5cb734e4467/go.mod h1:0kOEB8mKzSeGHknF53gTM47UEvQnPoAPnM+58baqn2o=
+github.com/vulcand/oxy/v2 v2.0.0-20230227135449-a0e9f7ff1040 h1:L+nLher4530BUkyOpxxBsl2SLbrD4fSlDH5rGZ8DRBM=
+github.com/vulcand/oxy/v2 v2.0.0-20230227135449-a0e9f7ff1040/go.mod h1:A2voDnpONyqdplUDK0lt5y4XHLiBXPBw7iQES8+ZWRw=
 github.com/vulcand/predicate v1.2.0 h1:uFsW1gcnnR7R+QTID+FVcs0sSYlIGntoGOTb3rQJt50=
 github.com/vulcand/predicate v1.2.0/go.mod h1:VipoNYXny6c8N381zGUWkjuuNHiRbeAZhE7Qm9c+2GA=
 github.com/vultr/govultr/v2 v2.17.2 h1:gej/rwr91Puc/tgh+j33p/BLR16UrIPnSr+AIwYWZQs=
