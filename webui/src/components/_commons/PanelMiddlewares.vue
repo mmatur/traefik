@@ -723,7 +723,7 @@
             </div>
           </q-card-section>
 
-          <!-- EXTRA FIELDS FROM MIDDLEWARES - [rateLimit] - average && burst-->
+          <!-- EXTRA FIELDS FROM MIDDLEWARES - [rateLimit] - average & burst & period -->
           <q-card-section v-if="middleware.rateLimit">
             <div class="row items-start no-wrap">
               <div class="col">
@@ -740,6 +740,14 @@
                   dense
                   class="app-chip app-chip-green">
                   {{ exData(middleware).burst }}
+                </q-chip>
+              </div>
+              <div class="col">
+                <div class="text-subtitle2">Period</div>
+                <q-chip
+                  dense
+                  class="app-chip app-chip-green">
+                  {{ exData(middleware).period }}
                 </q-chip>
               </div>
             </div>
@@ -1156,6 +1164,9 @@ export default {
       }
       if (name.startsWith('consulcatalog-')) {
         return `statics/providers/consulcatalog.svg`
+      }
+      if (name.startsWith('nomad-')) {
+        return `statics/providers/nomad.svg`
       }
 
       return `statics/providers/${name}.svg`
