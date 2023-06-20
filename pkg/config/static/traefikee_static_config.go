@@ -35,9 +35,9 @@ type TLS struct {
 
 // VaultAuth describes authentication methods for Vault providers.
 type VaultAuth struct {
-	Token      string      `description:"Token used to authenticate with Vault" json:"token" yaml:"token" toml:"token"`
-	AppRole    *AppRole    `description:"Configures the Vault AppRole authentication" json:"appRole" yaml:"appRole" toml:"appRole"`
-	Kubernetes *Kubernetes `description:"Configures the Vault Kubernetes authentication" json:"kubernetes" yaml:"kubernetes" toml:"kubernetes"`
+	Token      string      `description:"Token used to authenticate with Vault" json:"token" toml:"token" yaml:"token"`
+	AppRole    *AppRole    `description:"Configures the Vault AppRole authentication" json:"appRole" toml:"appRole" yaml:"appRole" `
+	Kubernetes *Kubernetes `description:"Configures the Vault Kubernetes authentication" json:"kubernetes" toml:"kubernetes" yaml:"kubernetes"`
 }
 
 // Validate validates that exactly one authentication method is present and that it is valid.
@@ -63,9 +63,9 @@ func (a VaultAuth) Validate() error {
 
 // AppRole configures the Vault AppRole authentication.
 type AppRole struct {
-	RoleID   string `description:"Role ID to use with AppRole authentication" json:"roleID" yaml:"roleID" toml:"roleID"`
-	SecretID string `description:"Secret ID to use with AppRole authentication" json:"secretID" yaml:"secretID" toml:"secretID"`
-	Path     string `description:"Custom path under which AppRole authentication is enabled in Vault" json:"path" yaml:"path" toml:"path"`
+	RoleID   string `description:"Role ID to use with AppRole authentication" json:"roleID" toml:"roleID" yaml:"roleID"`
+	SecretID string `description:"Secret ID to use with AppRole authentication" json:"secretID" toml:"secretID" yaml:"secretID"`
+	Path     string `description:"Custom path under which AppRole authentication is enabled in Vault" json:"path" toml:"path" yaml:"path"`
 }
 
 // SetDefaults sets the default values on the AppRole configuration.
@@ -87,8 +87,8 @@ func (p *AppRole) Validate() error {
 
 // Kubernetes configures the Vault Kubernetes authentication.
 type Kubernetes struct {
-	Role string `description:"Role to use with Kubernetes authentication" json:"role" yaml:"role" toml:"role"`
-	Path string `description:"Custom path under which Kubernetes authentication is enabled in Vault" json:"path" yaml:"path" toml:"path"`
+	Role string `description:"Role to use with Kubernetes authentication" json:"role" toml:"role" yaml:"role"`
+	Path string `description:"Custom path under which Kubernetes authentication is enabled in Vault" json:"path" toml:"path" yaml:"path"`
 }
 
 // SetDefaults sets the default values on the Kubernetes configuration.
