@@ -144,8 +144,14 @@ Role to be used to issue certificates
 `--certificatesresolvers.<name>.vault.tls.cabundle`:  
 Certificate Authority bundle to use for TLS communication
 
+`--certificatesresolvers.<name>.vault.tls.cert`:  
+TLS cert
+
 `--certificatesresolvers.<name>.vault.tls.insecureskipverify`:  
 Whether the client should verify the TLS certificate (Default: ```false```)
+
+`--certificatesresolvers.<name>.vault.tls.key`:  
+TLS key
 
 `--certificatesresolvers.<name>.vault.token`:  
 Token used to authenticate with Vault

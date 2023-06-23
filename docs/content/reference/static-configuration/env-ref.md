@@ -144,8 +144,14 @@ Role to be used to issue certificates
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_CABUNDLE`:  
 Certificate Authority bundle to use for TLS communication
 
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_CERT`:  
+TLS cert
+
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_INSECURESKIPVERIFY`:  
 Whether the client should verify the TLS certificate (Default: ```false```)
+
+`TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TLS_KEY`:  
+TLS key
 
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_TOKEN`:  
 Token used to authenticate with Vault

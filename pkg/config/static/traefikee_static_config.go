@@ -30,6 +30,8 @@ func (p *VaultPKI) SetDefaults() {
 // TLS configures TLS communication.
 type TLS struct {
 	CABundle           tls.FileOrContent `description:"Certificate Authority bundle to use for TLS communication" json:"caBundle" toml:"caBundle" yaml:"caBundle"`
+	Cert               string            `description:"TLS cert" json:"cert,omitempty" toml:"cert,omitempty" yaml:"cert,omitempty"`
+	Key                string            `description:"TLS key" json:"key,omitempty" toml:"key,omitempty" yaml:"key,omitempty" loggable:"false"`
 	InsecureSkipVerify bool              `description:"Whether the client should verify the TLS certificate" json:"insecureSkipVerify" toml:"insecureSkipVerify" yaml:"insecureSkipVerify" export:"true"`
 }
 
