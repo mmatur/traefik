@@ -265,6 +265,7 @@
   insecure = true
   dashboard = true
   debug = true
+  disabledashboardad = false
 
 [metrics]
   [metrics.prometheus]
@@ -443,13 +444,6 @@
       [certificatesResolvers.CertificateResolver1.acme.httpChallenge]
         entryPoint = "foobar"
       [certificatesResolvers.CertificateResolver1.acme.tlsChallenge]
-
-[hub]
-  [hub.tls]
-    insecure = true
-    ca = "foobar"
-    cert = "foobar"
-    key = "foobar"
 
 [experimental]
   kubernetesGateway = true
