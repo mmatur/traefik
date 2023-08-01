@@ -189,7 +189,12 @@ generate-genconf:
 .PHONY: release-packages
 release-packages: generate-webui build-dev-image
 	rm -rf dist
-	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m"
+	GOOS=linux goreleaser release --skip-publish -p 2 --timeout="90m" --split --clean
+	GOOS=darwin goreleaser release --skip-publish -p 2 --timeout="90m" --split --clean --skip-before
+	GOOS=windows goreleaser release --skip-publish -p 2 --timeout="90m" --split --clean --skip-before
+	GOOS=freebsd goreleaser release --skip-publish -p 2 --timeout="90m" --split --clean --skip-before
+	GOOS=openbsd goreleaser release --skip-publish -p 2 --timeout="90m" --split --clean --skip-before
+	goreleaser continue --merge --skip-after
 	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) tar cfz dist/traefik-${VERSION}.src.tar.gz \
 		--exclude-vcs \
 		--exclude .idea \

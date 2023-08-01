@@ -4,6 +4,12 @@ before:
   hooks:
     - go generate
 
+after:
+  hooks:
+    - df -h
+    - go clean -modcache -cache
+    - df -h
+
 builds:
   - binary: traefik
 

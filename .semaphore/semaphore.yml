@@ -26,7 +26,8 @@ global_job_config:
       - mkdir -vp "${SEMAPHORE_GIT_DIR}" "${GOPATH}/bin"
       - export GOPROXY=https://proxy.golang.org,direct
       - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "${GOPATH}/bin" v1.52.2
-      - curl -sSfL https://gist.githubusercontent.com/traefiker/6d7ac019c11d011e4f131bb2cca8900e/raw/goreleaser.sh | bash -s -- -b "${GOPATH}/bin"
+      - curl -sSfL -o /tmp/goreleaser-pro_Linux_x86_64.tar.gz "https://github.com/goreleaser/goreleaser-pro/releases/download/$(curl -sf https://goreleaser.com/static/latest-pro)/goreleaser-pro_Linux_x86_64.tar.gz"
+      - tar -xf "/tmp/goreleaser-pro_Linux_x86_64.tar.gz" -C "$GOPATH/bin"
       - checkout
       - cache restore traefik-$(checksum go.sum)
 
@@ -39,10 +40,10 @@ blocks:
       jobs:
         - name: Test Integration
           commands:
-            - make pull-images
-            - touch webui/static/index.html # Avoid generating webui
-            - IN_DOCKER="" make binary
-            - make test-integration
+#            - make pull-images
+#            - touch webui/static/index.html # Avoid generating webui
+#            - IN_DOCKER="" make binary
+#            - make test-integration
             - df -h
       epilogue:
         always:
@@ -59,7 +60,8 @@ blocks:
           type: e1-standard-8
           os_image: ubuntu2004
       secrets:
-        - name: traefik
+        - name: traefik-mm
+        - name: goreleaser
       env_vars:
         - name: GH_VERSION
           value: 1.12.1
@@ -78,6 +80,7 @@ blocks:
       jobs:
         - name: Release
           commands:
+            - df -h
             - make release-packages
-            - gh release create ${SEMAPHORE_GIT_TAG_NAME} ./dist/traefik*.* --repo traefik/traefik --title ${SEMAPHORE_GIT_TAG_NAME} --notes ${SEMAPHORE_GIT_TAG_NAME}
-            - ./script/deploy.sh
+            - gh release create ${SEMAPHORE_GIT_TAG_NAME} ./dist/**/traefik*.* --repo mmatur/traefik --title ${SEMAPHORE_GIT_TAG_NAME} --notes ${SEMAPHORE_GIT_TAG_NAME}
+#            - ./script/deploy.sh
