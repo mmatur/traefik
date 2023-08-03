@@ -189,7 +189,18 @@ generate-genconf:
 .PHONY: release-packages
 release-packages: generate-webui build-dev-image
 	rm -rf dist
-	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m"
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config .goreleaser_linux.yml
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -modcache -cache
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config .goreleaser_darwin.yml
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -modcache -cache
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config .goreleaser_windows.yml
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -modcache -cache
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config .goreleaser_freebsd.yml
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -modcache -cache
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config .goreleaser_openbsd.yml
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -modcache -cache
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) cat dist/**/*_checksums.txt >> dist/traefik_${VERSION}_checksums.txt
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) rm dist/*/*_checksums.txt
 	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) tar cfz dist/traefik-${VERSION}.src.tar.gz \
 		--exclude-vcs \
 		--exclude .idea \
