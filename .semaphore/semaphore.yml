@@ -59,10 +59,10 @@ blocks:
           type: e1-standard-8
           os_image: ubuntu2004
       secrets:
-        - name: traefik
+        - name: traefik-mm
       env_vars:
         - name: GH_VERSION
-          value: 1.12.1
+          value: 2.32.1
         - name: CODENAME
           value: "saintmarcelin"
         - name: IN_DOCKER
@@ -78,6 +78,8 @@ blocks:
       jobs:
         - name: Release
           commands:
+            - df -h
             - make release-packages
-            - gh release create ${SEMAPHORE_GIT_TAG_NAME} ./dist/traefik*.* --repo traefik/traefik --title ${SEMAPHORE_GIT_TAG_NAME} --notes ${SEMAPHORE_GIT_TAG_NAME}
-            - ./script/deploy.sh
+            - df -h
+            - gh release create ${SEMAPHORE_GIT_TAG_NAME} "./dist/**/traefik*.(zip|tar.gz|txt)" --repo mmatur/traefik --title ${SEMAPHORE_GIT_TAG_NAME} --notes ${SEMAPHORE_GIT_TAG_NAME}
+#            - ./script/deploy.sh
