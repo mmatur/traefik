@@ -185,11 +185,23 @@ generate-crd:
 generate-genconf:
 	go run ./cmd/internal/gen/
 
+powpow:
+	for powpow in linux darwin windows freebsd openbsd; do \
+		echo $$powpow; \
+	done
 ## Create packages for the release
 .PHONY: release-packages
 release-packages: generate-webui build-dev-image
 	rm -rf dist
-	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m"
+	@- $(foreach os, linux darwin windows freebsd openbsd, \
+        $(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) goreleaser release --skip-publish -p 2 --timeout="90m" --config $(shell go run ./internal/release $(os)); \
+        $(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) df -h; \
+        $(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) go clean -cache; \
+        $(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) df -h; \
+    )
+
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) cat dist/**/*_checksums.txt >> dist/traefik_${VERSION}_checksums.txt
+	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) rm dist/**/*_checksums.txt
 	$(if $(IN_DOCKER),$(DOCKER_RUN_TRAEFIK_NOTTY)) tar cfz dist/traefik-${VERSION}.src.tar.gz \
 		--exclude-vcs \
 		--exclude .idea \
