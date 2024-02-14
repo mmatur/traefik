@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
+	"github.com/traefik/traefik/v2/pkg/middlewares/customerrors"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
 )
@@ -60,6 +61,9 @@ func (m *smartRoundTripper) Clone() http.RoundTripper {
 }
 
 func (m *smartRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Notify the roundtrip of the request to the custom error middleware.
+	customerrors.NotifyRoundTrip(req)
+
 	// If we have a connection upgrade, we don't use HTTP/2
 	if httpguts.HeaderValuesContainsToken(req.Header["Connection"], "Upgrade") {
 		return m.http.RoundTrip(req)

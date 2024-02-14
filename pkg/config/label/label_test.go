@@ -1214,6 +1214,7 @@ func TestEncodeConfiguration(t *testing.T) {
 		"traefik.HTTP.Middlewares.Middleware5.DigestAuth.RemoveHeader":                             "true",
 		"traefik.HTTP.Middlewares.Middleware5.DigestAuth.Users":                                    "foobar, fiibar",
 		"traefik.HTTP.Middlewares.Middleware5.DigestAuth.UsersFile":                                "foobar",
+		"traefik.HTTP.Middlewares.Middleware6.Errors.IgnoreBackendErrors":                          "false",
 		"traefik.HTTP.Middlewares.Middleware6.Errors.Query":                                        "foobar",
 		"traefik.HTTP.Middlewares.Middleware6.Errors.Service":                                      "foobar",
 		"traefik.HTTP.Middlewares.Middleware6.Errors.Status":                                       "foobar, fiibar",

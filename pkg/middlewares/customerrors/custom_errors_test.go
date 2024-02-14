@@ -22,6 +22,7 @@ func TestHandler(t *testing.T) {
 		errorPage           *dynamic.ErrorPage
 		backendCode         int
 		backendErrorHandler http.HandlerFunc
+		traefikError        bool
 		validate            func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
@@ -74,6 +75,33 @@ func TestHandler(t *testing.T) {
 				t.Helper()
 				assert.Equal(t, http.StatusInternalServerError, recorder.Code, "HTTP status")
 				assert.Contains(t, recorder.Body.String(), "My error page.")
+			},
+		},
+		{
+			desc:        "in the range but backend errors are ignored",
+			errorPage:   &dynamic.ErrorPage{Service: "error", Query: "/test", Status: []string{"500-501", "503-599"}, IgnoreBackendErrors: true},
+			backendCode: http.StatusInternalServerError,
+			backendErrorHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprintln(w, "Should not be called")
+			}),
+			validate: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code, "HTTP status")
+				assert.NotContains(t, recorder.Body.String(), "Should not be called\n")
+			},
+		},
+		{
+			desc:         "traefik error in the range and backend errors are ignored",
+			errorPage:    &dynamic.ErrorPage{Service: "error", Query: "/test", Status: []string{"500-501", "503-599"}, IgnoreBackendErrors: true},
+			traefikError: true,
+			backendCode:  http.StatusInternalServerError,
+			backendErrorHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprintln(w, "Traefik Error")
+			}),
+			validate: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusInternalServerError, recorder.Code, "HTTP status")
+				assert.Contains(t, recorder.Body.String(), "Traefik Error\n")
 			},
 		},
 		{
@@ -164,6 +192,12 @@ func TestHandler(t *testing.T) {
 			serviceBuilderMock := &mockServiceBuilder{handler: test.backendErrorHandler}
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				NotifyRoundTrip(r)
+
+				if test.traefikError {
+					NotifyErrorHandler(r)
+				}
+
 				w.WriteHeader(test.backendCode)
 
 				if test.backendCode == http.StatusNotModified {

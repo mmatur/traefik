@@ -15,6 +15,7 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v2/pkg/config/dynamic"
 	"github.com/traefik/traefik/v2/pkg/log"
+	"github.com/traefik/traefik/v2/pkg/middlewares/customerrors"
 	"golang.org/x/net/http/httpguts"
 )
 
@@ -99,6 +100,9 @@ func buildProxy(passHostHeader *bool, responseForwarding *dynamic.ResponseForwar
 					}
 				}
 			}
+
+			// Notify the ErrorHandler handling of the request to the custom error middleware.
+			customerrors.NotifyErrorHandler(request)
 
 			log.Debugf("'%d %s' caused by: %v", statusCode, statusText(statusCode), err)
 			w.WriteHeader(statusCode)

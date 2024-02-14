@@ -143,3 +143,9 @@ The table below lists all the available variables and their associated values.
 |------------|--------------------------------------------------------------------|
 | `{status}` | The response status code.                                          |
 | `{url}`    | The [escaped](https://pkg.go.dev/net/url#QueryEscape) request URL. |
+
+### `ignorebackenderrors`
+
+This option allows you to ignore backend errors. For example, if you configure `status` to be in the range `505-599`,
+and your backend sends one of these error codes, the response will be the one from your backend. But if it's Traefik sending 
+one  of these errors, then the error page will be the one hosted by the [`service`](#service).

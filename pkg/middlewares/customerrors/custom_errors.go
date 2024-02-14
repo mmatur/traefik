@@ -34,11 +34,12 @@ type serviceBuilder interface {
 
 // customErrors is a middleware that provides the custom error pages.
 type customErrors struct {
-	name           string
-	next           http.Handler
-	backendHandler http.Handler
-	httpCodeRanges types.HTTPCodeRanges
-	backendQuery   string
+	name                string
+	next                http.Handler
+	backendHandler      http.Handler
+	httpCodeRanges      types.HTTPCodeRanges
+	backendQuery        string
+	ignoreBackendErrors bool
 }
 
 // New creates a new custom error pages middleware.
@@ -56,11 +57,12 @@ func New(ctx context.Context, next http.Handler, config dynamic.ErrorPage, servi
 	}
 
 	return &customErrors{
-		name:           name,
-		next:           next,
-		backendHandler: backend,
-		httpCodeRanges: httpCodeRanges,
-		backendQuery:   config.Query,
+		name:                name,
+		next:                next,
+		backendHandler:      backend,
+		httpCodeRanges:      httpCodeRanges,
+		backendQuery:        config.Query,
+		ignoreBackendErrors: config.IgnoreBackendErrors,
 	}, nil
 }
 
@@ -79,7 +81,12 @@ func (c *customErrors) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	catcher := newCodeCatcher(rw, c.httpCodeRanges)
+	bp := &customErrorsProbe{}
+	catcher := newCodeCatcher(rw, c.httpCodeRanges, c.ignoreBackendErrors, bp)
+	if c.ignoreBackendErrors {
+		req = req.WithContext(context.WithValue(req.Context(), customErrorProbeKey, bp))
+	}
+
 	c.next.ServeHTTP(catcher, req)
 	if !catcher.isFilteredCode() {
 		return
@@ -124,6 +131,29 @@ func newRequest(baseURL string) (*http.Request, error) {
 	return req, nil
 }
 
+type customErrorProbeType int
+
+const customErrorProbeKey customErrorProbeType = iota
+
+type customErrorsProbe struct {
+	errorHandler bool
+	roundTripper bool
+}
+
+func NotifyErrorHandler(req *http.Request) {
+	value, ok := req.Context().Value(customErrorProbeKey).(*customErrorsProbe)
+	if ok {
+		value.errorHandler = true
+	}
+}
+
+func NotifyRoundTrip(req *http.Request) {
+	value, ok := req.Context().Value(customErrorProbeKey).(*customErrorsProbe)
+	if ok {
+		value.roundTripper = true
+	}
+}
+
 type responseInterceptor interface {
 	http.ResponseWriter
 	http.Flusher
@@ -142,14 +172,19 @@ type codeCatcher struct {
 	caughtFilteredCode bool
 	responseWriter     http.ResponseWriter
 	headersSent        bool
+
+	ignoreBackendError bool
+	backendProbe       *customErrorsProbe
 }
 
-func newCodeCatcher(rw http.ResponseWriter, httpCodeRanges types.HTTPCodeRanges) responseInterceptor {
+func newCodeCatcher(rw http.ResponseWriter, httpCodeRanges types.HTTPCodeRanges, ignoreBackendErrors bool, backendProbe *customErrorsProbe) responseInterceptor {
 	catcher := &codeCatcher{
-		headerMap:      make(http.Header),
-		code:           http.StatusOK, // If backend does not call WriteHeader on us, we consider it's a 200.
-		responseWriter: rw,
-		httpCodeRanges: httpCodeRanges,
+		headerMap:          make(http.Header),
+		code:               http.StatusOK, // If backend does not call WriteHeader on us, we consider it's a 200.
+		responseWriter:     rw,
+		httpCodeRanges:     httpCodeRanges,
+		ignoreBackendError: ignoreBackendErrors,
+		backendProbe:       backendProbe,
 	}
 	if _, ok := rw.(http.CloseNotifier); ok {
 		return &codeCatcherWithCloseNotify{catcher}
@@ -215,6 +250,10 @@ func (cc *codeCatcher) WriteHeader(code int) {
 	cc.code = code
 	for _, block := range cc.httpCodeRanges {
 		if cc.code >= block[0] && cc.code <= block[1] {
+			if cc.ignoreBackendError && !cc.backendProbe.errorHandler && cc.backendProbe.roundTripper {
+				continue
+			}
+
 			cc.caughtFilteredCode = true
 			// it will be up to the caller to send the headers,
 			// so it is out of our hands now.

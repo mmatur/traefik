@@ -166,6 +166,7 @@ http:
           - foobar
         service: foobar
         query: foobar
+        ignoreBackendErrors: true
     Middleware10:
       forwardAuth:
         address: foobar

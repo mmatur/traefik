@@ -1,7 +1,16 @@
 version: "3.8"
 services:
-  nginx1:
-    image: nginx:1.25.3-alpine3.18
+  whoamiservice:
+    image: traefik/whoami
+    command:
+      - --name=service
 
-  nginx2:
-    image: nginx:1.25.3-alpine3.18
+  whoamierror:
+    image: traefik/whoami
+    command:
+      - --name=errorpage
+
+networks:
+  default:
+    name: traefik-test-network
+    external: true
