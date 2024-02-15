@@ -617,8 +617,9 @@ func (p *Provider) createErrorPageMiddleware(client Client, namespace string, er
 	}
 
 	errorPageMiddleware := &dynamic.ErrorPage{
-		Status: errorPage.Status,
-		Query:  errorPage.Query,
+		Status:              errorPage.Status,
+		Query:               errorPage.Query,
+		IgnoreBackendErrors: errorPage.IgnoreBackendErrors,
 	}
 
 	cb := configBuilder{
