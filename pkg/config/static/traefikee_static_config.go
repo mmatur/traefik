@@ -124,7 +124,7 @@ type DistributedTLS struct {
 func ensureOneFieldSet(s interface{}) error {
 	var set, available []string
 	v := reflect.ValueOf(s).Elem()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		// Get the property name as specified in the configuration. Using the YAML struct tag
 		// here, but they (JSON and TOML) are all set to the same value, so it doesn't matter:
 		propertyName := strings.TrimSuffix(v.Type().Field(i).Tag.Get("yaml"), ",omitempty")
