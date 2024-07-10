@@ -1,6 +1,6 @@
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 
-TAG_NAME := $(shell git tag -l --contains HEAD)
+TAG_NAME := $(shell git tag -l --contains HEAD | head -n 1)
 SHA := $(shell git rev-parse HEAD)
 VERSION_GIT := $(if $(TAG_NAME),$(TAG_NAME),$(SHA))
 VERSION := $(if $(VERSION),$(VERSION),$(VERSION_GIT))

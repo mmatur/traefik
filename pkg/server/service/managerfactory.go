@@ -44,7 +44,7 @@ func NewManagerFactory(staticConfiguration static.Configuration, routinesPool *s
 			factory.dashboardHandler = dashboard.Handler{}
 			factory.api = func(configuration *runtime.Configuration) http.Handler {
 				router := apiRouterBuilder(configuration).(*mux.Router)
-				dashboard.Append(router, nil)
+				dashboard.Append(router, "/powpow", nil)
 				return router
 			}
 		} else {

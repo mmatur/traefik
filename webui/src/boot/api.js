@@ -4,7 +4,7 @@ import { APP } from '../_helpers/APP'
 
 // Set config defaults when creating the instance
 const api = axios.create({
-  baseURL: APP.config.apiUrl
+  baseURL: ((window.APIBasePath === '{{.BasePath}}' || window.APIBasePath === '') ? '/' : window.APIBasePath) + APP.config.apiUrl
 })
 
 export default boot(({ app }) => {

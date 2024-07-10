@@ -140,11 +140,11 @@ module.exports = configure(function (ctx) {
       env: process.env.APP_ENV === 'development'
         ? { // staging:
             APP_ENV: process.env.APP_ENV,
-            APP_API: process.env.APP_API || '/api'
+            APP_API: process.env.APP_API || 'api'
           }
         : { // production:
             APP_ENV: process.env.APP_ENV,
-            APP_API: process.env.APP_API || '/api'
+            APP_API: process.env.APP_API || 'api'
           },
       uglifyOptions: {
         compress: {

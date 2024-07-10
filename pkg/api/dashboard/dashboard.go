@@ -1,11 +1,14 @@
 package dashboard
 
 import (
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/url"
+	"text/template"
 
 	"github.com/gorilla/mux"
+	"github.com/traefik/traefik/v2/pkg/log"
 	"github.com/traefik/traefik/v2/webui"
 )
 
@@ -16,37 +19,84 @@ type Handler struct {
 
 // Append adds dashboard routes on the given router, optionally using the given
 // assets (or webui.FS otherwise).
-func Append(router *mux.Router, customAssets fs.FS) {
+func Append(router *mux.Router, prefix string, customAssets fs.FS) {
 	assets := customAssets
 	if assets == nil {
 		assets = webui.FS
 	}
+
+	indexTemplate, err := template.ParseFS(assets, "index.html")
+	if err != nil {
+		log.WithoutContext().WithError(err).Error("unable to load index.html")
+	}
+
 	// Expose dashboard
 	router.Methods(http.MethodGet).
-		Path("/").
-		HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			http.Redirect(resp, req, safePrefix(req)+"/dashboard/", http.StatusFound)
+		Path(fmt.Sprintf("%s/", prefix)).
+		HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			http.Redirect(rw, req, safePrefix(req)+fmt.Sprintf("%s/dashboard/", prefix), http.StatusFound)
 		})
 
 	router.Methods(http.MethodGet).
-		PathPrefix("/dashboard/").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// allow iframes from our domains only
-			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
-			w.Header().Set("Content-Security-Policy", "frame-src 'self' https://traefik.io https://*.traefik.io;")
-			http.StripPrefix("/dashboard/", http.FileServerFS(assets)).ServeHTTP(w, r)
+		Path(fmt.Sprintf("%s/dashboard/robots.txt", prefix)).
+		PathPrefix(fmt.Sprintf("%s/dashboard/assets/", prefix)).
+		HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			http.StripPrefix(fmt.Sprintf("%s/dashboard/", prefix), http.FileServerFS(assets)).ServeHTTP(rw, req)
+		})
+
+	router.Methods(http.MethodGet).
+		PathPrefix(fmt.Sprintf("%s/dashboard/", prefix)).
+		HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			basePath := req.Header.Get("X-Forwarded-Prefix")
+
+			// Ensure there's a trailing slash at the end of the base path.
+			// Browsers removes everything after the last slash before building relative URLs.
+			basePath = ensureTrailingSlash(basePath)
+
+			if err = indexTemplate.Execute(rw, indexTemplateData{BasePath: prefix}); err != nil {
+				log.WithoutContext().WithError(err).Error("Unable to serve APIPortal index.html page")
+			}
 		})
 }
 
-func (g Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+type indexTemplateData struct {
+	BasePath string
+}
+
+func ensureTrailingSlash(path string) string {
+	if path == "" || path[len(path)-1:] != "/" {
+		return path + "/"
+	}
+
+	return path
+}
+
+func (g Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	assets := g.assets
 	if assets == nil {
 		assets = webui.FS
 	}
-	// allow iframes from our domains only
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
-	w.Header().Set("Content-Security-Policy", "frame-src 'self' https://traefik.io https://*.traefik.io;")
-	http.FileServerFS(assets).ServeHTTP(w, r)
+
+	if req.RequestURI == "/" {
+		indexTemplate, err := template.ParseFS(assets, "index.html")
+		if err != nil {
+			log.WithoutContext().WithError(err).Error("unable to load index.html")
+		}
+
+		basePath := req.Header.Get("X-Forwarded-Prefix")
+
+		// Ensure there's a trailing slash at the end of the base path.
+		// Browsers removes everything after the last slash before building relative URLs.
+		basePath = ensureTrailingSlash(basePath)
+
+		if err = indexTemplate.Execute(rw, indexTemplateData{BasePath: basePath}); err != nil {
+			log.WithoutContext().WithError(err).Error("Unable to serve dashboard index.html page")
+		}
+
+		return
+	}
+
+	http.FileServerFS(assets).ServeHTTP(rw, req)
 }
 
 func safePrefix(req *http.Request) string {
