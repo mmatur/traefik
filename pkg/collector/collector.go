@@ -21,11 +21,11 @@ const collectorURL = "https://collect.traefik.io/9vxmmkcdmalbdi635d4jgc5p5rx0h7h
 
 // Collected data.
 type data struct {
-	Version       string
-	Codename      string
-	BuildDate     string
-	Configuration string
-	Hash          string
+	Version       string `json:"version"`
+	Codename      string `json:"codename"`
+	BuildDate     string `json:"buildDate"`
+	Configuration string `json:"configuration"`
+	Hash          string `json:"hash"`
 }
 
 // Collect anonymous data.
@@ -65,7 +65,7 @@ func createBody(staticConfiguration *static.Configuration) (*bytes.Buffer, error
 	}
 
 	buf := new(bytes.Buffer)
-	err = json.NewEncoder(buf).Encode(data) //nolint:musttag // cannot be changed for historical reasons.
+	err = json.NewEncoder(buf).Encode(data)
 	if err != nil {
 		return nil, err
 	}
