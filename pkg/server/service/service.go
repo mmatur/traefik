@@ -317,7 +317,7 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 			roundTripper = newObservabilityRoundTripper(m.observabilityMgr.SemConvMetricsRegistry(), roundTripper)
 		}
 
-		proxy := buildSingleHostProxy(target, passHostHeader, time.Duration(flushInterval), roundTripper, m.bufferPool)
+		proxy := buildSingleHostProxy(target, passHostHeader, server.KeepPath, time.Duration(flushInterval), roundTripper, m.bufferPool)
 
 		// Prevents from enabling observability for internal resources.
 

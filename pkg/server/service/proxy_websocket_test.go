@@ -341,7 +341,7 @@ func TestWebSocketRequestWithHeadersInResponseWriter(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	f := buildSingleHostProxy(parseURI(t, srv.URL), true, 0, http.DefaultTransport, nil)
+	f := buildSingleHostProxy(parseURI(t, srv.URL), true, false, 0, http.DefaultTransport, nil)
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.URL = parseURI(t, srv.URL)
 		w.Header().Set("HEADER-KEY", "HEADER-VALUE")
@@ -407,7 +407,7 @@ func TestWebSocketUpgradeFailed(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	f := buildSingleHostProxy(parseURI(t, srv.URL), true, 0, http.DefaultTransport, nil)
+	f := buildSingleHostProxy(parseURI(t, srv.URL), true, false, 0, http.DefaultTransport, nil)
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path // keep the original path
 
@@ -641,7 +641,7 @@ func createProxyWithForwarder(t *testing.T, uri string, transport http.RoundTrip
 	t.Helper()
 
 	u := parseURI(t, uri)
-	proxy := buildSingleHostProxy(u, true, 0, transport, nil)
+	proxy := buildSingleHostProxy(u, true, false, 0, transport, nil)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path // keep the original path
 		// Set new backend URL
