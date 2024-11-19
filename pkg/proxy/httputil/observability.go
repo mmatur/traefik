@@ -42,7 +42,7 @@ func (t *wrapper) RoundTrip(req *http.Request) (*http.Response, error) {
 		req = req.WithContext(tracingCtx)
 
 		tracer.CaptureClientRequest(span, req)
-		tracing.InjectContextIntoCarrier(req)
+		tracer.InjectContextIntoCarrier(req)
 	}
 
 	var statusCode int

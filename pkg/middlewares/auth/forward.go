@@ -143,7 +143,7 @@ func (fa *forwardAuth) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 		forwardReq = forwardReq.WithContext(tracingCtx)
 
-		tracing.InjectContextIntoCarrier(forwardReq)
+		tracer.InjectContextIntoCarrier(forwardReq)
 		tracer.CaptureClientRequest(forwardSpan, forwardReq)
 	}
 

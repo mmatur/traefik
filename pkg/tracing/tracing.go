@@ -79,9 +79,48 @@ func ExtractCarrierIntoContext(ctx context.Context, headers http.Header) context
 }
 
 // InjectContextIntoCarrier sets cross-cutting concerns from the request context into the request headers.
-func InjectContextIntoCarrier(req *http.Request) {
-	propagator := otel.GetTextMapPropagator()
-	propagator.Inject(req.Context(), propagation.HeaderCarrier(req.Header))
+func (t *Tracer) InjectContextIntoCarrier(req *http.Request) {
+	if t.headerCompatibility != "" {
+		// Store original headers
+		originalHeaders := req.Header.Clone()
+
+		// Inject OpenTelemetry context
+		propagator := otel.GetTextMapPropagator()
+		propagator.Inject(req.Context(), propagation.HeaderCarrier(req.Header))
+
+		// Find new headers added by the propagator
+		newHeaders := extractNewHeaders(originalHeaders, req.Header)
+
+		// Add transformed headers
+		injectTransformedHeaders(t.headerCompatibility, req.Header, newHeaders)
+	} else {
+		// Inject OpenTelemetry context
+		propagator := otel.GetTextMapPropagator()
+		propagator.Inject(req.Context(), propagation.HeaderCarrier(req.Header))
+	}
+}
+
+func extractNewHeaders(original, current http.Header) http.Header {
+	newHeaders := make(http.Header)
+	for k, v := range current {
+		if _, exists := original[k]; !exists {
+			newHeaders[k] = v
+		}
+	}
+	return newHeaders
+}
+
+func injectTransformedHeaders(compatibilityHeader string, target, newHeaders http.Header) {
+	if len(newHeaders) == 1 {
+		for _, v := range newHeaders {
+			target[compatibilityHeader] = v
+			return
+		}
+	}
+
+	for k, v := range newHeaders {
+		target[compatibilityHeader+"-"+k] = v
+	}
 }
 
 // SetStatusErrorf flags the span as in error and log an event.
@@ -124,6 +163,7 @@ func (t TracerProvider) Tracer(name string, options ...trace.TracerOption) trace
 type Tracer struct {
 	trace.Tracer
 
+	headerCompatibility     string
 	safeQueryParams         []string
 	capturedRequestHeaders  []string
 	capturedResponseHeaders []string
@@ -133,6 +173,7 @@ type Tracer struct {
 func NewTracer(tracer trace.Tracer, capturedRequestHeaders, capturedResponseHeaders, safeQueryParams []string) *Tracer {
 	return &Tracer{
 		Tracer:                  tracer,
+		headerCompatibility:     "x-powpow",
 		safeQueryParams:         safeQueryParams,
 		capturedRequestHeaders:  capturedRequestHeaders,
 		capturedResponseHeaders: capturedResponseHeaders,

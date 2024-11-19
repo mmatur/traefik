@@ -273,7 +273,7 @@ func TestTracing(t *testing.T) {
 
 				r = r.WithContext(ctx)
 
-				tracing.InjectContextIntoCarrier(r)
+				tracer.InjectContextIntoCarrier(r)
 
 				if test.wantServiceHeadersFn != nil {
 					test.wantServiceHeadersFn(t, r.Header)
