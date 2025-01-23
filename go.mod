@@ -84,6 +84,8 @@ require (
 	sigs.k8s.io/gateway-api v0.4.0
 )
 
+replace golang.org/x/net v0.33.0 => golang.org/x/net v0.30.0
+
 require (
 	cloud.google.com/go/auth v0.13.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.6 // indirect
