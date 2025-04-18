@@ -623,7 +623,7 @@ func TestParseHostSNI(t *testing.T) {
 				require.NoError(t, err, "%s: Error while parsing domain.", test.expression)
 			}
 
-			assert.EqualValues(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
+			assert.Equal(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
 		})
 	}
 }
@@ -742,6 +742,11 @@ func Test_HostSNI(t *testing.T) {
 			desc:       "Matching hosts with subdomains",
 			ruleHosts:  []string{"foo.bar"},
 			serverName: "foo.bar",
+		},
+		{
+			desc:       "Matching hosts with subdomains with _",
+			ruleHosts:  []string{"foo_bar.example.com"},
+			serverName: "foo_bar.example.com",
 		},
 		{
 			desc:       "Matching IPv4",

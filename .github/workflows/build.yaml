@@ -19,7 +19,7 @@ jobs:
     uses: ./.github/workflows/template-webui.yaml
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: buildjet-8vcpu-ubuntu-2204
 
     strategy:
       matrix:
@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5
+        uses: buildjet/setup-go@v5
         env:
           ImageOS: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.goarm }}
         with:
