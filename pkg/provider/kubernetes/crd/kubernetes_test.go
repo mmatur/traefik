@@ -1,7 +1,6 @@
 package crd
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1466,7 +1465,7 @@ func TestLoadIngressRouteTCPs(t *testing.T) {
 			}
 
 			clientMock := newClientMock(test.paths...)
-			conf := p.loadConfigurationFromCRD(context.Background(), clientMock)
+			conf := p.loadConfigurationFromCRD(t.Context(), clientMock)
 			assert.Equal(t, test.expected, conf)
 		})
 	}
@@ -4348,7 +4347,7 @@ func TestLoadIngressRoutes(t *testing.T) {
 			}
 
 			clientMock := newClientMock(test.paths...)
-			conf := p.loadConfigurationFromCRD(context.Background(), clientMock)
+			conf := p.loadConfigurationFromCRD(t.Context(), clientMock)
 			assert.Equal(t, test.expected, conf)
 		})
 	}
@@ -4828,7 +4827,7 @@ func TestLoadIngressRouteUDPs(t *testing.T) {
 			}
 
 			clientMock := newClientMock(test.paths...)
-			conf := p.loadConfigurationFromCRD(context.Background(), clientMock)
+			conf := p.loadConfigurationFromCRD(t.Context(), clientMock)
 			assert.Equal(t, test.expected, conf)
 		})
 	}
@@ -6205,7 +6204,7 @@ func TestCrossNamespace(t *testing.T) {
 
 			p := Provider{AllowCrossNamespace: test.allowCrossNamespace}
 
-			conf := p.loadConfigurationFromCRD(context.Background(), client)
+			conf := p.loadConfigurationFromCRD(t.Context(), client)
 			assert.Equal(t, test.expected, conf)
 		})
 	}
@@ -6494,7 +6493,7 @@ func TestExternalNameService(t *testing.T) {
 
 			p := Provider{AllowExternalNameServices: test.allowExternalNameService}
 
-			conf := p.loadConfigurationFromCRD(context.Background(), client)
+			conf := p.loadConfigurationFromCRD(t.Context(), client)
 			assert.Equal(t, test.expected, conf)
 		})
 	}
@@ -6700,7 +6699,7 @@ func TestNativeLB(t *testing.T) {
 
 			p := Provider{}
 
-			conf := p.loadConfigurationFromCRD(context.Background(), client)
+			conf := p.loadConfigurationFromCRD(t.Context(), client)
 			assert.Equal(t, test.expected, conf)
 		})
 	}

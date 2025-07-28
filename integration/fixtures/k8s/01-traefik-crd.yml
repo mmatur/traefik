@@ -1482,7 +1482,7 @@ spec:
                 properties:
                   permanent:
                     description: Permanent defines whether the redirection is permanent
-                      (301).
+                      (308).
                     type: boolean
                   regex:
                     description: Regex defines the regex used to match and capture
@@ -1501,7 +1501,7 @@ spec:
                 properties:
                   permanent:
                     description: Permanent defines whether the redirection is permanent
-                      (301).
+                      (308).
                     type: boolean
                   port:
                     description: Port defines the port of the new URL.
@@ -1890,7 +1890,7 @@ spec:
                 type: object
               curvePreferences:
                 description: |-
-                  CurvePreferences defines the preferred elliptic curves in a specific order.
+                  CurvePreferences defines the preferred elliptic curves.
                   More info: https://doc.traefik.io/traefik/v2.11/https/tls/#curve-preferences
                 items:
                   type: string
@@ -3916,7 +3916,7 @@ spec:
                 properties:
                   permanent:
                     description: Permanent defines whether the redirection is permanent
-                      (301).
+                      (308).
                     type: boolean
                   regex:
                     description: Regex defines the regex used to match and capture
@@ -3935,7 +3935,7 @@ spec:
                 properties:
                   permanent:
                     description: Permanent defines whether the redirection is permanent
-                      (301).
+                      (308).
                     type: boolean
                   port:
                     description: Port defines the port of the new URL.
@@ -4324,7 +4324,7 @@ spec:
                 type: object
               curvePreferences:
                 description: |-
-                  CurvePreferences defines the preferred elliptic curves in a specific order.
+                  CurvePreferences defines the preferred elliptic curves.
                   More info: https://doc.traefik.io/traefik/v2.11/https/tls/#curve-preferences
                 items:
                   type: string

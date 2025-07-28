@@ -1,3 +1,31 @@
+## [v2.11.28](https://github.com/traefik/traefik/tree/v2.11.28) (2025-07-23)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.27...v2.11.28)
+
+**Bug fixes:**
+- **[logs]** Redact logged install configuration ([#11907](https://github.com/traefik/traefik/pull/11907) by [jspdown](https://github.com/jspdown))
+- **[plugins]** Fix client arbitrary file access during archive extraction zipslip ([#11911](https://github.com/traefik/traefik/pull/11911) by [odaysec](https://github.com/odaysec))
+- **[server]** Disable MPTCP by default ([#11918](https://github.com/traefik/traefik/pull/11918) by [rtribotte](https://github.com/rtribotte))
+
+**Documentation:**
+- **[k8s/crd,k8s]** Remove all mentions of ordering for TLSOption CurvePreferences field ([#11924](https://github.com/traefik/traefik/pull/11924) by [jnoordsij](https://github.com/jnoordsij))
+
+## [v2.11.27](https://github.com/traefik/traefik/tree/v2.11.27) (2025-07-11)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.26...v2.11.27)
+
+**Bug fixes:**
+- Bump github.com/go-viper/mapstructure/v2 to v2.3.0 ([#11880](https://github.com/traefik/traefik/pull/11880) by [kevinpollet](https://github.com/kevinpollet))
+
+## [v2.11.26](https://github.com/traefik/traefik/tree/v2.11.26) (2025-06-26)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.25...v2.11.26)
+
+**Bug fixes:**
+- **[middleware]** Do not log redis sentinel username and password ([#11819](https://github.com/traefik/traefik/pull/11819) by [kevinpollet](https://github.com/kevinpollet))
+
+**Documentation:**
+- **[kv]** Fix KV reference rendering ([#11815](https://github.com/traefik/traefik/pull/11815) by [rtribotte](https://github.com/rtribotte))
+- **[middleware,k8s/crd]** Fix typo in redirect middleware documentation ([#11830](https://github.com/traefik/traefik/pull/11830) by [rtribotte](https://github.com/rtribotte))
+- Update supported versions ([#11811](https://github.com/traefik/traefik/pull/11811) by [jnoordsij](https://github.com/jnoordsij))
+
 ## [v2.11.25](https://github.com/traefik/traefik/tree/v2.11.25) (2025-05-27)
 [All Commits](https://github.com/traefik/traefik/compare/v2.11.24...v2.11.25)
 
