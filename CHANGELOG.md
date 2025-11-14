@@ -1,3 +1,29 @@
+## [v2.11.31](https://github.com/traefik/traefik/tree/v2.11.31) (2025-11-13)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.30...v2.11.31)
+
+**Bug fixes:**
+- **[docker,docker/swarm]** Auto-negotiate Docker API version ([#12262](https://github.com/traefik/traefik/pull/12262) by [kevinpollet](https://github.com/kevinpollet))
+
+## [v2.11.30](https://github.com/traefik/traefik/tree/v2.11.30) (2025-10-28)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.29...v2.11.30)
+
+**Bug fixes:**
+- **[http3]** Bump github.com/quic-go/quic-go to v0.55.0 ([#12156](https://github.com/traefik/traefik/pull/12156) by [kevinpollet](https://github.com/kevinpollet))
+- **[kv]** Fix KV key name used to check if connection is alive ([#12162](https://github.com/traefik/traefik/pull/12162) by [kevinpollet](https://github.com/kevinpollet))
+- **[server]** Bump golang.org/x/net to v0.46.0 ([#12143](https://github.com/traefik/traefik/pull/12143) by [kevinpollet](https://github.com/kevinpollet))
+- **[tracing]** Bump gopkg.in/DataDog/dd-trace-go.v1 to v1.74.6 ([#12083](https://github.com/traefik/traefik/pull/12083) by [hannahkm](https://github.com/hannahkm))
+
+## [v2.11.29](https://github.com/traefik/traefik/tree/v2.11.29) (2025-08-26)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.28...v2.11.29)
+
+**Bug fixes:**
+- **[acme]** Bump github.com/go-acme/lego/v4 to v4.25.2 ([#11983](https://github.com/traefik/traefik/pull/11983) by [ldez](https://github.com/ldez))
+- **[docker]** Bump github.com/docker/docker to v28.3.3 ([#12007](https://github.com/traefik/traefik/pull/12007) by [kevinpollet](https://github.com/kevinpollet))
+
+**Documentation:**
+- Fix invalid links in documentation ([#11960](https://github.com/traefik/traefik/pull/11960) by [mloiseleur](https://github.com/mloiseleur))
+- Update releases docs for v3.5 ([#11949](https://github.com/traefik/traefik/pull/11949) by [jnoordsij](https://github.com/jnoordsij))
+
 ## [v2.11.28](https://github.com/traefik/traefik/tree/v2.11.28) (2025-07-23)
 [All Commits](https://github.com/traefik/traefik/compare/v2.11.27...v2.11.28)
 
