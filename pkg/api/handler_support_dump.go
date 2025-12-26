@@ -23,9 +23,9 @@ func (h Handler) getSupportDump(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	runtimeConfig, err := json.Marshal(h.runtimeConfiguration)
+	runtimeConfig, err := redactor.AnonymizeCredentials(h.runtimeConfiguration)
 	if err != nil {
-		logger.Error().Err(err).Msg("Unable to marshal runtime configuration")
+		logger.Error().Err(err).Msg("Unable to anonymize and marshal runtime configuration")
 		writeError(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -69,7 +69,7 @@ func (h Handler) getSupportDump(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := addFile(tw, "runtime-config.json", runtimeConfig); err != nil {
+	if err := addFile(tw, "runtime-config.json", []byte(runtimeConfig)); err != nil {
 		logger.Error().Err(err).Msg("Unable to archive runtime configuration")
 		writeError(rw, err.Error(), http.StatusInternalServerError)
 		return

@@ -83,6 +83,63 @@ func TestHandler_SupportDump(t *testing.T) {
 				assert.Contains(t, string(files["runtime-config.json"]), `"test-service"`)
 			},
 		},
+		{
+			desc: "with sensitive data redacted",
+			path: "/api/support-dump",
+			confStatic: static.Configuration{
+				API:    &static.API{},
+				Global: &static.Global{},
+			},
+			confDyn: runtime.Configuration{
+				Services: map[string]*runtime.ServiceInfo{
+					"svc@file": {
+						Service: &dynamic.Service{
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{URL: "http://user:secretpassword@backend.local:8080"},
+								},
+							},
+						},
+						Status: runtime.StatusEnabled,
+					},
+				},
+				Middlewares: map[string]*runtime.MiddlewareInfo{
+					"auth@file": {
+						Middleware: &dynamic.Middleware{
+							BasicAuth: &dynamic.BasicAuth{
+								Users: dynamic.Users{"admin:$apr1$examplehash"},
+							},
+						},
+						Status: runtime.StatusEnabled,
+					},
+					"digest@file": {
+						Middleware: &dynamic.Middleware{
+							DigestAuth: &dynamic.DigestAuth{
+								Users: dynamic.Users{"admin:traefik:digestedhash"},
+							},
+						},
+						Status: runtime.StatusEnabled,
+					},
+				},
+			},
+			validate: func(t *testing.T, files map[string][]byte) {
+				t.Helper()
+
+				require.Contains(t, files, "runtime-config.json")
+				runtimeConfig := string(files["runtime-config.json"])
+
+				// Verify sensitive data is NOT present in the runtime config
+				assert.NotContains(t, runtimeConfig, "secretpassword", "URL with embedded credentials should be redacted")
+				assert.NotContains(t, runtimeConfig, "user:secretpassword", "URL with embedded credentials should be redacted")
+				assert.NotContains(t, runtimeConfig, "backend.local", "URLs should be anonymized")
+				assert.NotContains(t, runtimeConfig, "$apr1$examplehash", "BasicAuth password hashes should be redacted")
+				assert.NotContains(t, runtimeConfig, "digestedhash", "DigestAuth password hashes should be redacted")
+
+				// Verify the structure is still present (services and middlewares exist)
+				assert.Contains(t, runtimeConfig, `"services"`)
+				assert.Contains(t, runtimeConfig, `"middlewares"`)
+			},
+		},
 	}
 
 	for _, test := range testCases {

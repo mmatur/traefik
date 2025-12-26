@@ -42,6 +42,17 @@ func removeCredentials(baseConfig interface{}, indent bool) (string, error) {
 	return do(baseConfig, tagLoggable, false, indent)
 }
 
+// AnonymizeCredentials redacts the configuration fields that have a loggable=false struct tag
+// and also masks URLs that may contain embedded credentials.
+// It returns the resulting marshaled configuration.
+func AnonymizeCredentials(baseConfig interface{}) (string, error) {
+	conf, err := do(baseConfig, tagLoggable, false, false)
+	if err != nil {
+		return "", err
+	}
+	return doOnJSON(conf), nil
+}
+
 // do marshals the given configuration, while redacting some of the fields
 // respectively to the given tag.
 func do(baseConfig interface{}, tag string, redactByDefault, indent bool) (string, error) {
