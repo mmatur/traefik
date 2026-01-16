@@ -6,6 +6,7 @@
 			],
 			"service": "api@internal",
 			"rule": "PathPrefix(`/api`)",
+			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -21,6 +22,7 @@
 			"tls": {
 				"options": "default-mytlsoption"
 			},
+			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -39,6 +41,7 @@
 			"tls": {
 				"options": "default-mytlsoption-containous"
 			},
+			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
