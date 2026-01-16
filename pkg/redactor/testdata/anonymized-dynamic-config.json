@@ -2,6 +2,7 @@
   "http": {
     "routers": {
       "foo": {
+        "deniedEncodedPathCharacters": null,
         "entryPoints": [
           "foo"
         ],

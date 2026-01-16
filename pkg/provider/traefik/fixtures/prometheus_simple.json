@@ -7,7 +7,8 @@
         ],
         "service": "prometheus@internal",
         "rule": "PathPrefix(`/metrics`)",
-        "priority": 9223372036854775807
+        "priority": 9223372036854775807,
+        "deniedEncodedPathCharacters": null
       }
     },
     "services": {
