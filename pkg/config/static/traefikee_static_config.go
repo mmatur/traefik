@@ -121,7 +121,7 @@ type DistributedTLS struct {
 }
 
 // ensureOneFieldSet ensures exactly one field is set in the given structure.
-func ensureOneFieldSet(s interface{}) error {
+func ensureOneFieldSet(s any) error {
 	var set, available []string
 	v := reflect.ValueOf(s).Elem()
 	for i := range v.NumField() {
