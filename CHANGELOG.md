@@ -1,3 +1,41 @@
+## [v2.11.41](https://github.com/traefik/traefik/tree/v2.11.41) (2026-03-18)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.40...v2.11.41)
+
+**Bug fixes:**
+- **[http]** Add maxResponseBodySize configuration on HTTP provider ([#12788](https://github.com/traefik/traefik/pull/12788) @gndz07)
+- **[tls]** Support fragmented TLS client hello ([#12787](https://github.com/traefik/traefik/pull/12787) @rtribotte)
+- **[middleware, authentication]** Make basic auth check timing constant ([#12803](https://github.com/traefik/traefik/pull/12803) @rtribotte)
+
+**Documentation:**
+- Bump mkdocs-traefiklabs to use consent mode ([#12804](https://github.com/traefik/traefik/pull/12804) @darkweaver87)
+
+## [v2.11.40](https://github.com/traefik/traefik/tree/v2.11.40) (2026-03-06)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.38...v2.11.40)
+
+**Bug fixes:**
+- **[docker]** Bump Docker and OpenTelemetry dependencies ([#12761](https://github.com/traefik/traefik/pull/12761) by [mmatur](https://github.com/mmatur))
+- **[server]** Bump golang.org/x/net to v0.51.0 ([#12756](https://github.com/traefik/traefik/pull/12756) by [kevinpollet](https://github.com/kevinpollet))
+
+## [v2.11.39](https://github.com/traefik/traefik/tree/v2.11.39) (2026-03-06)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.38...v2.11.39)
+
+Release canceled.
+
+## [v2.11.38](https://github.com/traefik/traefik/tree/v2.11.38) (2026-02-23)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.37...v2.11.38)
+
+**Bug fixes:**
+- **[middleware]** Fix case sensitivity on x-forwarded headers for Connection ([#12690](https://github.com/traefik/traefik/pull/12690) by [LBF38](https://github.com/LBF38))
+- **[middleware, authentication]** Add maxResponseBodySize configuration to forwardAuth middleware ([#12694](https://github.com/traefik/traefik/pull/12694) by [gndz07](https://github.com/gndz07))
+- **[server]** Fix TLS handshake error handling ([#12692](https://github.com/traefik/traefik/pull/12692) by [juliens](https://github.com/juliens))
+
+## [v2.11.37](https://github.com/traefik/traefik/tree/v2.11.37) (2026-02-11)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.36...v2.11.37)
+
+**Bug fixes:**
+- **[healthcheck]** Validate healthcheck path configuration (#12642 by @rtribotte)
+- **[tls, server]** Cap TLS record length to RFC 8446 limit in ClientHello peeking (#12638 by @mmatur)
+
 ## [v2.11.36](https://github.com/traefik/traefik/tree/v2.11.36) (2026-02-02)
 [All Commits](https://github.com/traefik/traefik/compare/v2.11.35...v2.11.36)
 
