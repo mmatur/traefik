@@ -31,6 +31,7 @@ type checkRouter func(addr string, timeout time.Duration) error
 
 type httpForwarder struct {
 	net.Listener
+
 	connChan chan net.Conn
 	errChan  chan error
 }
@@ -629,6 +630,7 @@ func Test_Routing(t *testing.T) {
 				_ = serverHTTPS.Serve(httpsForwarder)
 			}()
 
+			// The HTTPS forwarder will be added as tcp.TLSHandler (to handle TLS).
 			router.SetHTTPSForwarder(httpsForwarder)
 
 			stoppedTCP := make(chan struct{})
@@ -1061,4 +1063,155 @@ func checkHTTPSTLS10(addr string, timeout time.Duration) error {
 // It returns an error if it doesn't receive the expected response.
 func checkHTTPSTLS12(addr string, timeout time.Duration) error {
 	return checkHTTPS(addr, timeout, tls.VersionTLS12)
+}
+
+// Test_clientHelloInfo_oversizedRecordLength verifies that clientHelloInfo
+// does not block or allocate excessive memory when a client sends a TLS
+// record header with a maliciously large record length (up to 0xFFFF).
+//
+// Without the fix, clientHelloInfo allocates a ~65KB bufio.Reader and blocks
+// on Peek(65540), waiting for bytes that never arrive (until readTimeout).
+// With the fix, records exceeding the TLS maximum plaintext size (16384)
+// are rejected immediately.
+func Test_clientHelloInfo_oversizedRecordLength(t *testing.T) {
+	testCases := []struct {
+		desc   string
+		recLen uint16
+	}{
+		{
+			desc:   "max uint16 record length (0xFFFF)",
+			recLen: 0xFFFF,
+		},
+		{
+			desc:   "just above TLS maximum (18433)",
+			recLen: 18433,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			serverConn, clientConn := net.Pipe()
+			defer serverConn.Close()
+			defer clientConn.Close()
+
+			type result struct {
+				hello *clientHello
+				err   error
+			}
+			resultCh := make(chan result, 1)
+
+			go func() {
+				hello, err := clientHelloInfo(serverConn)
+				resultCh <- result{hello, err}
+			}()
+
+			// Send a TLS record header with an oversized record length.
+			// Only the 5-byte header is sent; the client then stalls.
+			hdr := []byte{
+				0x16,       // Content Type: Handshake
+				0x03, 0x03, // Version: TLS 1.2
+				byte(test.recLen >> 8),   // Length high byte
+				byte(test.recLen & 0xFF), // Length low byte
+			}
+			_, err := clientConn.Write(hdr)
+			require.NoError(t, err)
+
+			// Without the fix, clientHelloInfo blocks on Peek(recLen+5)
+			// since only 5 bytes are available. The test would time out.
+			// With the fix, it returns immediately.
+			select {
+			case r := <-resultCh:
+				require.Error(t, r.err)
+			case <-time.After(5 * time.Second):
+				t.Fatal("clientHelloInfo blocked on oversized TLS record length — recLen is not capped")
+			}
+		})
+	}
+}
+
+// Test_clientHelloInfo_tlsRecordFragmentation documents a known limitation:
+// clientHelloInfo only reads a single TLS record. When a ClientHello handshake
+// message is split across multiple TLS records (RFC 5246 §6.2.1), the SNI cannot
+// be extracted, leaving serverName empty and allowing SNI-based routing to be bypassed.
+func Test_clientHelloInfo_tlsRecordFragmentation(t *testing.T) {
+	serverName := "foo.example.com"
+	record := buildClientHelloRecord(t, serverName)
+
+	const hdrLen = 5
+	payload := record[hdrLen:]
+
+	ver1, ver2 := record[1], record[2]
+
+	var recordsData bytes.Buffer
+	for _, part := range [][]byte{payload[:len(serverName)/2], payload[len(serverName)/2:]} {
+		recordsData.WriteByte(0x16)
+		recordsData.WriteByte(ver1)
+		recordsData.WriteByte(ver2)
+		recordsData.WriteByte(byte(len(part) >> 8))
+		recordsData.WriteByte(byte(len(part)))
+		recordsData.Write(part)
+	}
+
+	serverConn, clientConn := net.Pipe()
+	t.Cleanup(func() {
+		_ = serverConn.Close()
+		_ = clientConn.Close()
+	})
+
+	type result struct {
+		hello *clientHello
+		err   error
+	}
+	resultCh := make(chan result, 1)
+
+	go func() {
+		hello, err := clientHelloInfo(serverConn)
+		resultCh <- result{hello, err}
+	}()
+
+	_, err := clientConn.Write(recordsData.Bytes())
+	require.NoError(t, err)
+	_ = clientConn.Close()
+
+	select {
+	case r := <-resultCh:
+		require.NoError(t, r.err)
+		require.NotNil(t, r.hello)
+		assert.True(t, r.hello.isTLS)
+		assert.Equal(t, serverName, r.hello.serverName)
+	case <-time.After(5 * time.Second):
+		t.Fatal("clientHelloInfo blocked")
+	}
+}
+
+// buildClientHelloRecord captures a real TLS ClientHello record from Go's TLS stack
+// for the given serverName.
+// It returns the raw record bytes and the byte offset of the SNI value within those bytes.
+func buildClientHelloRecord(t *testing.T, serverName string) []byte {
+	t.Helper()
+
+	serverConn, clientConn := net.Pipe()
+
+	recordCh := make(chan []byte, 1)
+	go func() {
+		buf := make([]byte, 65536)
+		n, _ := serverConn.Read(buf)
+		_ = serverConn.Close()
+		recordCh <- buf[:n]
+	}()
+
+	go func() {
+		tlsConn := tls.Client(clientConn, &tls.Config{
+			ServerName:         serverName,
+			InsecureSkipVerify: true, //nolint:gosec
+		})
+		_ = tlsConn.Handshake()
+		_ = clientConn.Close()
+	}()
+
+	record := <-recordCh
+
+	return record
 }

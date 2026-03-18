@@ -56,6 +56,7 @@ type connState struct {
 
 type httpForwarder struct {
 	net.Listener
+
 	connChan chan net.Conn
 	errChan  chan error
 }
@@ -128,16 +129,12 @@ func (eps TCPEntryPoints) Stop() {
 	var wg sync.WaitGroup
 
 	for epn, ep := range eps {
-		wg.Add(1)
+		wg.Go(func() {
+			ctx := log.With(context.Background(), log.Str(log.EntryPointName, epn))
+			ep.Shutdown(ctx)
 
-		go func(entryPointName string, entryPoint *TCPEntryPoint) {
-			defer wg.Done()
-
-			ctx := log.With(context.Background(), log.Str(log.EntryPointName, entryPointName))
-			entryPoint.Shutdown(ctx)
-
-			log.FromContext(ctx).Debugf("Entry point %s closed", entryPointName)
-		}(epn, ep)
+			log.FromContext(ctx).Debugf("Entry point %s closed", epn)
+		})
 	}
 
 	wg.Wait()
@@ -286,7 +283,6 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 	var wg sync.WaitGroup
 
 	shutdownServer := func(server stoppable) {
-		defer wg.Done()
 		err := server.Shutdown(ctx)
 		if err == nil {
 			return
@@ -305,24 +301,19 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 	}
 
 	if e.httpServer.Server != nil {
-		wg.Add(1)
-		go shutdownServer(e.httpServer.Server)
+		wg.Go(func() { shutdownServer(e.httpServer.Server) })
 	}
 
 	if e.httpsServer.Server != nil {
-		wg.Add(1)
-		go shutdownServer(e.httpsServer.Server)
+		wg.Go(func() { shutdownServer(e.httpsServer.Server) })
 
 		if e.http3Server != nil {
-			wg.Add(1)
-			go shutdownServer(e.http3Server)
+			wg.Go(func() { shutdownServer(e.http3Server) })
 		}
 	}
 
 	if e.tracker != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			err := e.tracker.Shutdown(ctx)
 			if err == nil {
 				return
@@ -331,7 +322,7 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 				logger.Debugf("Server failed to shutdown before deadline because: %s", err)
 			}
 			e.tracker.Close()
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -369,6 +360,7 @@ func (e *TCPEntryPoint) SwitchRouter(rt *tcprouter.Router) {
 // connection type that was found to satisfy WriteCloser.
 type writeCloserWrapper struct {
 	net.Conn
+
 	writeCloser tcp.WriteCloser
 }
 
@@ -506,12 +498,6 @@ func (c *connectionTracker) RemoveConnection(conn net.Conn) {
 	delete(c.conns, conn)
 }
 
-func (c *connectionTracker) isEmpty() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return len(c.conns) == 0
-}
-
 // Shutdown wait for the connection closing.
 func (c *connectionTracker) Shutdown(ctx context.Context) error {
 	ticker := time.NewTicker(500 * time.Millisecond)
@@ -538,6 +524,12 @@ func (c *connectionTracker) Close() {
 		}
 		delete(c.conns, conn)
 	}
+}
+
+func (c *connectionTracker) isEmpty() bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return len(c.conns) == 0
 }
 
 type stoppable interface {
@@ -678,8 +670,9 @@ func newTrackedConnection(conn tcp.WriteCloser, tracker *connectionTracker) *tra
 }
 
 type trackedConnection struct {
-	tracker *connectionTracker
 	tcp.WriteCloser
+
+	tracker *connectionTracker
 }
 
 func (t *trackedConnection) Close() error {

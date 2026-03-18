@@ -156,12 +156,10 @@ func TestSetBackendsConfiguration(t *testing.T) {
 			}
 
 			wg := sync.WaitGroup{}
-			wg.Add(1)
 
-			go func() {
+			wg.Go(func() {
 				check.execute(ctx, backend)
-				wg.Done()
-			}()
+			})
 
 			// Make test timeout dependent on number of expected requests, health
 			// check interval, and a safety margin.
@@ -485,6 +483,7 @@ type testLoadBalancer struct {
 	// RWMutex needed due to parallel test execution: Both the system-under-test
 	// and the test assertions reference the counters.
 	*sync.RWMutex
+
 	numRemovedServers  int
 	numUpsertedServers int
 	numDrainedServers  int
@@ -645,12 +644,9 @@ func TestNotFollowingRedirects(t *testing.T) {
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
+	wg.Go(func() {
 		check.execute(ctx, backend)
-		wg.Done()
-	}()
+	})
 
 	timeout := time.Duration(int(healthCheckInterval) + 500)
 	select {

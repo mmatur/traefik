@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.1
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: middlewares.traefik.containo.us
 spec:
   group: traefik.containo.us
@@ -662,6 +662,7 @@ spec:
                   IPWhiteList holds the IP whitelist middleware configuration.
                   This middleware limits allowed requests based on the client IP.
                   More info: https://doc.traefik.io/traefik/v2.11/middlewares/http/ipwhitelist/
+
                   Deprecated: please use IPAllowList instead.
                 properties:
                   ipStrategy:

@@ -25,6 +25,7 @@ import (
 	"github.com/traefik/traefik/v2/pkg/safe"
 	"github.com/traefik/traefik/v2/pkg/server/cookie"
 	"github.com/traefik/traefik/v2/pkg/server/provider"
+	"github.com/traefik/traefik/v2/pkg/server/recursion"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/failover"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/mirror"
 	"github.com/traefik/traefik/v2/pkg/server/service/loadbalancer/wrr"
@@ -49,20 +50,6 @@ type ServiceBuilder interface {
 	BuildHTTP(rootCtx context.Context, serviceName string) (http.Handler, error)
 }
 
-// NewManager creates a new Manager.
-func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, roundTripperManager RoundTripperGetter, serviceBuilders ...ServiceBuilder) *Manager {
-	return &Manager{
-		routinePool:         routinePool,
-		metricsRegistry:     metricsRegistry,
-		bufferPool:          newBufferPool(),
-		roundTripperManager: roundTripperManager,
-		serviceBuilders:     serviceBuilders,
-		balancers:           make(map[string]healthcheck.Balancers),
-		configs:             configs,
-		rand:                rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-}
-
 // Manager The service manager.
 type Manager struct {
 	routinePool         *safe.Pool
@@ -78,6 +65,20 @@ type Manager struct {
 	balancers map[string]healthcheck.Balancers
 	configs   map[string]*runtime.ServiceInfo
 	rand      *rand.Rand // For the initial shuffling of load-balancers.
+}
+
+// NewManager creates a new Manager.
+func NewManager(configs map[string]*runtime.ServiceInfo, metricsRegistry metrics.Registry, routinePool *safe.Pool, roundTripperManager RoundTripperGetter, serviceBuilders ...ServiceBuilder) *Manager {
+	return &Manager{
+		routinePool:         routinePool,
+		metricsRegistry:     metricsRegistry,
+		bufferPool:          newBufferPool(),
+		roundTripperManager: roundTripperManager,
+		serviceBuilders:     serviceBuilders,
+		balancers:           make(map[string]healthcheck.Balancers),
+		configs:             configs,
+		rand:                rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
 // BuildHTTP Creates a http.Handler for a service configuration.
@@ -114,6 +115,12 @@ func (m *Manager) BuildHTTP(rootCtx context.Context, serviceName string) (http.H
 		err := errors.New("cannot create service: multi-types service not supported, consider declaring two different pieces of service instead")
 		conf.AddError(err, true)
 		return nil, err
+	}
+
+	var errRecursion error
+	if ctx, errRecursion = recursion.CheckRecursion(ctx, "service", serviceName); errRecursion != nil {
+		conf.AddError(errRecursion, true)
+		return nil, errRecursion
 	}
 
 	var lb http.Handler
@@ -154,6 +161,29 @@ func (m *Manager) BuildHTTP(rootCtx context.Context, serviceName string) (http.H
 	}
 
 	return lb, nil
+}
+
+// LaunchHealthCheck launches the health checks.
+func (m *Manager) LaunchHealthCheck() {
+	backendConfigs := make(map[string]*healthcheck.BackendConfig)
+
+	for serviceName, balancers := range m.balancers {
+		ctx := log.With(context.Background(), log.Str(log.ServiceName, serviceName))
+
+		service := m.configs[serviceName].LoadBalancer
+
+		// Health Check
+		hcOpts := buildHealthCheckOptions(ctx, balancers, serviceName, service.HealthCheck)
+		if hcOpts == nil {
+			continue
+		}
+		hcOpts.Transport, _ = m.roundTripperManager.Get(service.ServersTransport)
+		log.FromContext(ctx).Debugf("Setting up healthcheck for service %s with %s", serviceName, *hcOpts)
+
+		backendConfigs[serviceName] = healthcheck.NewBackendConfig(*hcOpts, serviceName)
+	}
+
+	healthcheck.GetHealthCheck(m.metricsRegistry).SetBackendsConfiguration(context.Background(), backendConfigs)
 }
 
 func (m *Manager) getFailoverServiceHandler(ctx context.Context, serviceName string, config *dynamic.Failover) (http.Handler, error) {
@@ -314,29 +344,6 @@ func (m *Manager) getLoadBalancerServiceHandler(ctx context.Context, serviceName
 	return emptybackendhandler.New(balancer), nil
 }
 
-// LaunchHealthCheck launches the health checks.
-func (m *Manager) LaunchHealthCheck() {
-	backendConfigs := make(map[string]*healthcheck.BackendConfig)
-
-	for serviceName, balancers := range m.balancers {
-		ctx := log.With(context.Background(), log.Str(log.ServiceName, serviceName))
-
-		service := m.configs[serviceName].LoadBalancer
-
-		// Health Check
-		hcOpts := buildHealthCheckOptions(ctx, balancers, serviceName, service.HealthCheck)
-		if hcOpts == nil {
-			continue
-		}
-		hcOpts.Transport, _ = m.roundTripperManager.Get(service.ServersTransport)
-		log.FromContext(ctx).Debugf("Setting up healthcheck for service %s with %s", serviceName, *hcOpts)
-
-		backendConfigs[serviceName] = healthcheck.NewBackendConfig(*hcOpts, serviceName)
-	}
-
-	healthcheck.GetHealthCheck(m.metricsRegistry).SetBackendsConfiguration(context.Background(), backendConfigs)
-}
-
 func buildHealthCheckOptions(ctx context.Context, lb healthcheck.Balancer, backend string, hc *dynamic.ServerHealthCheck) *healthcheck.Options {
 	if hc == nil {
 		return nil
@@ -346,6 +353,11 @@ func buildHealthCheckOptions(ctx context.Context, lb healthcheck.Balancer, backe
 
 	if hc.Path == "" {
 		logger.Errorf("Ignoring heath check configuration for '%s': no path provided", backend)
+		return nil
+	}
+
+	if u, err := url.Parse(hc.Path); err != nil || u.Scheme != "" || u.Host != "" {
+		logger.Errorf("Ignoring heath check configuration for '%s': path must not be an absolute URL, got %s", backend, hc.Path)
 		return nil
 	}
 
