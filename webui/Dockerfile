@@ -6,9 +6,11 @@ RUN mkdir -p $WEBUI_DIR
 
 COPY package.json $WEBUI_DIR/
 COPY yarn.lock $WEBUI_DIR/
+COPY .yarnrc.yml $WEBUI_DIR/
+COPY .yarn/ $WEBUI_DIR/.yarn/
 
 WORKDIR $WEBUI_DIR
-RUN yarn install
+RUN corepack enable && yarn install
 
 COPY . $WEBUI_DIR/
 

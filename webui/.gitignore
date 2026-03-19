@@ -9,6 +9,10 @@ node_modules
 /src-cordova/plugins
 /src-cordova/www
 
+# Yarn
+.yarn/install-state.gz
+.pnp.*
+
 # Log files
 npm-debug.log*
 yarn-debug.log*
