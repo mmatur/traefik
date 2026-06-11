@@ -1,6 +1,5 @@
 [
 	{
-		"deniedEncodedPathCharacters": null,
 		"entryPoints": [
 			"web"
 		],

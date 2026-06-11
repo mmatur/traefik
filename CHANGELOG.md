@@ -1,3 +1,78 @@
+## [v2.11.50](https://github.com/traefik/traefik/tree/v2.11.50) (2026-06-10)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.49...v2.11.50)
+
+**Bug fixes:**
+- **[tls]** Fix routers with same host, different tlsoptions on different entryPoint ([#13329](https://github.com/traefik/traefik/pull/13329) @juliens)
+- **[tls]** Fix snicheck for routers with no hosts ([#13333](https://github.com/traefik/traefik/pull/13333) @rtribotte)
+
+## [v2.11.49](https://github.com/traefik/traefik/tree/v2.11.49) (2026-06-05)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.48...v2.11.49)
+
+**Bug fixes:**
+- **[http3]** Bump github.com/quic-go/quic-go to v0.59.1 ([#13300](https://github.com/traefik/traefik/pull/13300) @rtribotte)
+- **[webui]** Bump axios to v1.17.0 ([#13299](https://github.com/traefik/traefik/pull/13299) @gndz07)
+- **[tls]** Fix snicheck with keepalive ([#13305](https://github.com/traefik/traefik/pull/13305) @juliens)
+
+## [v2.11.48](https://github.com/traefik/traefik/tree/v2.11.48) (2026-06-04)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.46...v2.11.48)
+
+**Bug fixes:**
+- **[tls]** Compute resolved tlsOptions after applying models ([#13291](https://github.com/traefik/traefik/pull/13291) @rtribotte)
+- **[middleware, authentication]** Add error on basic auth build if users is empty ([#13195](https://github.com/traefik/traefik/pull/13195) @rtribotte)
+- **[k8s/ingress]** Avoid ingress path matcher injection and backport 11d251415 ([#13227](https://github.com/traefik/traefik/pull/13227) @rtribotte)
+- **[server]** Move snicheck to ctx instead of simulated routing ([#13214](https://github.com/traefik/traefik/pull/13214) @juliens)
+- **[middleware]** Reject requests with different paths after StripPrefix and StripPrefixRegex normalisation ([#13215](https://github.com/traefik/traefik/pull/13215) @rtribotte)
+- **[server]** Bump golang.org/x/net to v0.55.0 ([#13251](https://github.com/traefik/traefik/pull/13251) @kevinpollet)
+- **[server]** Bump golang.org/x/crypto to v0.52.0 ([#13276](https://github.com/traefik/traefik/pull/13276) @rtribotte)
+
+## [v2.11.47](https://github.com/traefik/traefik/tree/v2.11.47) (2026-06-03)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.46...v2.11.47)
+
+Release canceled.
+
+## [v2.11.46](https://github.com/traefik/traefik/tree/v2.11.46) (2026-05-11)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.45...v2.11.46)
+
+**Bug fixes:**
+- **[k8s/ingress, k8s/crd, k8s/gatewayapi]** Add CrossProviderNamespaces option  ([#13094](https://github.com/traefik/traefik/pull/13094) @rtribotte)
+- **[k8s/crd]** Fix cross-provider ref check for Kubernetes CRD provider ([#13121](https://github.com/traefik/traefik/pull/13121) @rtribotte)
+
+## [v2.11.45](https://github.com/traefik/traefik/tree/v2.11.45) (2026-05-05)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.44...v2.11.45)
+
+**Bug fixes:**
+- **[k8s/crd]** Remove cross-provider sanitization for Kubernetes service loading ([#13087](https://github.com/traefik/traefik/pull/13087) @rtribotte)
+- **[docker, ecs]** Migrate to github.com/moby/moby modules ([#13053](https://github.com/traefik/traefik/pull/13053) @mmatur)
+
+## [v2.11.44](https://github.com/traefik/traefik/tree/v2.11.44) (2026-04-29)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.43...v2.11.44)
+
+**Bug fixes:**
+- **[middleware]** Add errorRequestHeaders option to Errors middleware ([#13034](https://github.com/traefik/traefik/pull/13034) @gndz07)
+- **[acme]** Bump github.com/go-acme/lego to v4.35.2 ([#13052](https://github.com/traefik/traefik/pull/13052) @mmatur)
+
+**Misc:**
+- Make FLAGS Make variable usable ([#13009](https://github.com/traefik/traefik/pull/13009) @twz123)
+
+## [v2.11.43](https://github.com/traefik/traefik/tree/v2.11.43) (2026-04-22)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.42...v2.11.43)
+
+**Bug fixes:**
+- **[middleware, authentication]** Remove map lookup making the basic auth notFoundSecret empty ([#12960](https://github.com/traefik/traefik/pull/12960) @rtribotte)
+- **[middleware, authentication]** Fix trustForwardHeader on forward auth middleware ([#12994](https://github.com/traefik/traefik/pull/12994) @juliens)
+- **[middleware, authentication]** Cleanup and make ForwardAuth logs consistent ([#13013](https://github.com/traefik/traefik/pull/13013) @kevinpollet)
+- **[middleware]** Remove untrusted X headers with underscores ([#12961](https://github.com/traefik/traefik/pull/12961) @rtribotte)
+- **[middleware]** Sanitize the request URL after stripping the prefix ([#12990](https://github.com/traefik/traefik/pull/12990) @kevinpollet)
+- **[k8s/crd, k8s]** Honor allowCrossNamespace with chain middleware CRD ([#12976](https://github.com/traefik/traefik/pull/12976) @rtribotte)
+
+## [v2.11.42](https://github.com/traefik/traefik/tree/v2.11.42) (2026-03-26)
+[All Commits](https://github.com/traefik/traefik/compare/v2.11.41...v2.11.42)
+
+**Bug fixes:**
+- **[grpc]** Bump google.golang.org/grpc to v1.79.3 ([#12845](https://github.com/traefik/traefik/pull/12845) @mmatur)
+- **[middleware, authentication]** Prevent duplicate user headers in basic and digest auth middleware ([#12851](https://github.com/traefik/traefik/pull/12851) @juliens)
+- **[middleware]** Fix StripPrefix and StripPrefixRegex to slice the prefix using encoded prefix length ([#12863](https://github.com/traefik/traefik/pull/12863) @gndz07)
+
 ## [v2.11.41](https://github.com/traefik/traefik/tree/v2.11.41) (2026-03-18)
 [All Commits](https://github.com/traefik/traefik/compare/v2.11.40...v2.11.41)
 

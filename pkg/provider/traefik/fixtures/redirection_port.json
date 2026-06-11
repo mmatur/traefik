@@ -9,8 +9,7 @@
           "redirect-web-to-443"
         ],
         "service": "noop@internal",
-        "rule": "HostRegexp(`{host:.+}`)",
-        "deniedEncodedPathCharacters": null
+        "rule": "HostRegexp(`{host:.+}`)"
       }
     },
     "services": {

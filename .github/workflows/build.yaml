@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/template-webui.yaml
 
   build:
-    runs-on: shipfox-8vcpu-ubuntu-2404
+    runs-on: 'nscloud-ubuntu-24.04-amd64-4x8'
 
     strategy:
       matrix:

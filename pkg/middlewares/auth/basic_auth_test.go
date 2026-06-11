@@ -14,6 +14,26 @@ import (
 	"github.com/traefik/traefik/v2/pkg/testhelpers"
 )
 
+func TestNewBasicEmpty(t *testing.T) {
+	auth := dynamic.BasicAuth{
+		Users: []string{},
+	}
+
+	_, err := NewBasic(t.Context(), nil, auth, "authName")
+	require.Error(t, err)
+}
+
+func TestNewBasicNotFoundSecretIsSet(t *testing.T) {
+	auth := dynamic.BasicAuth{
+		Users: []string{"test:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"},
+	}
+	middleware, err := NewBasic(t.Context(), nil, auth, "authName")
+	require.NoError(t, err)
+
+	ba := middleware.(*basicAuth)
+	assert.Equal(t, "$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/", ba.notFoundSecret)
+}
+
 func TestBasicAuthFail(t *testing.T) {
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "traefik")

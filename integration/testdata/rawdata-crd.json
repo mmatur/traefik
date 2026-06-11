@@ -6,7 +6,6 @@
 			],
 			"service": "api@internal",
 			"rule": "PathPrefix(`/api`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -20,9 +19,9 @@
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/bar`)",
 			"priority": 12,
 			"tls": {
-				"options": "default-mytlsoption"
+				"options": "default-mytlsoption",
+				"resolvedOptions": "default-mytlsoption@kubernetescrd"
 			},
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -39,9 +38,9 @@
 			"rule": "Host(`bar.com`) \u0026\u0026 PathPrefix(`/foo`)",
 			"priority": 12,
 			"tls": {
-				"options": "default-mytlsoption-containous"
+				"options": "default-mytlsoption-containous",
+				"resolvedOptions": "default-mytlsoption-containous@kubernetescrd"
 			},
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -56,7 +55,6 @@
 			],
 			"service": "default-test2-route-23c7f4c450289ee29016",
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/tobestripped`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -68,7 +66,6 @@
 			],
 			"service": "default-wrr1",
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/wrr1`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -80,7 +77,6 @@
 			],
 			"service": "default-testst-route-60ad45fcb5fc1f5f3629",
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/serverstransport`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -92,7 +88,6 @@
 			],
 			"service": "other-ns-wrr3",
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/c`)",
-			"deniedEncodedPathCharacters": null,
 			"error": [
 				"the service \"other-ns-wrr3@kubernetescrd\" does not exist"
 			],
