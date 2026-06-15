@@ -1,7 +1,6 @@
 {
 	"routers": {
 		"bar@myprovider": {
-			"deniedEncodedPathCharacters": null,
 			"entryPoints": [
 				"web"
 			],
@@ -14,7 +13,6 @@
 			"status": "enabled"
 		},
 		"test@myprovider": {
-			"deniedEncodedPathCharacters": null,
 			"entryPoints": [
 				"web"
 			],

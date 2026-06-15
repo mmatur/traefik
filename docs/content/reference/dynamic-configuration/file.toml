@@ -155,6 +155,7 @@
         status = ["foobar", "foobar"]
         service = "foobar"
         query = "foobar"
+        errorRequestHeaders = ["foobar", "foobar"]
         ignoreBackendErrors = true
     [http.middlewares.Middleware10]
       [http.middlewares.Middleware10.forwardAuth]

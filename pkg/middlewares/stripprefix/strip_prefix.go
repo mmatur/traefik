@@ -29,8 +29,14 @@ type stripPrefix struct {
 // New creates a new strip prefix middleware.
 func New(ctx context.Context, next http.Handler, config dynamic.StripPrefix, name string) (http.Handler, error) {
 	log.FromContext(middlewares.GetLoggerCtx(ctx, name, typeName)).Debug("Creating middleware")
+
+	prefixes := make([]string, len(config.Prefixes))
+	for i, p := range config.Prefixes {
+		prefixes[i] = strings.TrimSpace(p)
+	}
+
 	return &stripPrefix{
-		prefixes:   config.Prefixes,
+		prefixes:   prefixes,
 		forceSlash: config.ForceSlash,
 		next:       next,
 		name:       name,
@@ -42,22 +48,35 @@ func (s *stripPrefix) GetTracingInformation() (string, ext.SpanKindEnum) {
 }
 
 func (s *stripPrefix) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	logger := log.FromContext(middlewares.GetLoggerCtx(req.Context(), s.name, typeName))
+
 	for _, prefix := range s.prefixes {
 		if strings.HasPrefix(req.URL.Path, prefix) {
 			req.URL.Path = s.getPathStripped(req.URL.Path, prefix)
 			if req.URL.RawPath != "" {
 				req.URL.RawPath = s.getRawPathStripped(req.URL.RawPath, prefix)
 			}
-			s.serveRequest(rw, req, strings.TrimSpace(prefix))
-			return
+
+			// Here we are sanitizing the URL when the path is not empty,
+			// as the JoinPath method is adding a leading slash if the path is empty
+			// to be aligned with ensureLeadingSlash behavior.
+			path := req.URL.Path
+			if path != "" {
+				req.URL = req.URL.JoinPath()
+			}
+
+			// Stop here if the normalization of the path produces a different path.
+			if path != req.URL.Path {
+				logger.Debugf("Rejecting request, sanitized path: %q is not equivalent to stripped path: %q", path, req.URL.Path)
+				http.Error(rw, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+
+			req.Header.Add(ForwardedPrefixHeader, prefix)
+			req.RequestURI = req.URL.RequestURI()
+			break
 		}
 	}
-	s.next.ServeHTTP(rw, req)
-}
-
-func (s *stripPrefix) serveRequest(rw http.ResponseWriter, req *http.Request, prefix string) {
-	req.Header.Add(ForwardedPrefixHeader, prefix)
-	req.RequestURI = req.URL.RequestURI()
 	s.next.ServeHTTP(rw, req)
 }
 

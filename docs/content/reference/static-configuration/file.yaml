@@ -143,6 +143,9 @@ providers:
     allowEmptyServices: true
     allowExternalNameServices: true
     nativeLBByDefault: true
+    crossProviderNamespaces:
+      - foobar
+      - foobar
   kubernetesCRD:
     endpoint: foobar
     token: foobar
@@ -152,6 +155,9 @@ providers:
       - foobar
     allowCrossNamespace: true
     allowExternalNameServices: true
+    crossProviderNamespaces:
+      - foobar
+      - foobar
     labelSelector: foobar
     ingressClass: foobar
     throttleDuration: 42s
@@ -166,6 +172,9 @@ providers:
       - foobar
     labelSelector: foobar
     throttleDuration: 42s
+    crossProviderNamespaces:
+      - foobar
+      - foobar
   rest:
     insecure: true
   rancher:

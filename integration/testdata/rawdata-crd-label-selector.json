@@ -6,7 +6,6 @@
 			],
 			"service": "api@internal",
 			"rule": "PathPrefix(`/api`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -20,9 +19,9 @@
 			"rule": "Host(`foo.com`) \u0026\u0026 PathPrefix(`/bar`)",
 			"priority": 12,
 			"tls": {
-				"options": "default-mytlsoption"
+				"options": "default-mytlsoption",
+				"resolvedOptions": "default-mytlsoption@kubernetescrd"
 			},
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -39,9 +38,9 @@
 			"rule": "Host(`bar.com`) \u0026\u0026 PathPrefix(`/foo`)",
 			"priority": 12,
 			"tls": {
-				"options": "default-mytlsoption-containous"
+				"options": "default-mytlsoption-containous",
+				"resolvedOptions": "default-mytlsoption-containous@kubernetescrd"
 			},
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"

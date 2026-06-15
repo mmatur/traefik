@@ -166,6 +166,9 @@ http:
           - foobar
         service: foobar
         query: foobar
+        errorRequestHeaders:
+          - foobar
+          - foobar
         ignoreBackendErrors: true
     Middleware10:
       forwardAuth:

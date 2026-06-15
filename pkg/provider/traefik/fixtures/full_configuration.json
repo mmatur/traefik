@@ -7,8 +7,7 @@
         ],
         "service": "api@internal",
         "rule": "PathPrefix(`/api`)",
-        "priority": 9223372036854775806,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775806
       },
       "dashboard": {
         "entryPoints": [
@@ -20,8 +19,7 @@
         ],
         "service": "dashboard@internal",
         "rule": "PathPrefix(`/`)",
-        "priority": 9223372036854775805,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775805
       },
       "debug": {
         "entryPoints": [
@@ -29,8 +27,7 @@
         ],
         "service": "api@internal",
         "rule": "PathPrefix(`/debug`)",
-        "priority": 9223372036854775806,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775806
       },
       "ping": {
         "entryPoints": [
@@ -38,8 +35,7 @@
         ],
         "service": "ping@internal",
         "rule": "PathPrefix(`/ping`)",
-        "priority": 9223372036854775807,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775807
       },
       "prometheus": {
         "entryPoints": [
@@ -47,8 +43,7 @@
         ],
         "service": "prometheus@internal",
         "rule": "PathPrefix(`/metrics`)",
-        "priority": 9223372036854775807,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775807
       },
       "rest": {
         "entryPoints": [
@@ -56,8 +51,7 @@
         ],
         "service": "rest@internal",
         "rule": "PathPrefix(`/api/providers`)",
-        "priority": 9223372036854775807,
-        "deniedEncodedPathCharacters": null
+        "priority": 9223372036854775807
       }
     },
     "services": {

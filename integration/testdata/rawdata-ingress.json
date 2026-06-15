@@ -7,7 +7,6 @@
 			"service": "api@internal",
 			"rule": "PathPrefix(`/api`)",
 			"priority": 9223372036854775806,
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"traefik"
@@ -24,7 +23,6 @@
 			"service": "dashboard@internal",
 			"rule": "PathPrefix(`/`)",
 			"priority": 9223372036854775805,
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"traefik"
@@ -35,8 +33,7 @@
 				"web"
 			],
 			"service": "default-whoami-http",
-			"rule": "Host(`whoami.test.https`) \u0026\u0026 PathPrefix(`/whoami`)",
-			"deniedEncodedPathCharacters": null,
+			"rule": "Host(\"whoami.test.https\") \u0026\u0026 PathPrefix(\"/whoami\")",
 			"status": "enabled",
 			"using": [
 				"web"
@@ -47,8 +44,7 @@
 				"web"
 			],
 			"service": "default-whoami-http",
-			"rule": "Host(`whoami.test`) \u0026\u0026 PathPrefix(`/whoami`)",
-			"deniedEncodedPathCharacters": null,
+			"rule": "Host(\"whoami.test\") \u0026\u0026 PathPrefix(\"/whoami\")",
 			"status": "enabled",
 			"using": [
 				"web"
@@ -59,8 +55,7 @@
 				"web"
 			],
 			"service": "default-whoami-80",
-			"rule": "Host(`whoami.test.drop`) \u0026\u0026 PathPrefix(`/drop`)",
-			"deniedEncodedPathCharacters": null,
+			"rule": "Host(\"whoami.test.drop\") \u0026\u0026 PathPrefix(\"/drop\")",
 			"status": "enabled",
 			"using": [
 				"web"
@@ -71,8 +66,7 @@
 				"web"
 			],
 			"service": "default-whoami-80",
-			"rule": "Host(`whoami.test.keep`) \u0026\u0026 PathPrefix(`/keep`)",
-			"deniedEncodedPathCharacters": null,
+			"rule": "Host(\"whoami.test.keep\") \u0026\u0026 PathPrefix(\"/keep\")",
 			"status": "enabled",
 			"using": [
 				"web"

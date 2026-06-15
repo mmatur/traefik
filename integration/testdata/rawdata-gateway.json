@@ -7,7 +7,6 @@
 			"service": "api@internal",
 			"rule": "PathPrefix(`/api`)",
 			"priority": 9223372036854775806,
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"traefik"
@@ -24,7 +23,6 @@
 			"service": "dashboard@internal",
 			"rule": "PathPrefix(`/`)",
 			"priority": 9223372036854775805,
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"traefik"
@@ -36,7 +34,6 @@
 			],
 			"service": "default-http-app-1-my-gateway-web-1c0cf64bde37d9d0df06-wrr",
 			"rule": "Host(`foo.com`) \u0026\u0026 Path(`/bar`)",
-			"deniedEncodedPathCharacters": null,
 			"status": "enabled",
 			"using": [
 				"web"
@@ -48,8 +45,9 @@
 			],
 			"service": "default-http-app-1-my-https-gateway-websecure-1c0cf64bde37d9d0df06-wrr",
 			"rule": "Host(`foo.com`) \u0026\u0026 Path(`/bar`)",
-			"tls": {},
-			"deniedEncodedPathCharacters": null,
+			"tls": {
+				"resolvedOptions": "default"
+			},
 			"status": "enabled",
 			"using": [
 				"websecure"
