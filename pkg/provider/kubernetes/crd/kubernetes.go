@@ -456,6 +456,7 @@ func (p *Provider) createErrorPageMiddleware(ctx context.Context, client Client,
 		Status:              errorPage.Status,
 		Query:               errorPage.Query,
 		IgnoreBackendErrors: errorPage.IgnoreBackendErrors,
+		ErrorRequestHeaders: errorPage.ErrorRequestHeaders,
 	}, balancerServerHTTP, nil
 }
 

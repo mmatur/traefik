@@ -207,6 +207,9 @@ Defines whether requests with encoded slash characters in the path are allowed. 
 `--entrypoints.<name>.http.encodequerysemicolons`:  
 Defines whether request query semicolons should be URLEncoded. (Default: ```false```)
 
+`--entrypoints.<name>.http.maxheaderbytes`:  
+Maximum size of request headers in bytes. (Default: ```1048576```)
+
 `--entrypoints.<name>.http.middlewares`:  
 Default middlewares for the routers linked to the entry point.
 
@@ -242,6 +245,9 @@ Subject alternative names.
 
 `--entrypoints.<name>.http.tls.options`:  
 Default TLS options for the routers linked to the entry point.
+
+`--entrypoints.<name>.http.underscoreheadersstrategy`:  
+Defines the strategy to handle requests with headers with underscores (keep, delete, and reject). (Default: ```keep```)
 
 `--entrypoints.<name>.http2.maxconcurrentstreams`:  
 Specifies the number of concurrent streams per connection that each client is allowed to initiate. (Default: ```250```)
