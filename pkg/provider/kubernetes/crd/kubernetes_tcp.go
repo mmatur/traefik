@@ -40,15 +40,9 @@ func (p *Provider) loadIngressRouteTCPConfiguration(ctx context.Context, client 
 			ingressName = ingressRouteTCP.GenerateName
 		}
 
-		for _, route := range ingressRouteTCP.Spec.Routes {
+		for ri, route := range ingressRouteTCP.Spec.Routes {
 			if len(route.Match) == 0 {
 				logger.Errorf("Empty match rule")
-				continue
-			}
-
-			key, err := makeServiceKey(route.Match, ingressName)
-			if err != nil {
-				logger.Error(err)
 				continue
 			}
 
@@ -58,9 +52,17 @@ func (p *Provider) loadIngressRouteTCPConfiguration(ctx context.Context, client 
 				continue
 			}
 
-			serviceName := makeID(ingressRouteTCP.Namespace, key)
+			routeIndex := strconv.Itoa(ri)
 
-			for _, service := range route.Services {
+			routerName := makeKey(ingressRouteTCP.Namespace, ingressName, routeIndex)
+			serviceName := routerName
+
+			var wrrName string
+			if len(route.Services) > 1 {
+				wrrName = makeKey(ingressRouteTCP.Namespace, ingressName, routeIndex, roleWRR)
+			}
+
+			for si, service := range route.Services {
 				balancerServerTCP, err := p.createLoadBalancerServerTCP(client, ingressRouteTCP.Namespace, service)
 				if err != nil {
 					logger.
@@ -73,11 +75,14 @@ func (p *Provider) loadIngressRouteTCPConfiguration(ctx context.Context, client 
 				// If there is only one service defined, we skip the creation of the load balancer of services,
 				// i.e. the service on top is directly a load balancer of servers.
 				if len(route.Services) == 1 {
+					serviceName = makeKey(ingressRouteTCP.Namespace, ingressName, routeIndex, roleLB)
 					conf.Services[serviceName] = balancerServerTCP
 					break
 				}
 
-				serviceKey := fmt.Sprintf("%s-%s-%s", serviceName, service.Name, &service.Port)
+				serviceName = wrrName
+
+				serviceKey := makeKey(ingressRouteTCP.Namespace, ingressName, routeIndex, roleWRR, strconv.Itoa(si), namespaceOrParentNamespace(service.Namespace, ingressRouteTCP.Namespace), service.Name, service.Port.String())
 				conf.Services[serviceKey] = balancerServerTCP
 
 				srv := dynamic.TCPWRRService{Name: serviceKey}
@@ -119,7 +124,7 @@ func (p *Provider) loadIngressRouteTCPConfiguration(ctx context.Context, client 
 				}
 			}
 
-			conf.Routers[serviceName] = r
+			conf.Routers[routerName] = r
 		}
 	}
 
