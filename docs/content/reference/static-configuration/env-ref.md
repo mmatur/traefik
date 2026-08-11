@@ -162,6 +162,9 @@ Token used to authenticate with Vault
 `TRAEFIK_CERTIFICATESRESOLVERS_<NAME>_VAULT_URL`:  
 URL of the Vault server
 
+`TRAEFIK_CORE_STRICTTLSOPTIONS`:  
+Disables the unsafe fallback to the default TLS options for the routers with conflicting TLS options. (Default: ```false```)
+
 `TRAEFIK_ENTRYPOINTS_<NAME>`:  
 Entry points definition. (Default: ```false```)
 
@@ -770,6 +773,9 @@ Kubernetes certificate authority file path (not needed for in-cluster client).
 
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_CROSSPROVIDERNAMESPACES`:  
 List of namespaces from which IngressRoute, IngressRouteTCP, IngressRouteUDP, and TraefikService are allowed to declare cross-provider references.
+
+`TRAEFIK_PROVIDERS_KUBERNETESCRD_DEFAULTTLSRESOURCESNAMESPACE`:  
+Namespace allowed to define the default TLSOption and TLSStore resources. When empty, they can be defined in any namespace.
 
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_ENDPOINT`:  
 Kubernetes server endpoint (required for external cluster client).

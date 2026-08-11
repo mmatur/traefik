@@ -162,6 +162,9 @@ Token used to authenticate with Vault
 `--certificatesresolvers.<name>.vault.url`:  
 URL of the Vault server
 
+`--core.stricttlsoptions`:  
+Disables the unsafe fallback to the default TLS options for the routers with conflicting TLS options. (Default: ```false```)
+
 `--entrypoints.<name>`:  
 Entry points definition. (Default: ```false```)
 
@@ -770,6 +773,9 @@ Kubernetes certificate authority file path (not needed for in-cluster client).
 
 `--providers.kubernetescrd.crossprovidernamespaces`:  
 List of namespaces from which IngressRoute, IngressRouteTCP, IngressRouteUDP, and TraefikService are allowed to declare cross-provider references.
+
+`--providers.kubernetescrd.defaulttlsresourcesnamespace`:  
+Namespace allowed to define the default TLSOption and TLSStore resources. When empty, they can be defined in any namespace.
 
 `--providers.kubernetescrd.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).

@@ -107,6 +107,13 @@ tls:
 
     The `stores` list will actually be ignored and automatically set to `["default"]`.
 
+!!! important "TLSStore in Kubernetes"
+
+    With the [TLSStore resource](../routing/providers/kubernetes-crd.md#kind-tlsstore), the store named `default` applies to every entry point,
+    whatever the namespace it is defined in.
+    The [`defaultTLSResourcesNamespace`](../providers/kubernetes-crd.md#defaulttlsresourcesnamespace) provider option
+    restricts the namespace this cluster-wide store can be defined in.
+
 ### Default Certificate
 
 Traefik can use a default certificate for connections without a SNI, or without a matching domain.
@@ -249,6 +256,10 @@ The TLS options allow one to configure some parameters of the TLS connection.
     To explicitly use a different TLSOption (and using the Kubernetes Ingress resources)
     you'll have to add an annotation to the Ingress in the following form:
     `traefik.ingress.kubernetes.io/router.tls.options: <resource-namespace>-<resource-name>@kubernetescrd`
+
+    This `default` TLSOption carries the TLS enforcement policy (client authentication, TLS versions, cipher suites, SNI strictness)
+    of every router that does not reference a TLSOption explicitly.
+    The [`defaultTLSResourcesNamespace`](../providers/kubernetes-crd.md#defaulttlsresourcesnamespace) provider option restricts the namespace it can be defined in.
 
 ### Minimum TLS Version
 
@@ -559,6 +570,55 @@ spec:
     secretNames:
       - secretCA
     clientAuthType: RequireAndVerifyClientCert
+```
+
+### Conflicting TLS Options
+
+The TLS options are configured on a router, but they are applied during the TLS handshake,
+that is to say before the routing occurs, when the server name (SNI) is the only information available.
+They are therefore mapped to the host names found in the router rule, rather than to the router itself,
+as explained in the [`options`](../routing/routers/index.md#options) router documentation.
+
+As a consequence, when several routers on the same entry point serve the same host name
+with different TLS options, Traefik cannot decide which ones to apply: this is a conflict.
+
+By default, such a conflict is arbitrated by falling back to the `default` TLS options for that host name.
+
+!!! important "Default TLS Options"
+
+    The `default` TLS options are the fallback of the conflict resolution,
+    and should therefore not be less secure than the options they can replace.
+    A router relying on a mutual TLS authentication (`clientAuth`), for example,
+    no longer enforces it if a conflict on its host name falls back to `default`
+    TLS options that do not require it.
+
+    The surest way to avoid this is to have all the routers serving the same host name,
+    on the same entry point, reference the same TLS options.
+
+The `core.strictTLSOptions` static configuration option disables this fallback.
+When it is enabled, the routers involved in the conflict are marked in error and are not built at all,
+and the host name is no longer mapped to any TLS options.
+
+!!! warning "Disabled routers"
+
+    Enabling `strictTLSOptions` fails closed: a conflict disables all the routers serving the conflicting host name
+    on the concerned entry point, until the conflict is resolved.
+
+```yaml tab="File (YAML)"
+## Static configuration
+core:
+  strictTLSOptions: true
+```
+
+```toml tab="File (TOML)"
+## Static configuration
+[core]
+  strictTLSOptions = true
+```
+
+```bash tab="CLI"
+## Static configuration
+--core.strictTLSOptions=true
 ```
 
 {% include-markdown "includes/traefik-for-business-applications.md" %}

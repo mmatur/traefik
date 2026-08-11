@@ -46,20 +46,29 @@ const (
 	providerNamespaceSeparator = "@"
 )
 
+// Roles of the services generated for a route.
+const (
+	roleWRR       = "wrr"
+	roleLB        = "lb"
+	roleMirroring = "mirroring"
+	roleMirror    = "mirror"
+)
+
 // Provider holds configurations of the provider.
 type Provider struct {
-	Endpoint                  string          `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Token                     string          `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty" loggable:"false"`
-	CertAuthFilePath          string          `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
-	Namespaces                []string        `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
-	AllowCrossNamespace       bool            `description:"Allow cross namespace resource reference." json:"allowCrossNamespace,omitempty" toml:"allowCrossNamespace,omitempty" yaml:"allowCrossNamespace,omitempty" export:"true"`
-	AllowExternalNameServices bool            `description:"Allow ExternalName services." json:"allowExternalNameServices,omitempty" toml:"allowExternalNameServices,omitempty" yaml:"allowExternalNameServices,omitempty" export:"true"`
-	CrossProviderNamespaces   []string        `description:"List of namespaces from which IngressRoute, IngressRouteTCP, IngressRouteUDP, and TraefikService are allowed to declare cross-provider references." json:"crossProviderNamespaces,omitempty" toml:"crossProviderNamespaces,omitempty" yaml:"crossProviderNamespaces,omitempty" export:"true"`
-	LabelSelector             string          `description:"Kubernetes label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
-	IngressClass              string          `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
-	ThrottleDuration          ptypes.Duration `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
-	AllowEmptyServices        bool            `description:"Allow the creation of services without endpoints." json:"allowEmptyServices,omitempty" toml:"allowEmptyServices,omitempty" yaml:"allowEmptyServices,omitempty" export:"true"`
-	NativeLBByDefault         bool            `description:"Defines whether to use Native Kubernetes load-balancing mode by default." json:"nativeLBByDefault,omitempty" toml:"nativeLBByDefault,omitempty" yaml:"nativeLBByDefault,omitempty" export:"true"`
+	Endpoint                     string          `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Token                        string          `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty" loggable:"false"`
+	CertAuthFilePath             string          `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
+	Namespaces                   []string        `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
+	AllowCrossNamespace          bool            `description:"Allow cross namespace resource reference." json:"allowCrossNamespace,omitempty" toml:"allowCrossNamespace,omitempty" yaml:"allowCrossNamespace,omitempty" export:"true"`
+	AllowExternalNameServices    bool            `description:"Allow ExternalName services." json:"allowExternalNameServices,omitempty" toml:"allowExternalNameServices,omitempty" yaml:"allowExternalNameServices,omitempty" export:"true"`
+	CrossProviderNamespaces      []string        `description:"List of namespaces from which IngressRoute, IngressRouteTCP, IngressRouteUDP, and TraefikService are allowed to declare cross-provider references." json:"crossProviderNamespaces,omitempty" toml:"crossProviderNamespaces,omitempty" yaml:"crossProviderNamespaces,omitempty" export:"true"`
+	LabelSelector                string          `description:"Kubernetes label selector to use." json:"labelSelector,omitempty" toml:"labelSelector,omitempty" yaml:"labelSelector,omitempty" export:"true"`
+	IngressClass                 string          `description:"Value of kubernetes.io/ingress.class annotation to watch for." json:"ingressClass,omitempty" toml:"ingressClass,omitempty" yaml:"ingressClass,omitempty" export:"true"`
+	ThrottleDuration             ptypes.Duration `description:"Ingress refresh throttle duration" json:"throttleDuration,omitempty" toml:"throttleDuration,omitempty" yaml:"throttleDuration,omitempty" export:"true"`
+	AllowEmptyServices           bool            `description:"Allow the creation of services without endpoints." json:"allowEmptyServices,omitempty" toml:"allowEmptyServices,omitempty" yaml:"allowEmptyServices,omitempty" export:"true"`
+	NativeLBByDefault            bool            `description:"Defines whether to use Native Kubernetes load-balancing mode by default." json:"nativeLBByDefault,omitempty" toml:"nativeLBByDefault,omitempty" yaml:"nativeLBByDefault,omitempty" export:"true"`
+	DefaultTLSResourcesNamespace string          `description:"Namespace allowed to define the default TLSOption and TLSStore resources. When empty, they can be defined in any namespace." json:"defaultTLSResourcesNamespace,omitempty" toml:"defaultTLSResourcesNamespace,omitempty" yaml:"defaultTLSResourcesNamespace,omitempty" export:"true"`
 
 	lastConfiguration safe.Safe
 
@@ -209,7 +218,7 @@ func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
 }
 
 func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) *dynamic.Configuration {
-	stores, tlsConfigs := buildTLSStores(ctx, client)
+	stores, tlsConfigs := p.buildTLSStores(ctx, client)
 	if tlsConfigs == nil {
 		tlsConfigs = make(map[string]*tls.CertAndStores)
 	}
@@ -220,7 +229,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 		TCP:  p.loadIngressRouteTCPConfiguration(ctx, client, tlsConfigs),
 		UDP:  p.loadIngressRouteUDPConfiguration(ctx, client),
 		TLS: &dynamic.TLSConfiguration{
-			Options: buildTLSOptions(ctx, client),
+			Options: p.buildTLSOptions(ctx, client),
 			Stores:  stores,
 		},
 	}
@@ -229,7 +238,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	conf.TLS.Certificates = getTLSConfig(tlsConfigs)
 
 	for _, middleware := range client.GetMiddlewares() {
-		id := provider.Normalize(makeID(middleware.Namespace, middleware.Name))
+		id := makeKey(middleware.Namespace, middleware.Name)
 		ctxMid := log.With(ctx, log.Str(log.MiddlewareName, id))
 
 		basicAuth, err := createBasicAuthMiddleware(client, middleware.Namespace, middleware.Spec.BasicAuth)
@@ -250,19 +259,17 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			continue
 		}
 
-		errorPageName, errorPage, errorPageService, err := p.createErrorPageMiddleware(ctxMid, client, middleware.Namespace, middleware.Spec.Errors)
+		errorPageName, errorPage, errorPageService, err := p.createErrorPageMiddleware(ctxMid, client, middleware.Namespace, id+"-errorpage-service", middleware.Spec.Errors)
 		if err != nil {
 			log.FromContext(ctxMid).Errorf("Error while reading error page middleware: %v", err)
 			continue
 		}
 
 		if errorPage != nil {
+			errorPage.Service = errorPageName
+
 			if errorPageService != nil {
-				serviceName := id + "-errorpage-service"
-				errorPage.Service = serviceName
-				conf.HTTP.Services[serviceName] = errorPageService
-			} else {
-				errorPage.Service = errorPageName
+				conf.HTTP.Services[errorPageName] = errorPageService
 			}
 		}
 
@@ -325,7 +332,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	}
 
 	for _, middlewareTCP := range client.GetMiddlewareTCPs() {
-		id := provider.Normalize(makeID(middlewareTCP.Namespace, middlewareTCP.Name))
+		id := makeKey(middlewareTCP.Namespace, middlewareTCP.Name)
 
 		conf.TCP.Middlewares[id] = &dynamic.TCPMiddleware{
 			InFlightConn: middlewareTCP.Spec.InFlightConn,
@@ -419,7 +426,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 			}
 		}
 
-		id := provider.Normalize(makeID(serversTransport.Namespace, serversTransport.Name))
+		id := makeKey(serversTransport.Namespace, serversTransport.Name)
 		conf.HTTP.ServersTransports[id] = &dynamic.ServersTransport{
 			ServerName:          serversTransport.Spec.ServerName,
 			InsecureSkipVerify:  serversTransport.Spec.InsecureSkipVerify,
@@ -435,7 +442,7 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 	return conf
 }
 
-func (p *Provider) createErrorPageMiddleware(ctx context.Context, client Client, namespace string, errorPage *traefikv1alpha1.ErrorPage) (string, *dynamic.ErrorPage, *dynamic.Service, error) {
+func (p *Provider) createErrorPageMiddleware(ctx context.Context, client Client, namespace, serviceKey string, errorPage *traefikv1alpha1.ErrorPage) (string, *dynamic.ErrorPage, *dynamic.Service, error) {
 	if errorPage == nil {
 		return "", nil, nil, nil
 	}
@@ -448,7 +455,7 @@ func (p *Provider) createErrorPageMiddleware(ctx context.Context, client Client,
 		crossProviderNamespaces:   p.CrossProviderNamespaces,
 	}
 
-	balancerName, balancerServerHTTP, err := cb.nameAndService(ctx, namespace, errorPage.Service.LoadBalancerSpec)
+	balancerName, balancerServerHTTP, err := cb.nameAndService(ctx, namespace, errorPage.Service.LoadBalancerSpec, serviceKey)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -893,7 +900,7 @@ func loadAuthCredentials(secret *corev1.Secret) ([]string, error) {
 	return credentials, nil
 }
 
-func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options {
+func (p *Provider) buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options {
 	tlsOptionsCRDs := client.GetTLSOptions()
 	var tlsOptions map[string]tls.Options
 
@@ -905,6 +912,14 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 
 	for _, tlsOptionsCRD := range tlsOptionsCRDs {
 		logger := log.FromContext(log.With(ctx, log.Str("tlsOption", tlsOptionsCRD.Name), log.Str("namespace", tlsOptionsCRD.Namespace)))
+
+		// When a namespace is explicitly configured, the default TLS options can only be defined in this namespace.
+		if tlsOptionsCRD.Name == tls.DefaultTLSConfigName &&
+			p.DefaultTLSResourcesNamespace != "" && tlsOptionsCRD.Namespace != p.DefaultTLSResourcesNamespace {
+			logger.Errorf("Ignoring default TLS options: they can only be defined in the %q namespace", p.DefaultTLSResourcesNamespace)
+			continue
+		}
+
 		var clientCAs []tls.FileOrContent
 
 		for _, secretName := range tlsOptionsCRD.Spec.ClientAuth.SecretNames {
@@ -928,7 +943,7 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 			clientCAs = append(clientCAs, tls.FileOrContent(cert))
 		}
 
-		id := makeID(tlsOptionsCRD.Namespace, tlsOptionsCRD.Name)
+		id := makeKey(tlsOptionsCRD.Namespace, tlsOptionsCRD.Name)
 		// If the name is default, we override the default config.
 		if tlsOptionsCRD.Name == tls.DefaultTLSConfigName {
 			id = tlsOptionsCRD.Name
@@ -967,7 +982,7 @@ func buildTLSOptions(ctx context.Context, client Client) map[string]tls.Options 
 	return tlsOptions
 }
 
-func buildTLSStores(ctx context.Context, client Client) (map[string]tls.Store, map[string]*tls.CertAndStores) {
+func (p *Provider) buildTLSStores(ctx context.Context, client Client) (map[string]tls.Store, map[string]*tls.CertAndStores) {
 	tlsStoreCRD := client.GetTLSStores()
 	if len(tlsStoreCRD) == 0 {
 		return nil, nil
@@ -980,7 +995,14 @@ func buildTLSStores(ctx context.Context, client Client) (map[string]tls.Store, m
 	for _, t := range tlsStoreCRD {
 		logger := log.FromContext(log.With(ctx, log.Str("TLSStore", t.Name), log.Str("namespace", t.Namespace)))
 
-		id := makeID(t.Namespace, t.Name)
+		// When a namespace is explicitly configured, the default TLS store can only be defined in this namespace.
+		if t.Name == tls.DefaultTLSStoreName &&
+			p.DefaultTLSResourcesNamespace != "" && t.Namespace != p.DefaultTLSResourcesNamespace {
+			logger.Errorf("Ignoring default TLS store: it can only be defined in the %q namespace", p.DefaultTLSResourcesNamespace)
+			continue
+		}
+
+		id := makeKey(t.Namespace, t.Name)
 
 		// If the name is default, we override the default config.
 		if t.Name == tls.DefaultTLSStoreName {
@@ -1056,23 +1078,16 @@ func buildCertificates(client Client, tlsStore, namespace string, certificates [
 	return nil
 }
 
-func makeServiceKey(rule, ingressName string) (string, error) {
+func makeKey(components ...string) string {
 	h := sha256.New()
-	if _, err := h.Write([]byte(rule)); err != nil {
-		return "", err
+
+	for _, component := range components {
+		// Length-prefixing to avoid ambiguity between distinct components with embedded delimiter.
+		// As explained in https://pkg.go.dev/hash#Hash, Write never returns an error.
+		_, _ = fmt.Fprintf(h, "%d:%s", len(component), component)
 	}
 
-	key := fmt.Sprintf("%s-%.10x", ingressName, h.Sum(nil))
-
-	return key, nil
-}
-
-func makeID(namespace, name string) string {
-	if namespace == "" {
-		return name
-	}
-
-	return namespace + "-" + name
+	return fmt.Sprintf("%s-%.10x", provider.Normalize(strings.Join(components, "-")), h.Sum(nil))
 }
 
 func shouldProcessIngress(ingressClass, ingressClassAnnotation string) bool {
@@ -1235,5 +1250,5 @@ func resolveReference(ctx context.Context, parentNs, ns, name string, crossProvi
 		return "", errors.New("allowCrossNamespace is disabled, cross-namespace are disallowed")
 	}
 
-	return provider.Normalize(ns + "-" + name), nil
+	return makeKey(ns, name), nil
 }
