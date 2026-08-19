@@ -168,6 +168,7 @@ providers:
     allowEmptyServices: true
     nativeLBByDefault: true
     defaultTLSResourcesNamespace: foobar
+    safeNaming: true
   kubernetesGateway:
     endpoint: foobar
     token: foobar

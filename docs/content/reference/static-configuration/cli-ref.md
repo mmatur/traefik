@@ -792,6 +792,9 @@ Kubernetes namespaces.
 `--providers.kubernetescrd.nativelbbydefault`:  
 Defines whether to use Native Kubernetes load-balancing mode by default. (Default: ```false```)
 
+`--providers.kubernetescrd.safenaming`:  
+Enable collision-safe naming for the Kubernetes CRD provider. (Default: ```false```)
+
 `--providers.kubernetescrd.throttleduration`:  
 Ingress refresh throttle duration (Default: ```0```)
 

@@ -792,6 +792,9 @@ Kubernetes namespaces.
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_NATIVELBBYDEFAULT`:  
 Defines whether to use Native Kubernetes load-balancing mode by default. (Default: ```false```)
 
+`TRAEFIK_PROVIDERS_KUBERNETESCRD_SAFENAMING`:  
+Enable collision-safe naming for the Kubernetes CRD provider. (Default: ```false```)
+
 `TRAEFIK_PROVIDERS_KUBERNETESCRD_THROTTLEDURATION`:  
 Ingress refresh throttle duration (Default: ```0```)
 
