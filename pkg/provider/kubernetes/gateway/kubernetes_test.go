@@ -111,6 +111,198 @@ func TestGatewayClassLabelSelector(t *testing.T) {
 	assert.Equal(t, "1.2.3.4", gw.Status.Addresses[0].Value)
 }
 
+func TestGatewaysRestriction(t *testing.T) {
+	k8sObjects, gwObjects := readResources(t, []string{"gatewayclass_labelselector.yaml"})
+
+	kubeClient := kubefake.NewClientset(k8sObjects...)
+	gwClient := newGatewaySimpleClientSet(t, gwObjects...)
+
+	client := newClientImpl(kubeClient, gwClient)
+
+	eventCh, err := client.WatchAll(nil, make(chan struct{}))
+	require.NoError(t, err)
+
+	if len(k8sObjects) > 0 || len(gwObjects) > 0 {
+		<-eventCh
+	}
+
+	p := Provider{
+		EntryPoints:   map[string]Entrypoint{"http": {Address: ":9080"}},
+		StatusAddress: &StatusAddress{IP: "1.2.3.4"},
+		Gateways:      []string{"default/traefik-internal"},
+		client:        client,
+	}
+
+	_ = p.loadConfigurationFromGateways(t.Context())
+
+	gw, err := gwClient.GatewayV1().Gateways("default").Get(t.Context(), "traefik-internal", metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Len(t, gw.Status.Addresses, 1)
+	assert.Equal(t, "1.2.3.4", gw.Status.Addresses[0].Value)
+
+	gw, err = gwClient.GatewayV1().Gateways("default").Get(t.Context(), "traefik-external", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, gw.Status.Addresses)
+}
+
+func TestManagesGateway(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		gateways []string
+		gateway  *gatev1.Gateway
+		expected bool
+	}{
+		{
+			desc:     "no restriction",
+			gateway:  &gatev1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "foo"}},
+			expected: true,
+		},
+		{
+			desc:     "matching reference",
+			gateways: []string{"default/foo"},
+			gateway:  &gatev1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "foo"}},
+			expected: true,
+		},
+		{
+			desc:     "matching reference in a list",
+			gateways: []string{"other/bar", "default/foo"},
+			gateway:  &gatev1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "foo"}},
+			expected: true,
+		},
+		{
+			desc:     "another name",
+			gateways: []string{"default/foo"},
+			gateway:  &gatev1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "bar"}},
+			expected: false,
+		},
+		{
+			desc:     "another namespace",
+			gateways: []string{"default/foo"},
+			gateway:  &gatev1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: "other", Name: "foo"}},
+			expected: false,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			p := Provider{Gateways: test.gateways}
+
+			assert.Equal(t, test.expected, p.managesGateway(test.gateway))
+		})
+	}
+}
+
+func TestDisableGatewayClassStatus(t *testing.T) {
+	k8sObjects, gwObjects := readResources(t, []string{"gatewayclass_labelselector.yaml"})
+
+	kubeClient := kubefake.NewClientset(k8sObjects...)
+	gwClient := newGatewaySimpleClientSet(t, gwObjects...)
+
+	client := newClientImpl(kubeClient, gwClient)
+
+	eventCh, err := client.WatchAll(nil, make(chan struct{}))
+	require.NoError(t, err)
+
+	if len(k8sObjects) > 0 || len(gwObjects) > 0 {
+		<-eventCh
+	}
+
+	p := Provider{
+		EntryPoints:               map[string]Entrypoint{"http": {Address: ":9080"}},
+		StatusAddress:             &StatusAddress{IP: "1.2.3.4"},
+		DisableGatewayClassStatus: true,
+		client:                    client,
+	}
+
+	_ = p.loadConfigurationFromGateways(t.Context())
+
+	gc, err := gwClient.GatewayV1().GatewayClasses().Get(t.Context(), "traefik-internal", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, gc.Status.Conditions)
+	assert.Empty(t, gc.Status.SupportedFeatures)
+
+	// The Gateway status is still owned by the provider.
+	gw, err := gwClient.GatewayV1().Gateways("default").Get(t.Context(), "traefik-internal", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, gw.Status.Conditions)
+	require.Len(t, gw.Status.Addresses, 1)
+	assert.Equal(t, "1.2.3.4", gw.Status.Addresses[0].Value)
+}
+
+func TestStaticAddressStatus(t *testing.T) {
+	listening := []gatev1.GatewayStatusAddress{{Type: new(gatev1.IPAddressType), Value: "1.2.3.4"}}
+
+	specAddress := func(addresses ...gatev1.GatewaySpecAddress) *gatev1.Gateway {
+		return &gatev1.Gateway{Spec: gatev1.GatewaySpec{Addresses: addresses}}
+	}
+
+	testCases := []struct {
+		desc              string
+		gateway           *gatev1.Gateway
+		expectedAddresses []gatev1.GatewayStatusAddress
+		expectedCondition *metav1.Condition
+	}{
+		{
+			desc:              "no requested address reports the listening addresses",
+			gateway:           specAddress(),
+			expectedAddresses: listening,
+		},
+		{
+			desc: "unsupported address type is not accepted",
+			gateway: specAddress(gatev1.GatewaySpecAddress{
+				Type:  new(gatev1.AddressType("test/fake-invalid-type")),
+				Value: "1.2.3.4",
+			}),
+			expectedCondition: &metav1.Condition{
+				Type:   string(gatev1.GatewayConditionAccepted),
+				Reason: string(gatev1.GatewayReasonUnsupportedAddress),
+			},
+		},
+		{
+			desc: "usable address is programmed",
+			gateway: specAddress(gatev1.GatewaySpecAddress{
+				Type:  new(gatev1.IPAddressType),
+				Value: "1.2.3.4",
+			}),
+			expectedAddresses: listening,
+		},
+		{
+			desc: "unusable address is not programmed",
+			gateway: specAddress(
+				gatev1.GatewaySpecAddress{Type: new(gatev1.IPAddressType), Value: "1.2.3.4"},
+				gatev1.GatewaySpecAddress{Type: new(gatev1.IPAddressType), Value: "5.6.7.8"},
+			),
+			expectedAddresses: listening,
+			expectedCondition: &metav1.Condition{
+				Type:   string(gatev1.GatewayConditionProgrammed),
+				Reason: string(gatev1.GatewayReasonAddressNotUsable),
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			addresses, condition := staticAddressStatus(test.gateway, listening)
+
+			assert.Equal(t, test.expectedAddresses, addresses)
+
+			if test.expectedCondition == nil {
+				assert.Nil(t, condition)
+				return
+			}
+
+			require.NotNil(t, condition)
+			assert.Equal(t, test.expectedCondition.Type, condition.Type)
+			assert.Equal(t, test.expectedCondition.Reason, condition.Reason)
+			assert.Equal(t, metav1.ConditionFalse, condition.Status)
+		})
+	}
+}
+
 func TestLoadHTTPRoutes(t *testing.T) {
 	testCases := []struct {
 		desc                string

@@ -78,6 +78,18 @@ type Provider struct {
 	CrossProviderNamespaces []string              `description:"List of namespaces from which Gateway API routes are allowed to declare TraefikService backendRef references." json:"crossProviderNamespaces,omitempty" toml:"crossProviderNamespaces,omitempty" yaml:"crossProviderNamespaces,omitempty" export:"true"`
 	EntryPoints             map[string]Entrypoint `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
 
+	// Gateways restricts the provider to the given Gateway resources, expressed
+	// as namespace/name. It is meant for the topologies where an instance is
+	// dedicated to one Gateway, or to a group of them, rather than serving
+	// every Gateway of the cluster.
+	Gateways []string `description:"Restricts the provider to the given Gateways, expressed as namespace/name." json:"gateways,omitempty" toml:"gateways,omitempty" yaml:"gateways,omitempty" export:"true"`
+
+	// DisableGatewayClassStatus leaves the GatewayClass status to an external
+	// controller. The Gateway, listener and route statuses are still written,
+	// only the GatewayClass one is skipped, so that a controller publishing a
+	// feature set spanning more than the data plane owns it alone.
+	DisableGatewayClassStatus bool `description:"Disables the GatewayClass status update, leaving it to an external controller." json:"disableGatewayClassStatus,omitempty" toml:"disableGatewayClassStatus,omitempty" yaml:"disableGatewayClassStatus,omitempty" export:"true"`
+
 	// groupKindFilterFuncs is the list of allowed Group and Kinds for the Filter ExtensionRef objects.
 	groupKindFilterFuncs map[string]map[string]BuildFilterFunc
 	// groupKindBackendFuncs is the list of allowed Group and Kinds for the Backend ExtensionRef objects.
@@ -273,11 +285,28 @@ func (p *Provider) applyRouterTransform(ctx context.Context, rt *dynamic.Router,
 	}
 }
 
+// managesGateway reports whether the provider handles the given Gateway.
+// Without the Gateways restriction every Gateway of the managed GatewayClasses
+// is handled.
+func (p *Provider) managesGateway(gateway *gatev1.Gateway) bool {
+	if len(p.Gateways) == 0 {
+		return true
+	}
+
+	return slices.Contains(p.Gateways, gateway.Namespace+"/"+gateway.Name)
+}
+
 func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
 	// Label selector validation
 	_, err := labels.Parse(p.LabelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("invalid label selector: %q", p.LabelSelector)
+	}
+
+	for _, gateway := range p.Gateways {
+		if _, _, ok := strings.Cut(gateway, "/"); !ok {
+			return nil, fmt.Errorf("invalid Gateway reference: %q", gateway)
+		}
 	}
 
 	logger := log.Ctx(ctx)
@@ -356,6 +385,10 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 
 		gatewayClassNames[gatewayClass.Name] = struct{}{}
 
+		if p.DisableGatewayClassStatus {
+			continue
+		}
+
 		status := gatev1.GatewayClassStatus{
 			Conditions: upsertGatewayClassConditionAccepted(gatewayClass.Status.Conditions, metav1.Condition{
 				Type:               string(gatev1.GatewayClassConditionStatusAccepted),
@@ -382,6 +415,11 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 		if _, ok := gatewayClassNames[string(gateway.Spec.GatewayClassName)]; !ok {
 			continue
 		}
+
+		if !p.managesGateway(gateway) {
+			continue
+		}
+
 		gateways = append(gateways, gateway)
 	}
 
@@ -675,8 +713,95 @@ func (p *Provider) loadGatewayListeners(ctx context.Context, gateway *gatev1.Gat
 	return gatewayListeners
 }
 
+// supportedAddressType reports whether an address type can be honored.
+// A nil type defaults to IPAddress, as per the Gateway API specification.
+func supportedAddressType(addressType *gatev1.AddressType) bool {
+	if addressType == nil {
+		return true
+	}
+
+	switch *addressType {
+	case gatev1.IPAddressType, gatev1.HostnameAddressType:
+		return true
+	default:
+		return false
+	}
+}
+
+// staticAddressStatus resolves the addresses requested through the Gateway
+// spec.addresses against the addresses the data plane actually listens on.
+// It returns the addresses to report, and a condition preventing the Gateway
+// from being accepted or programmed when the request cannot be satisfied.
+func staticAddressStatus(gateway *gatev1.Gateway, listening []gatev1.GatewayStatusAddress) ([]gatev1.GatewayStatusAddress, *metav1.Condition) {
+	if len(gateway.Spec.Addresses) == 0 {
+		return listening, nil
+	}
+
+	for _, address := range gateway.Spec.Addresses {
+		if !supportedAddressType(address.Type) {
+			return nil, &metav1.Condition{
+				Type:               string(gatev1.GatewayConditionAccepted),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: gateway.Generation,
+				LastTransitionTime: metav1.Now(),
+				Reason:             string(gatev1.GatewayReasonUnsupportedAddress),
+				Message:            fmt.Sprintf("Unsupported address type: %s", *address.Type),
+			}
+		}
+	}
+
+	listeningValues := make([]string, 0, len(listening))
+	for _, address := range listening {
+		listeningValues = append(listeningValues, address.Value)
+	}
+
+	var usable []gatev1.GatewayStatusAddress
+	var unusable []string
+	for _, address := range gateway.Spec.Addresses {
+		if !slices.Contains(listeningValues, address.Value) {
+			unusable = append(unusable, address.Value)
+			continue
+		}
+
+		addressType := ptr.Deref(address.Type, gatev1.IPAddressType)
+		usable = append(usable, gatev1.GatewayStatusAddress{Type: new(addressType), Value: address.Value})
+	}
+
+	if len(unusable) > 0 {
+		return usable, &metav1.Condition{
+			Type:               string(gatev1.GatewayConditionProgrammed),
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: gateway.Generation,
+			LastTransitionTime: metav1.Now(),
+			Reason:             string(gatev1.GatewayReasonAddressNotUsable),
+			Message:            fmt.Sprintf("Requested addresses are not usable: %s", strings.Join(unusable, ", ")),
+		}
+	}
+
+	return usable, nil
+}
+
 func (p *Provider) makeGatewayStatus(gateway *gatev1.Gateway, listeners []gatewayListener, addresses []gatev1.GatewayStatusAddress) (gatev1.GatewayStatus, []metav1.Condition) {
-	gatewayStatus := gatev1.GatewayStatus{Addresses: addresses}
+	statusAddresses, addressCondition := staticAddressStatus(gateway, addresses)
+	gatewayStatus := gatev1.GatewayStatus{Addresses: statusAddresses}
+
+	// An unsupported requested address type is a Gateway level error: the
+	// Gateway is not accepted, whatever the Listeners state is.
+	if addressCondition != nil && addressCondition.Type == string(gatev1.GatewayConditionAccepted) {
+		gatewayStatus.Conditions = append(gatewayStatus.Conditions,
+			*addressCondition,
+			metav1.Condition{
+				Type:               string(gatev1.GatewayConditionProgrammed),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: gateway.Generation,
+				LastTransitionTime: metav1.Now(),
+				Reason:             string(gatev1.GatewayReasonInvalid),
+				Message:            "Gateway is not accepted",
+			},
+		)
+
+		return gatewayStatus, []metav1.Condition{*addressCondition}
+	}
 
 	var acceptedListeners int
 	var errorConditions []metav1.Condition
@@ -780,6 +905,16 @@ func (p *Provider) makeGatewayStatus(gateway *gatev1.Gateway, listeners []gatewa
 			Message:            acceptedConditionMessage,
 			LastTransitionTime: metav1.Now(),
 		},
+	)
+
+	// A requested address that is not usable keeps the Gateway from being
+	// programmed, even though every Listener is valid.
+	if addressCondition != nil {
+		gatewayStatus.Conditions = append(gatewayStatus.Conditions, *addressCondition)
+		return gatewayStatus, nil
+	}
+
+	gatewayStatus.Conditions = append(gatewayStatus.Conditions,
 		// update "Programmed" status with "Programmed" reason
 		metav1.Condition{
 			Type:               string(gatev1.GatewayConditionProgrammed),

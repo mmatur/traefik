@@ -1,0 +1,29 @@
+---
+apiVersion: gateway.traefik.io/v1alpha1
+kind: TraefikProxy
+metadata:
+  name: conformance
+spec:
+  deployment:
+    replicas: 1
+    image: traefik/traefik:latest
+    # The image is side-loaded into the k3s node, never pulled: the latest tag
+    # would otherwise resolve to the released image instead of the one built
+    # from the working tree.
+    imagePullPolicy: Never
+  service:
+    type: LoadBalancer
+  logs:
+    level: DEBUG
+
+---
+kind: GatewayClass
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: traefik
+spec:
+  controllerName: traefik.io/gateway-controller
+  parametersRef:
+    group: gateway.traefik.io
+    kind: TraefikProxy
+    name: conformance

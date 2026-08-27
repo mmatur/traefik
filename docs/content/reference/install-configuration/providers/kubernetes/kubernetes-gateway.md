@@ -91,6 +91,8 @@ providers:
 | <a id="opt-providers-kubernetesGateway-statusAddress-service-namespace" href="#opt-providers-kubernetesGateway-statusAddress-service-namespace" title="#opt-providers-kubernetesGateway-statusAddress-service-namespace">`providers.kubernetesGateway.`<br />`statusAddress.service.namespace`</a> | The namespace of the Kubernetes service to copy status addresses from.<br />When using third parties tools like External-DNS, this option can be used to copy the service `loadbalancer.status` (containing the service's endpoints IPs) to the Gateway `status.addresses`.                                                                                                          | ""      | No       |
 | <a id="opt-providers-kubernetesGateway-statusAddress-service-name" href="#opt-providers-kubernetesGateway-statusAddress-service-name" title="#opt-providers-kubernetesGateway-statusAddress-service-name">`providers.kubernetesGateway.`<br />`statusAddress.service.name`</a> | The name of the Kubernetes service to copy status addresses from.<br />When using third parties tools like External-DNS, this option can be used to copy the service `loadbalancer.status` (containing the service's endpoints IPs) to the Gateway `status.addresses`.                                                                                                               | ""      | No       |
 | <a id="opt-providers-kubernetesGateway-crossProviderNamespaces" href="#opt-providers-kubernetesGateway-crossProviderNamespaces" title="#opt-providers-kubernetesGateway-crossProviderNamespaces">`providers.kubernetesGateway.crossProviderNamespaces`</a> | List of namespaces from which Gateway API routes (`HTTPRoute`, `TCPRoute`, `TLSRoute`) are allowed to declare a `backendRef` of kind `TraefikService`.<br />When unset, all namespaces are allowed. When set to `[]`, every such backendRef is rejected and the route is dropped.                                                                                                    | []      | No       |
+| <a id="opt-providers-kubernetesGateway-gateways" href="#opt-providers-kubernetesGateway-gateways" title="#opt-providers-kubernetesGateway-gateways">`providers.kubernetesGateway.gateways`</a> | Restricts the provider to the given `Gateway` resources, expressed as `namespace/name`.<br />When unset, every `Gateway` of the managed `GatewayClass` resources is handled.<br />More information [here](#gateways).                                                                                                                     | []      | No       |
+| <a id="opt-providers-kubernetesGateway-disableGatewayClassStatus" href="#opt-providers-kubernetesGateway-disableGatewayClassStatus" title="#opt-providers-kubernetesGateway-disableGatewayClassStatus">`providers.kubernetesGateway.disableGatewayClassStatus`</a> | Disables the `GatewayClass` status update, leaving it to an external controller.<br />`Gateway`, listener and route statuses are still written by Traefik.<br />More information [here](#disablegatewayclassstatus).                                                                                        | false   | No       |
 | <a id="opt-providers-kubernetesGateway-qps" href="#opt-providers-kubernetesGateway-qps" title="#opt-providers-kubernetesGateway-qps">`providers.kubernetesGateway.qps`</a> | Defines the maximum QPS to the Kubernetes API server. Setting this to a negative value will disable client-side ratelimiting.                                                                                                                                                                                                                                                        | 50 | No       |
 | <a id="opt-providers-kubernetesGateway-burst" href="#opt-providers-kubernetesGateway-burst" title="#opt-providers-kubernetesGateway-burst">`providers.kubernetesGateway.burst`</a> | Defines the maximum burst of requests to the Kubernetes API server.                                                                                                                                                                                                                                                                                                                  | 100 | No |
 
@@ -134,6 +136,63 @@ providers:
 
 ```bash tab="CLI"
 --providers.kubernetesgateway.endpoint=http://localhost:8080
+```
+
+### `gateways`
+
+Restricts the provider to a fixed set of `Gateway` resources, expressed as
+`namespace/name`. Every other `Gateway` is ignored: no routing configuration is
+produced for it, and its status is left untouched.
+
+This is meant for topologies where a Traefik instance is dedicated to one
+`Gateway` (or to a group of them) rather than serving every `Gateway` of the
+cluster, typically when an external controller provisions one data plane per
+`Gateway`.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    gateways:
+      - default/my-gateway
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  gateways = ["default/my-gateway"]
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.gateways=default/my-gateway
+```
+
+### `disableGatewayClassStatus`
+
+Stops Traefik from writing the `GatewayClass` status, so that an external
+controller can own it. The `Gateway`, listener and route statuses are still
+written by Traefik.
+
+This is required when an external controller publishes a supported feature set
+that spans more than the data plane, for instance because it implements the
+infrastructure part of the Gateway API itself. Two writers on the same
+`GatewayClass` status would otherwise overwrite each other.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    disableGatewayClassStatus: true
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  disableGatewayClassStatus = true
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.disablegatewayclassstatus=true
 ```
 
 ## Routing Configuration

@@ -94,6 +94,10 @@ test: test-ui-unit test-unit test-integration
 test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test -cover "-coverprofile=cover.out" -v $(TESTFLAGS) ./pkg/... ./cmd/...
 
+# Traefik Gateway API operator, used by the operator conformance suite.
+TRAEFIK_OPERATOR_DIR ?= ../operator
+TRAEFIK_OPERATOR_IMAGE ?= traefik/operator:latest
+
 .PHONY: test-integration
 #? test-integration: Run the integration tests
 test-integration:
@@ -104,6 +108,22 @@ test-integration:
 test-gateway-api-conformance: build-image-dirty
 	# In case of a new Minor/Major version, the traefikVersion needs to be updated.
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -v -tags gatewayAPIConformance -test.run GatewayAPIConformanceSuite -traefikVersion="v3.7" $(TESTFLAGS)
+
+.PHONY: build-image-operator
+#? build-image-operator: Build the Traefik Gateway API operator image from TRAEFIK_OPERATOR_DIR
+build-image-operator:
+	docker build -t $(TRAEFIK_OPERATOR_IMAGE) $(TRAEFIK_OPERATOR_DIR)
+
+.PHONY: generate-gateway-api-operator-fixture
+#? generate-gateway-api-operator-fixture: Render the operator install fixture from TRAEFIK_OPERATOR_DIR
+generate-gateway-api-operator-fixture:
+	$(CURDIR)/script/gateway-api-operator-fixture.sh $(TRAEFIK_OPERATOR_DIR)
+
+.PHONY: test-gateway-api-operator-conformance
+#? test-gateway-api-operator-conformance: Run the Gateway API conformance tests against operator provisioned data planes
+test-gateway-api-operator-conformance: build-image-dirty build-image-operator
+	# In case of a new Minor/Major version, the traefikVersion needs to be updated.
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -v -tags gatewayAPIConformance -test.run GatewayAPIOperatorConformanceSuite -traefikVersion="v3.7" $(TESTFLAGS)
 
 .PHONY: test-knative-conformance
 #? test-knative-conformance: Run the Knative conformance tests
