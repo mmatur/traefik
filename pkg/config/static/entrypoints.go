@@ -55,6 +55,11 @@ type EntryPoint struct {
 	HTTP3            *HTTP3Config          `description:"HTTP/3 configuration." json:"http3,omitempty" toml:"http3,omitempty" yaml:"http3,omitempty" label:"allowEmpty" file:"allowEmpty" export:"true"`
 	UDP              *UDPConfig            `description:"UDP configuration." json:"udp,omitempty" toml:"udp,omitempty" yaml:"udp,omitempty"`
 	Observability    *ObservabilityConfig  `description:"Observability configuration." json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
+
+	// OriginalDestination makes the DstIP matcher see the address the client
+	// dialed instead of the address the connection was translated to. It relies
+	// on the Linux connection tracking.
+	OriginalDestination bool `description:"Recovers the destination address the client dialed, when the host translates it." json:"originalDestination,omitempty" toml:"originalDestination,omitempty" yaml:"originalDestination,omitempty"`
 }
 
 // GetAddress strips any potential protocol part of the address field of the

@@ -36,6 +36,7 @@
     allowACMEByPass = true
     reusePort = true
     asDefault = true
+    originalDestination = true
     [entryPoints.EntryPoint0.transport]
       keepAliveMaxTime = "42s"
       keepAliveMaxRequests = 42
@@ -196,6 +197,10 @@
     throttleDuration = "42s"
     experimentalChannel = true
     nativeLBByDefault = true
+    gateways = ["foobar", "foobar"]
+    gatewayClasses = ["foobar", "foobar"]
+    disableGatewayClassStatus = true
+    gatewayIsolation = true
     [providers.kubernetesGateway.statusAddress]
       ip = "foobar"
       hostname = "foobar"

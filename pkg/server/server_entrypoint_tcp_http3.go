@@ -137,7 +137,7 @@ func (e *http3server) getTLSConfigForClient(info *tls.ClientHelloInfo) (*tls.Con
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 
-	connData, err := tcpmuxer.NewConnData(info.ServerName, info.Conn.RemoteAddr(), info.SupportedProtos)
+	connData, err := tcpmuxer.NewConnData(info.ServerName, info.Conn.RemoteAddr(), info.Conn.LocalAddr(), info.SupportedProtos)
 	if err != nil {
 		return nil, fmt.Errorf("creating ConnData from client hello: %w", err)
 	}
@@ -150,7 +150,7 @@ func (e *http3server) getTLSOptionsName(c *quic.Conn) (string, error) {
 	e.lock.RLock()
 	defer e.lock.RUnlock()
 
-	connData, err := tcpmuxer.NewConnData(c.ConnectionState().TLS.ServerName, c.RemoteAddr(), []string{c.ConnectionState().TLS.NegotiatedProtocol})
+	connData, err := tcpmuxer.NewConnData(c.ConnectionState().TLS.ServerName, c.RemoteAddr(), c.LocalAddr(), []string{c.ConnectionState().TLS.NegotiatedProtocol})
 	if err != nil {
 		return "", fmt.Errorf("creating ConnData from quic Conn: %w", err)
 	}

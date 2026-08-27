@@ -22,6 +22,7 @@ The table below lists all the available matchers:
 | <a id="opt-HostSNIRegexpregexp" href="#opt-HostSNIRegexpregexp" title="#opt-HostSNIRegexpregexp">[```HostSNIRegexp(`regexp`)```](#hostsni-and-hostsniregexp)</a> | Checks if the connection's Server Name Indication matches `regexp`.<br />Use a [Go](https://golang.org/pkg/regexp/) flavored syntax.<br /> More information [here](#hostsni-and-hostsniregexp). |
 | <a id="opt-ClientIPip" href="#opt-ClientIPip" title="#opt-ClientIPip">[```ClientIP(`ip`)```](#clientip)</a> | Checks if the connection's client IP correspond to `ip`. It accepts IPv4, IPv6 and CIDR formats.<br /> More information [here](#clientip). |
 | <a id="opt-ALPNprotocol" href="#opt-ALPNprotocol" title="#opt-ALPNprotocol">[```ALPN(`protocol`)```](#alpn)</a> | Checks if the connection's ALPN protocol equals `protocol`.<br /> More information [here](#alpn).          |
+| <a id="opt-DstIPip" href="#opt-DstIPip" title="#opt-DstIPip">[```DstIP(`ip`)```](#dstip)</a> | Checks if the address the connection was accepted on corresponds to `ip`. It accepts IPv4, IPv6 and CIDR formats.<br /> More information [here](#dstip). |
 
 !!! tip "Backticks or Quotes?"
 
@@ -122,6 +123,61 @@ ClientIP(`192.168.1.0/24`)
 
 ```yaml tab="IPv6"
 ClientIP(`fe80::/10`)
+```
+
+### DstIP
+
+The `DstIP` matcher allows matching connections by the address they were
+accepted on. It is meant for an instance answering at several addresses, to keep
+the routers of one address from catching the connections of another.
+
+The address a connection is accepted on is the one the client dialed only when
+nothing translated it on the way. Behind a destination NAT, a Kubernetes Service
+for instance, the connection is accepted on the address it was translated to,
+and the entry point has to be configured to recover the original one:
+
+```yaml tab="File (YAML)"
+entryPoints:
+  web:
+    address: ":80"
+    originalDestination: true
+```
+
+```toml tab="File (TOML)"
+[entryPoints.web]
+  address = ":80"
+  originalDestination = true
+```
+
+```bash tab="CLI"
+--entryPoints.web.address=:80
+--entryPoints.web.originalDestination=true
+```
+
+Recovering the original destination relies on the Linux connection tracking, and
+requires the process to run in the network namespace the translation happened
+in.
+
+#### Examples
+
+Match connections accepted on a given address:
+
+```yaml tab="IPv4"
+DstIP(`10.76.105.11`)
+```
+
+```yaml tab="IPv6"
+DstIP(`::1`)
+```
+
+Match connections accepted on an address of a given subnet:
+
+```yaml tab="IPv4"
+DstIP(`192.168.1.0/24`)
+```
+
+```yaml tab="IPv6"
+DstIP(`fe80::/10`)
 ```
 
 ### ALPN

@@ -15,6 +15,7 @@ import (
 var tcpFuncs = map[string]func(*matchersTree, ...string) error{
 	"ALPN":          expect1Parameter(alpn),
 	"ClientIP":      expect1Parameter(clientIP),
+	"DstIP":         expect1Parameter(destIP),
 	"HostSNI":       expect1Parameter(hostSNI),
 	"HostSNIRegexp": expect1Parameter(hostSNIRegexp),
 }
@@ -54,6 +55,32 @@ func clientIP(tree *matchersTree, clientIP ...string) error {
 		ok, err := checker.Contains(meta.remoteIP)
 		if err != nil {
 			log.Warn().Err(err).Msg("ClientIP matcher: could not match remote address")
+			return false
+		}
+		return ok
+	}
+
+	return nil
+}
+
+// destIP checks if the address the connection was accepted on matches the
+// matcher address. The entry point has to be configured to preserve the
+// original destination for it to see anything but its own address when the
+// infrastructure translates it.
+func destIP(tree *matchersTree, destIP ...string) error {
+	checker, err := ip.NewChecker(destIP)
+	if err != nil {
+		return fmt.Errorf("initializing IP checker for DstIP matcher: %w", err)
+	}
+
+	tree.matcher = func(meta ConnData) bool {
+		if meta.destIP == "" {
+			return false
+		}
+
+		ok, err := checker.Contains(meta.destIP)
+		if err != nil {
+			log.Warn().Err(err).Msg("DstIP matcher: could not match destination address")
 			return false
 		}
 		return ok

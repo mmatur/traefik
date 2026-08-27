@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"slices"
@@ -15,6 +16,7 @@ import (
 
 var httpFuncs = matcherBuilderFuncs{
 	"ClientIP":     expectNParameters(clientIP, 1),
+	"DstIP":        expectNParameters(destIP, 1),
 	"Method":       expectNParameters(method, 1),
 	"Host":         expectNParameters(host, 1),
 	"HostRegexp":   expectNParameters(hostRegexp, 1),
@@ -49,6 +51,40 @@ func clientIP(tree *matchersTree, clientIP ...string) error {
 		ok, err := checker.Contains(strategy.GetIP(req))
 		if err != nil {
 			log.Ctx(req.Context()).Warn().Err(err).Msg("ClientIP matcher: could not match remote address")
+			return false
+		}
+
+		return ok
+	}
+
+	return nil
+}
+
+// destIP checks if the address the connection was accepted on matches the
+// matcher address. The entry point has to be configured to preserve the
+// original destination for it to see anything but its own address when the
+// infrastructure translates it.
+func destIP(tree *matchersTree, destIP ...string) error {
+	checker, err := ip.NewChecker(destIP)
+	if err != nil {
+		return fmt.Errorf("initializing IP checker for DstIP matcher: %w", err)
+	}
+
+	tree.matcher = func(req *http.Request) bool {
+		localAddr, ok := req.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		if !ok {
+			return false
+		}
+
+		host, _, err := net.SplitHostPort(localAddr.String())
+		if err != nil {
+			log.Ctx(req.Context()).Warn().Err(err).Msg("DstIP matcher: could not parse destination address")
+			return false
+		}
+
+		ok, err = checker.Contains(host)
+		if err != nil {
+			log.Ctx(req.Context()).Warn().Err(err).Msg("DstIP matcher: could not match destination address")
 			return false
 		}
 

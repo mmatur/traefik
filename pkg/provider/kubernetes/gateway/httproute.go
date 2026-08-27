@@ -138,6 +138,8 @@ func (p *Provider) loadHTTPRoute(ctx context.Context, gatewayName, gatewayNamesp
 	for ri, routeRule := range route.Spec.Rules {
 		for _, match := range routeRule.Matches {
 			rule, priority := buildMatchRule(hostnames, match)
+			rule = listener.isolate(rule)
+
 			router := dynamic.Router{
 				// "default" stands for the default rule syntax in Traefik v3, i.e. the v3 syntax.
 				RuleSyntax:  "default",

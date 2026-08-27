@@ -152,6 +152,8 @@ func (p *Provider) loadTLSRoute(gatewayName, gatewayNamespace string, listener g
 		}
 
 		rule, priority := hostSNIRule(hostnames)
+		rule = listener.isolate(rule)
+
 		router := dynamic.TCPRouter{
 			RuleSyntax:  "default",
 			Rule:        rule,
@@ -379,7 +381,9 @@ func hostSNIRule(hostnames []gatev1.Hostname) (string, int) {
 			continue
 		}
 
-		host = strings.Replace(regexp.QuoteMeta(host), `\*\.`, `[a-z0-9-]+\.`, 1)
+		// The Gateway API defines a wildcard hostname as a suffix match, so it
+		// covers the nested subdomains too, as the HTTPRoute rule already did.
+		host = strings.Replace(regexp.QuoteMeta(host), `\*\.`, `[a-z0-9-\.]+\.`, 1)
 		rules = append(rules, fmt.Sprintf("HostSNIRegexp(%q)", fmt.Sprintf("^%s$", host)))
 	}
 

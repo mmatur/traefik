@@ -205,7 +205,17 @@ func (s *GatewayAPIConformanceSuite) TestK8sGatewayAPIConformance() {
 				ksuite.GatewayTLSConformanceProfileName,
 			},
 			SupportedFeatures: gateway.SupportedFeatures(),
-			SkipTests:         []string{tests.HTTPRouteMultipleGateways.ShortName},
+			// A single instance answers for every Gateway at one address, so
+			// two Gateways with the same listener cannot serve different
+			// backends on the same path (HTTPRouteMultipleGateways), and a
+			// TLSRoute wildcard hostname of one Gateway cannot be both served
+			// and rejected on that address (TLSRouteHostnameIntersection).
+			// Both pass on the topologies where each Gateway answers at an
+			// address of its own, covered by the operator suites.
+			SkipTests: []string{
+				tests.HTTPRouteMultipleGateways.ShortName,
+				tests.TLSRouteHostnameIntersection.ShortName,
+			},
 		},
 	})
 	require.NoError(s.T(), err)

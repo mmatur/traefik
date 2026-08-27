@@ -31,6 +31,7 @@ The table below lists all the available matchers:
 | <a id="opt-Querykey-value" href="#opt-Querykey-value" title="#opt-Querykey-value">[```Query(`key`, `value`)```](#query-and-queryregexp)</a> | Matches requests query parameters named `key` set to `value`.                  |
 | <a id="opt-QueryRegexpkey-regexp" href="#opt-QueryRegexpkey-regexp" title="#opt-QueryRegexpkey-regexp">[```QueryRegexp(`key`, `regexp`)```](#query-and-queryregexp)</a> | Matches requests query parameters named `key` matching `regexp`.               |
 | <a id="opt-ClientIPip" href="#opt-ClientIPip" title="#opt-ClientIPip">[```ClientIP(`ip`)```](#clientip)</a> | Matches requests client IP using `ip`. It accepts IPv4, IPv6 and CIDR formats. |
+| <a id="opt-DstIPip" href="#opt-DstIPip" title="#opt-DstIPip">[```DstIP(`ip`)```](#dstip)</a> | Matches the address the connection carrying the request was accepted on, using `ip`. It accepts IPv4, IPv6 and CIDR formats. |
 
 ### Header and HeaderRegexp
 
@@ -123,6 +124,27 @@ It only matches the request client IP and does not use the `X-Forwarded-For` hea
 | <a id="opt-Match-requests-coming-from-a-given-IP-IPv6" href="#opt-Match-requests-coming-from-a-given-IP-IPv6" title="#opt-Match-requests-coming-from-a-given-IP-IPv6">Match requests coming from a given IP (IPv6).</a> | ```ClientIP(`::1`)``` |
 | <a id="opt-Match-requests-coming-from-a-given-subnet-IPv4" href="#opt-Match-requests-coming-from-a-given-subnet-IPv4" title="#opt-Match-requests-coming-from-a-given-subnet-IPv4">Match requests coming from a given subnet (IPv4).</a> | ```ClientIP(`192.168.1.0/24`)``` |
 | <a id="opt-Match-requests-coming-from-a-given-subnet-IPv6" href="#opt-Match-requests-coming-from-a-given-subnet-IPv6" title="#opt-Match-requests-coming-from-a-given-subnet-IPv6">Match requests coming from a given subnet (IPv6).</a> | ```ClientIP(`fe80::/10`)``` |
+
+### DstIP
+
+The `DstIP` matcher allows matching requests by the address the connection
+carrying them was accepted on. It is meant for an instance answering at several
+addresses, to keep the routers of one address from catching the requests of
+another.
+
+The address a connection is accepted on is the one the client dialed only when
+nothing translated it on the way. Behind a destination NAT, a Kubernetes Service
+for instance, the connection is accepted on the address it was translated to,
+and the entry point has to be configured with `originalDestination` to recover
+the original one. See the [TCP `DstIP` matcher](../../tcp/routing/rules-and-priority.md#dstip)
+for the details and the limits of that recovery.
+
+| Behavior                                                        | Rule                                                                    |
+|-----------------------------------------------------------------|:------------------------------------------------------------------------|
+| <a id="opt-Match-requests-accepted-on-a-given-IP-IPv4" href="#opt-Match-requests-accepted-on-a-given-IP-IPv4" title="#opt-Match-requests-accepted-on-a-given-IP-IPv4">Match requests accepted on a given IP (IPv4).</a> | ```DstIP(`10.76.105.11`)``` |
+| <a id="opt-Match-requests-accepted-on-a-given-IP-IPv6" href="#opt-Match-requests-accepted-on-a-given-IP-IPv6" title="#opt-Match-requests-accepted-on-a-given-IP-IPv6">Match requests accepted on a given IP (IPv6).</a> | ```DstIP(`::1`)``` |
+| <a id="opt-Match-requests-accepted-on-a-given-subnet-IPv4" href="#opt-Match-requests-accepted-on-a-given-subnet-IPv4" title="#opt-Match-requests-accepted-on-a-given-subnet-IPv4">Match requests accepted on a given subnet (IPv4).</a> | ```DstIP(`192.168.1.0/24`)``` |
+| <a id="opt-Match-requests-accepted-on-a-given-subnet-IPv6" href="#opt-Match-requests-accepted-on-a-given-subnet-IPv6" title="#opt-Match-requests-accepted-on-a-given-subnet-IPv6">Match requests accepted on a given subnet (IPv6).</a> | ```DstIP(`fe80::/10`)``` |
 
 ### RuleSyntax
 

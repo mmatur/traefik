@@ -40,6 +40,7 @@ entryPoints:
     allowACMEByPass: true
     reusePort: true
     asDefault: true
+    originalDestination: true
     transport:
       lifeCycle:
         requestAcceptGraceTimeout: 42s
@@ -222,6 +223,14 @@ providers:
         name: foobar
         namespace: foobar
     nativeLBByDefault: true
+    gateways:
+      - foobar
+      - foobar
+    gatewayClasses:
+      - foobar
+      - foobar
+    disableGatewayClassStatus: true
+    gatewayIsolation: true
   rest:
     insecure: true
   consulCatalog:

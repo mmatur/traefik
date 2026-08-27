@@ -16,6 +16,7 @@ func Test_addTCPRoute(t *testing.T) {
 		rule       string
 		serverName string
 		remoteAddr string
+		destAddr   string
 		protos     []string
 		routeErr   bool
 		matchErr   bool
@@ -72,6 +73,49 @@ func Test_addTCPRoute(t *testing.T) {
 			rule:       "HostSNI(`example.org`) && ClientIP(`10.0.0.1`)",
 			serverName: "example.org",
 			remoteAddr: "10.0.0.1:80",
+		},
+		{
+			desc:       "Valid DstIP rule matching",
+			rule:       "DstIP(`192.0.2.10`)",
+			serverName: "example.org",
+			destAddr:   "192.0.2.10:443",
+		},
+		{
+			desc:       "Valid DstIP rule matching a CIDR",
+			rule:       "DstIP(`192.0.2.0/24`)",
+			serverName: "example.org",
+			destAddr:   "192.0.2.10:443",
+		},
+		{
+			desc:       "Valid DstIP rule not matching",
+			rule:       "DstIP(`192.0.2.10`)",
+			serverName: "example.org",
+			destAddr:   "192.0.2.11:443",
+			matchErr:   true,
+		},
+		{
+			desc:       "Valid DstIP rule without a destination address",
+			rule:       "DstIP(`192.0.2.10`)",
+			serverName: "example.org",
+			matchErr:   true,
+		},
+		{
+			desc:       "Valid HostSNI and DstIP rule matching",
+			rule:       "HostSNI(`example.org`) && DstIP(`192.0.2.10`)",
+			serverName: "example.org",
+			destAddr:   "192.0.2.10:443",
+		},
+		{
+			desc:       "Valid HostSNI and DstIP rule not matching by destination",
+			rule:       "HostSNI(`example.org`) && DstIP(`192.0.2.10`)",
+			serverName: "example.org",
+			destAddr:   "192.0.2.11:443",
+			matchErr:   true,
+		},
+		{
+			desc:     "Invalid DstIP rule",
+			rule:     "DstIP(`not-an-ip`)",
+			routeErr: true,
 		},
 		{
 			desc:       "Valid negative HostSNI and ClientIP rule matching",
@@ -292,8 +336,11 @@ func Test_addTCPRoute(t *testing.T) {
 				call:       map[string]int{},
 				remoteAddr: fakeAddr{addr: addr},
 			}
+			if test.destAddr != "" {
+				conn.localAddr = fakeAddr{addr: test.destAddr}
+			}
 
-			connData, err := NewConnData(test.serverName, conn.RemoteAddr(), test.protos)
+			connData, err := NewConnData(test.serverName, conn.RemoteAddr(), conn.LocalAddr(), test.protos)
 			require.NoError(t, err)
 
 			matchingHandler, _ := router.Match(connData)
@@ -517,6 +564,7 @@ func TestGetRulePriority(t *testing.T) {
 type fakeConn struct {
 	call       map[string]int
 	remoteAddr net.Addr
+	localAddr  net.Addr
 }
 
 func (f *fakeConn) Read(b []byte) (n int, err error) {
@@ -533,7 +581,7 @@ func (f *fakeConn) Close() error {
 }
 
 func (f *fakeConn) LocalAddr() net.Addr {
-	panic("implement me")
+	return f.localAddr
 }
 
 func (f *fakeConn) RemoteAddr() net.Addr {

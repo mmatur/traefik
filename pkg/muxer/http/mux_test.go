@@ -3,6 +3,7 @@ package http
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,17 +14,64 @@ import (
 	"github.com/traefik/traefik/v3/pkg/testhelpers"
 )
 
+type fakeAddr struct {
+	addr string
+}
+
+func (f fakeAddr) String() string {
+	return f.addr
+}
+
+func (f fakeAddr) Network() string {
+	return "tcp"
+}
+
 func TestMuxer(t *testing.T) {
 	testCases := []struct {
 		desc          string
 		rule          string
 		headers       map[string]string
 		remoteAddr    string
+		destAddr      string
 		expected      map[string]int
 		expectedError bool
 	}{
 		{
 			desc:          "no tree",
+			expectedError: true,
+		},
+		{
+			desc:     "Valid DstIP matcher",
+			rule:     "DstIP(`192.0.2.10`)",
+			destAddr: "192.0.2.10:80",
+			expected: map[string]int{"http://example.com": http.StatusOK},
+		},
+		{
+			desc:     "Valid DstIP matcher with a CIDR",
+			rule:     "DstIP(`192.0.2.0/24`)",
+			destAddr: "192.0.2.10:80",
+			expected: map[string]int{"http://example.com": http.StatusOK},
+		},
+		{
+			desc:     "Valid DstIP matcher not matching",
+			rule:     "DstIP(`192.0.2.10`)",
+			destAddr: "192.0.2.11:80",
+			expected: map[string]int{"http://example.com": http.StatusNotFound},
+		},
+		{
+			desc:     "Valid DstIP matcher without a destination address",
+			rule:     "DstIP(`192.0.2.10`)",
+			expected: map[string]int{"http://example.com": http.StatusNotFound},
+		},
+		{
+			desc:     "Valid Host and DstIP matchers",
+			rule:     "Host(`example.com`) && DstIP(`192.0.2.10`)",
+			destAddr: "192.0.2.10:80",
+			expected: map[string]int{"http://example.com": http.StatusOK},
+		},
+		{
+			desc:          "Invalid DstIP matcher",
+			rule:          "DstIP(`not-an-ip`)",
 			expectedError: true,
 		},
 		{
@@ -247,6 +295,12 @@ func TestMuxer(t *testing.T) {
 
 				// Useful for the ClientIP matcher
 				req.RemoteAddr = test.remoteAddr
+
+				// Useful for the DstIP matcher, which reads the address the
+				// connection was accepted on from the request context.
+				if test.destAddr != "" {
+					req = req.WithContext(context.WithValue(req.Context(), http.LocalAddrContextKey, fakeAddr{addr: test.destAddr}))
+				}
 
 				for key, value := range test.headers {
 					req.Header.Set(key, value)

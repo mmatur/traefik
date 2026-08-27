@@ -131,6 +131,7 @@ additionalArguments:
 | <a id="opt-transport-lifeCycle-requestAcceptGraceTimeout" href="#opt-transport-lifeCycle-requestAcceptGraceTimeout" title="#opt-transport-lifeCycle-requestAcceptGraceTimeout">`transport.`<br />`lifeCycle.`<br />`requestAcceptGraceTimeout`</a> | Set the duration to keep accepting requests prior to initiating the graceful termination period (as defined by the `transportlifeCycle.graceTimeOut` option). <br /> This option is meant to give downstream load-balancers sufficient time to take Traefik out of rotation. <br />Can be provided in a format supported by [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration) or as raw values (digits).<br />If no units are provided, the value is parsed assuming seconds                                                                                                                                                                                         | 0s (seconds)                                                       | No       |
 | <a id="opt-transport-keepAliveMaxRequests" href="#opt-transport-keepAliveMaxRequests" title="#opt-transport-keepAliveMaxRequests">`transport.`<br />`keepAliveMaxRequests`</a> | Set the maximum number of requests Traefik can handle before sending a `Connection: Close` header to the client (for HTTP2, Traefik sends a GOAWAY). <br /> Zero means no limit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0                                                                  | No       |
 | <a id="opt-transport-keepAliveMaxTime" href="#opt-transport-keepAliveMaxTime" title="#opt-transport-keepAliveMaxTime">`transport.`<br />`keepAliveMaxTime`</a> | Set the maximum duration Traefik can handle requests before sending a `Connection: Close` header to the client (for HTTP2, Traefik sends a GOAWAY). Zero means no limit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 0s (seconds)                                                       | No       |
+| <a id="opt-originalDestination" href="#opt-originalDestination" title="#opt-originalDestination">`originalDestination`</a> | Recover the destination address the client dialed, when the host translated it. <br /> More information [here](#originaldestination).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | false                                                              | No       |
 | <a id="opt-udp-timeout" href="#opt-udp-timeout" title="#opt-udp-timeout">`udp.timeout`</a> | Define how long to wait on an idle session before releasing the related resources. <br />The Timeout value must be greater than zero.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 3s (seconds)                                                       | No       |
 
 ### asDefault
@@ -193,6 +194,45 @@ entryPoints:
 ```bash tab="CLI"
 --entryPoints.web.address=:80
 --entryPoints.web.allowACMEByPass=true
+```
+
+### originalDestination
+
+An entryPoint accepts connections on the address the client dialed only when
+nothing translated it on the way. Behind a destination NAT, a Kubernetes
+`Service` for instance, the connection is accepted on the address it was
+translated to, and the original one is lost.
+
+When `originalDestination` is set to `true`, Traefik recovers it from the Linux
+connection tracking, and reports it as the local address of the connection. The
+[`DstIP`](../routing-configuration/http/routing/rules-and-priority.md#dstip)
+matchers then see the address the client dialed, which is what lets a single
+instance answering at several addresses keep the routers of one address from
+catching the traffic of another.
+
+!!! note
+
+    Recovering the original destination is only supported on Linux, and requires
+    the process to run in the network namespace the translation happened in: in
+    Kubernetes, a pod on the host network. Traefik falls back to the translated
+    address when the original one cannot be recovered.
+
+```yaml tab="File (YAML)"
+entryPoints:
+  web:
+    address: ":80"
+    originalDestination: true
+```
+
+```toml tab="File (TOML)"
+[entryPoints.web]
+  address = ":80"
+  originalDestination = true
+```
+
+```bash tab="CLI"
+--entryPoints.web.address=:80
+--entryPoints.web.originalDestination=true
 ```
 
 ### http.middlewares

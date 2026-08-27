@@ -91,6 +91,10 @@ providers:
 | <a id="opt-providers-kubernetesGateway-statusAddress-service-namespace" href="#opt-providers-kubernetesGateway-statusAddress-service-namespace" title="#opt-providers-kubernetesGateway-statusAddress-service-namespace">`providers.kubernetesGateway.`<br />`statusAddress.service.namespace`</a> | The namespace of the Kubernetes service to copy status addresses from.<br />When using third parties tools like External-DNS, this option can be used to copy the service `loadbalancer.status` (containing the service's endpoints IPs) to the Gateway `status.addresses`.                                                                                                          | ""      | No       |
 | <a id="opt-providers-kubernetesGateway-statusAddress-service-name" href="#opt-providers-kubernetesGateway-statusAddress-service-name" title="#opt-providers-kubernetesGateway-statusAddress-service-name">`providers.kubernetesGateway.`<br />`statusAddress.service.name`</a> | The name of the Kubernetes service to copy status addresses from.<br />When using third parties tools like External-DNS, this option can be used to copy the service `loadbalancer.status` (containing the service's endpoints IPs) to the Gateway `status.addresses`.                                                                                                               | ""      | No       |
 | <a id="opt-providers-kubernetesGateway-crossProviderNamespaces" href="#opt-providers-kubernetesGateway-crossProviderNamespaces" title="#opt-providers-kubernetesGateway-crossProviderNamespaces">`providers.kubernetesGateway.crossProviderNamespaces`</a> | List of namespaces from which Gateway API routes (`HTTPRoute`, `TCPRoute`, `TLSRoute`) are allowed to declare a `backendRef` of kind `TraefikService`.<br />When unset, all namespaces are allowed. When set to `[]`, every such backendRef is rejected and the route is dropped.                                                                                                    | []      | No       |
+| <a id="opt-providers-kubernetesGateway-gateways" href="#opt-providers-kubernetesGateway-gateways" title="#opt-providers-kubernetesGateway-gateways">`providers.kubernetesGateway.gateways`</a> | Restricts the provider to the given `Gateway` resources, expressed as `namespace/name`.<br />When unset, every `Gateway` of the managed `GatewayClass` resources is handled.<br />More information [here](#gateways).                                                                                                                     | []      | No       |
+| <a id="opt-providers-kubernetesGateway-gatewayClasses" href="#opt-providers-kubernetesGateway-gatewayClasses" title="#opt-providers-kubernetesGateway-gatewayClasses">`providers.kubernetesGateway.gatewayClasses`</a> | Restricts the provider to the `Gateway` resources of the given `GatewayClass` resources.<br />When unset, every managed `GatewayClass` is handled.<br />More information [here](#gatewayclasses).                                                                                                                     | []      | No       |
+| <a id="opt-providers-kubernetesGateway-disableGatewayClassStatus" href="#opt-providers-kubernetesGateway-disableGatewayClassStatus" title="#opt-providers-kubernetesGateway-disableGatewayClassStatus">`providers.kubernetesGateway.disableGatewayClassStatus`</a> | Disables the `GatewayClass` status update, leaving it to an external controller.<br />`Gateway`, listener and route statuses are still written by Traefik.<br />More information [here](#disablegatewayclassstatus).                                                                                        | false   | No       |
+| <a id="opt-providers-kubernetesGateway-gatewayIsolation" href="#opt-providers-kubernetesGateway-gatewayIsolation" title="#opt-providers-kubernetesGateway-gatewayIsolation">`providers.kubernetesGateway.gatewayIsolation`</a> | Resolves the address of each `Gateway` from a `Service` an external controller provisions for it, and restricts the routers of that `Gateway` to that address.<br />More information [here](#gatewayisolation).                                                                                        | false   | No       |
 | <a id="opt-providers-kubernetesGateway-qps" href="#opt-providers-kubernetesGateway-qps" title="#opt-providers-kubernetesGateway-qps">`providers.kubernetesGateway.qps`</a> | Defines the maximum QPS to the Kubernetes API server. Setting this to a negative value will disable client-side ratelimiting.                                                                                                                                                                                                                                                        | 50 | No       |
 | <a id="opt-providers-kubernetesGateway-burst" href="#opt-providers-kubernetesGateway-burst" title="#opt-providers-kubernetesGateway-burst">`providers.kubernetesGateway.burst`</a> | Defines the maximum burst of requests to the Kubernetes API server.                                                                                                                                                                                                                                                                                                                  | 100 | No |
 
@@ -134,6 +138,136 @@ providers:
 
 ```bash tab="CLI"
 --providers.kubernetesgateway.endpoint=http://localhost:8080
+```
+
+### `gateways`
+
+Restricts the provider to a fixed set of `Gateway` resources, expressed as
+`namespace/name`. Every other `Gateway` is ignored: no routing configuration is
+produced for it, and its status is left untouched.
+
+This is meant for topologies where a Traefik instance is dedicated to one
+`Gateway` (or to a group of them) rather than serving every `Gateway` of the
+cluster, typically when an external controller provisions one data plane per
+`Gateway`.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    gateways:
+      - default/my-gateway
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  gateways = ["default/my-gateway"]
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.gateways=default/my-gateway
+```
+
+### `gatewayClasses`
+
+Restricts the provider to the `Gateway` resources of a fixed set of
+`GatewayClass` resources, by name.
+
+It serves the same purpose as [`gateways`](#gateways), for an instance serving a
+whole `GatewayClass` rather than named `Gateway` resources. Unlike a `Gateway`
+list, it does not have to be updated, and the instance restarted, every time a
+`Gateway` is created or deleted.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    gatewayClasses:
+      - my-gateway-class
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  gatewayClasses = ["my-gateway-class"]
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.gatewayclasses=my-gateway-class
+```
+
+### `disableGatewayClassStatus`
+
+Stops Traefik from writing the `GatewayClass` status, so that an external
+controller can own it. The `Gateway`, listener and route statuses are still
+written by Traefik.
+
+This is required when an external controller publishes a supported feature set
+that spans more than the data plane, for instance because it implements the
+infrastructure part of the Gateway API itself. Two writers on the same
+`GatewayClass` status would otherwise overwrite each other.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    disableGatewayClassStatus: true
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  disableGatewayClassStatus = true
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.disablegatewayclassstatus=true
+```
+
+### `gatewayIsolation`
+
+Gives each `Gateway` served by the instance an address of its own, and restricts
+the routers it contributes to that address. Without it, the `Gateway` resources
+sharing an instance answer at the same address, so a request no router of its own
+`Gateway` matches falls through to a router another `Gateway` contributed to the
+same entry point.
+
+Traefik resolves the address of a `Gateway` from the `Service` an external
+controller provisions for it, found by the labels it carries:
+
+| Label | Value |
+|---|---|
+| <a id="opt-gateway-networking-k8s-iogateway-name" href="#opt-gateway-networking-k8s-iogateway-name" title="#opt-gateway-networking-k8s-iogateway-name">`gateway.networking.k8s.io/gateway-name`</a> | the `Gateway` name |
+| <a id="opt-gateway-traefik-iogateway-namespace" href="#opt-gateway-traefik-iogateway-namespace" title="#opt-gateway-traefik-iogateway-namespace">`gateway.traefik.io/gateway-namespace`</a> | the `Gateway` namespace |
+
+Only IP addresses are used: a hostname cannot be compared with the address a
+connection was accepted on. A `Gateway` whose `Service` has no address yet is
+reported as not programmed.
+
+The routers carry a [`DstIP`](../../../routing-configuration/http/routing/rules-and-priority.md#dstip)
+matcher, which sees the address the connection was accepted on. Behind a
+destination NAT, a `Service` of type `LoadBalancer` for instance, that is the
+translated address, so the entry points have to be configured with
+[`originalDestination`](../../entrypoints.md#originaldestination) and the pod has
+to run on the host network, where the connection tracking that keeps the original
+address lives.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesGateway:
+    gatewayIsolation: true
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesGateway]
+  gatewayIsolation = true
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesgateway.gatewayisolation=true
 ```
 
 ## Routing Configuration

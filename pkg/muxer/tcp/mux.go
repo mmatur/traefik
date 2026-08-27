@@ -18,14 +18,24 @@ import (
 type ConnData struct {
 	serverName string
 	remoteIP   string
+	destIP     string
 	alpnProtos []string
 }
 
 // NewConnData builds a connData struct from the given parameters.
-func NewConnData(serverName string, remoteAddr net.Addr, alpnProtos []string) (ConnData, error) {
+// A nil localAddr leaves the destination IP empty, which no DstIP matcher matches.
+func NewConnData(serverName string, remoteAddr, localAddr net.Addr, alpnProtos []string) (ConnData, error) {
 	remoteIP, _, err := net.SplitHostPort(remoteAddr.String())
 	if err != nil {
 		return ConnData{}, fmt.Errorf("parsing remote address %q: %w", remoteAddr.String(), err)
+	}
+
+	var destIP string
+	if localAddr != nil {
+		destIP, _, err = net.SplitHostPort(localAddr.String())
+		if err != nil {
+			return ConnData{}, fmt.Errorf("parsing local address %q: %w", localAddr.String(), err)
+		}
 	}
 
 	return ConnData{
@@ -34,6 +44,7 @@ func NewConnData(serverName string, remoteAddr net.Addr, alpnProtos []string) (C
 		// so there is no need to trim a potential trailing dot
 		serverName: types.CanonicalDomain(serverName),
 		remoteIP:   remoteIP,
+		destIP:     destIP,
 		alpnProtos: alpnProtos,
 	}, nil
 }

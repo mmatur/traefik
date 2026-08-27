@@ -1,0 +1,44 @@
+---
+apiVersion: gateway.traefik.io/v1alpha1
+kind: TraefikProxy
+metadata:
+  name: conformance-isolated
+spec:
+  # One data plane for the whole GatewayClass, with a Service, and so an
+  # address, per Gateway. The data plane routes on the address a connection was
+  # accepted on, which it recovers from the connection tracking of the node,
+  # hence the host network.
+  mergeGateways: true
+  gatewayIsolation: true
+  # A shared data plane cannot gain an entry point without restarting, which
+  # interrupts every Gateway it serves. Declaring the ports the conformance
+  # Gateways listen on keeps it from restarting as they come and go.
+  ports:
+    - 80
+    - 443
+    - 8080
+    - 8443
+  deployment:
+    replicas: 1
+    image: traefik/traefik:latest
+    # The image is side-loaded into the k3s node, never pulled: the latest tag
+    # would otherwise resolve to the released image instead of the one built
+    # from the working tree.
+    imagePullPolicy: Never
+    hostNetwork: true
+  service:
+    type: LoadBalancer
+  logs:
+    level: DEBUG
+
+---
+kind: GatewayClass
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: traefik
+spec:
+  controllerName: traefik.io/gateway-controller
+  parametersRef:
+    group: gateway.traefik.io
+    kind: TraefikProxy
+    name: conformance-isolated

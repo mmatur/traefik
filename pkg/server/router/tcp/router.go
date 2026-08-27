@@ -105,7 +105,7 @@ func (r *Router) ServeTCP(conn tcp.WriteCloser) {
 	// we would block forever on clientHelloInfo,
 	// which is why we want to detect and handle that case first and foremost.
 	if r.muxerTCP.HasRoutes() && !r.muxerTCPTLS.HasRoutes() && !r.muxerHTTPS.HasRoutes() {
-		connData, err := tcpmuxer.NewConnData("", conn.RemoteAddr(), nil)
+		connData, err := tcpmuxer.NewConnData("", conn.RemoteAddr(), conn.LocalAddr(), nil)
 		if err != nil {
 			log.Error().Err(err).Msg("Error while reading TCP connection data")
 			conn.Close()
@@ -171,7 +171,7 @@ func (r *Router) ServeTCP(conn tcp.WriteCloser) {
 		log.Error().Err(err).Msg("Error while setting deadline")
 	}
 
-	connData, err := tcpmuxer.NewConnData(hello.serverName, pConn.RemoteAddr(), hello.protos)
+	connData, err := tcpmuxer.NewConnData(hello.serverName, pConn.RemoteAddr(), pConn.LocalAddr(), hello.protos)
 	if err != nil {
 		log.Error().Err(err).Msg("Error while reading TCP connection data")
 		_ = pConn.Close()

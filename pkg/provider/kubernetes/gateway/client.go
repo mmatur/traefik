@@ -373,6 +373,22 @@ func (c *clientWrapper) ListGatewayClasses() ([]*gatev1.GatewayClass, error) {
 	return c.factoryGatewayClass.Gateway().V1().GatewayClasses().Lister().List(labels.Everything())
 }
 
+// ListServices returns the Services matching the given selector in the watched namespaces.
+func (c *clientWrapper) ListServices(selector labels.Selector) ([]*corev1.Service, error) {
+	var result []*corev1.Service
+
+	for ns, factory := range c.factoriesKube {
+		services, err := factory.Core().V1().Services().Lister().Services(ns).List(selector)
+		if err != nil {
+			return nil, fmt.Errorf("listing Services in namespace %s: %w", ns, err)
+		}
+
+		result = append(result, services...)
+	}
+
+	return result, nil
+}
+
 // ListEndpointSlicesForService returns the EndpointSlices for the given service name in the given namespace.
 func (c *clientWrapper) ListEndpointSlicesForService(namespace, serviceName string) ([]*discoveryv1.EndpointSlice, error) {
 	if !c.isWatchedNamespace(namespace) {

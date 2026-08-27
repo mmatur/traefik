@@ -175,6 +175,7 @@ type TCPEntryPoint struct {
 	httpServer             *httpServer
 	httpsServer            *httpServer
 	http3Server            *http3server
+	originalDestination    bool
 	// inShutdown reports whether the Shutdown method has been called.
 	inShutdown atomic.Bool
 }
@@ -229,6 +230,7 @@ func NewTCPEntryPoint(ctx context.Context, name string, config *static.EntryPoin
 		httpServer:             httpServer,
 		httpsServer:            httpsServer,
 		http3Server:            h3Server,
+		originalDestination:    config.OriginalDestination,
 	}, nil
 }
 
@@ -254,6 +256,12 @@ func logHeaderNamesStrategiesWarnings(ctx context.Context, configuration *static
 func (e *TCPEntryPoint) Start(ctx context.Context) {
 	logger := log.Ctx(ctx)
 	logger.Debug().Msg("Starting TCP Server")
+
+	// Losing the original destination is silent otherwise: the DstIP matchers
+	// compare against the translated address, and simply match nothing.
+	warnOriginalDestination := sync.OnceFunc(func() {
+		logger.Warn().Msg("Cannot recover the original destination of the connections, the DstIP matchers see the address they were accepted on")
+	})
 
 	if e.http3Server != nil {
 		go func() { _ = e.http3Server.Start() }()
@@ -286,6 +294,10 @@ func (e *TCPEntryPoint) Start(ctx context.Context) {
 		writeCloser, err := writeCloser(conn)
 		if err != nil {
 			panic(err)
+		}
+
+		if e.originalDestination {
+			writeCloser = withOriginalDestination(logger, warnOriginalDestination, writeCloser)
 		}
 
 		safe.Go(func() {
@@ -403,6 +415,41 @@ func (e *TCPEntryPoint) SwitchRouter(rt *tcprouter.Router) {
 	if e.http3Server != nil {
 		e.http3Server.Switch(rt)
 	}
+}
+
+// originalDestinationConn reports the address the client dialed as the local
+// address of the connection, so that the DstIP matchers, and every consumer of
+// the HTTP LocalAddrContextKey, see it instead of the translated one.
+type originalDestinationConn struct {
+	tcp.WriteCloser
+
+	localAddr net.Addr
+}
+
+func (c *originalDestinationConn) LocalAddr() net.Addr {
+	return c.localAddr
+}
+
+// withOriginalDestination augments the connection with the address the client
+// dialed. The connection is returned untouched when the address cannot be
+// recovered, which leaves the DstIP matchers to compare against the translated
+// address, rather than dropping the connection.
+func withOriginalDestination(logger *zerolog.Logger, warn func(), conn tcp.WriteCloser) tcp.WriteCloser {
+	tcpConn, ok := conn.(*net.TCPConn)
+	if !ok {
+		logger.Debug().Msgf("Cannot recover the original destination of a %T connection", conn)
+		warn()
+		return conn
+	}
+
+	addr, err := tcp.OriginalDst(tcpConn)
+	if err != nil {
+		logger.Debug().Err(err).Msg("Cannot recover the original destination")
+		warn()
+		return conn
+	}
+
+	return &originalDestinationConn{WriteCloser: conn, localAddr: addr}
 }
 
 // writeCloserWrapper wraps together a connection, and the concrete underlying

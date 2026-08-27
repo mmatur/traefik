@@ -115,3 +115,56 @@ TESTFLAGS="-test.run TestAccessLogSuite" make test-integration
 # Run the test "MyTest" in the MyTest suite
 TESTFLAGS="-test.run TestAccessLogSuite -testify.m ^TestAccessLog$" make test-integration
 ```
+
+### Gateway API Conformance
+
+The Gateway API conformance suite runs against a k3s cluster and needs a Traefik
+image built from the working tree, which the `make` targets take care of.
+
+```bash
+make test-gateway-api-conformance
+```
+
+It runs the suite against a single, statically deployed Traefik watching every
+`Gateway` of the cluster, and writes its report to
+`integration/gateway-api-conformance-reports/<version>/experimental-<traefik version>-default-report.yaml`.
+
+A second suite runs the same tests against data planes provisioned per `Gateway`
+by the [Traefik Gateway API operator](https://github.com/traefik/operator). It
+covers the parts of the specification that assume the implementation provisions
+the infrastructure serving each `Gateway`, starting with `HTTPRouteMultipleGateways`,
+which needs two `Gateway` resources reachable at two different addresses.
+
+It needs a checkout of the operator repository, and writes its report next to the
+other one, under the `operator` mode:
+
+```bash
+TRAEFIK_OPERATOR_DIR=../operator make test-gateway-api-operator-conformance
+```
+
+A third suite covers the other topology the operator provisions: a single data
+plane shared by every `Gateway` of the `GatewayClass`, each `Gateway` answering
+at the address of a `Service` of its own, and the data plane routing on the
+address a connection was accepted on. It is the topology Cilium uses, and it
+needs the data plane on the host network, where the connection tracking keeping
+the original destination lives.
+
+```bash
+TRAEFIK_OPERATOR_DIR=../operator make test-gateway-api-isolated-conformance
+```
+
+Its report is written under the `gateway-isolation` mode.
+
+The operator install manifest used by those suites is a rendered copy of the
+operator `config/` directory. Refresh it after changing the operator with:
+
+```bash
+TRAEFIK_OPERATOR_DIR=../operator make generate-gateway-api-operator-fixture
+```
+
+The k3s service load balancer is disabled for the operator suites: it exposes
+Services through host ports, which a single node cannot do for the several port
+80 Services the operator provisions. The suites assign their addresses
+themselves, from the top of the `172.31.42.0/24` integration subnet. Docker
+Desktop users already route that subnet through Tailscale, so no extra setup is
+needed.

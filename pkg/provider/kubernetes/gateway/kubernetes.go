@@ -78,6 +78,31 @@ type Provider struct {
 	CrossProviderNamespaces []string              `description:"List of namespaces from which Gateway API routes are allowed to declare TraefikService backendRef references." json:"crossProviderNamespaces,omitempty" toml:"crossProviderNamespaces,omitempty" yaml:"crossProviderNamespaces,omitempty" export:"true"`
 	EntryPoints             map[string]Entrypoint `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
 
+	// Gateways restricts the provider to the given Gateway resources, expressed
+	// as namespace/name. It is meant for the topologies where an instance is
+	// dedicated to one Gateway, or to a group of them, rather than serving
+	// every Gateway of the cluster.
+	Gateways []string `description:"Restricts the provider to the given Gateways, expressed as namespace/name." json:"gateways,omitempty" toml:"gateways,omitempty" yaml:"gateways,omitempty" export:"true"`
+
+	// GatewayClasses restricts the provider to the Gateways of the given
+	// GatewayClass resources. Unlike the Gateways restriction it does not change
+	// as Gateways come and go, so it scopes an instance serving a whole
+	// GatewayClass without having to be updated, and the instance restarted, on
+	// every Gateway.
+	GatewayClasses []string `description:"Restricts the provider to the given GatewayClasses." json:"gatewayClasses,omitempty" toml:"gatewayClasses,omitempty" yaml:"gatewayClasses,omitempty" export:"true"`
+
+	// DisableGatewayClassStatus leaves the GatewayClass status to an external
+	// controller. The Gateway, listener and route statuses are still written,
+	// only the GatewayClass one is skipped, so that a controller publishing a
+	// feature set spanning more than the data plane owns it alone.
+	DisableGatewayClassStatus bool `description:"Disables the GatewayClass status update, leaving it to an external controller." json:"disableGatewayClassStatus,omitempty" toml:"disableGatewayClassStatus,omitempty" yaml:"disableGatewayClassStatus,omitempty" export:"true"`
+
+	// GatewayIsolation resolves the address of each Gateway from a Service an
+	// external controller provisions for it, and restricts the routers of that
+	// Gateway to that address. It is what allows a single instance to serve
+	// several Gateways that would otherwise answer for each other.
+	GatewayIsolation bool `description:"Isolates the Gateways served by the instance by destination address." json:"gatewayIsolation,omitempty" toml:"gatewayIsolation,omitempty" yaml:"gatewayIsolation,omitempty" export:"true"`
+
 	// groupKindFilterFuncs is the list of allowed Group and Kinds for the Filter ExtensionRef objects.
 	groupKindFilterFuncs map[string]map[string]BuildFilterFunc
 	// groupKindBackendFuncs is the list of allowed Group and Kinds for the Backend ExtensionRef objects.
@@ -138,6 +163,27 @@ type gatewayListener struct {
 	Attached bool
 
 	EPName string
+
+	// Addresses holds the addresses the Gateway answers at, when the Gateways
+	// are isolated. It is empty otherwise, which leaves the routers matching on
+	// every address the instance listens on.
+	Addresses []string
+}
+
+// isolate restricts a router rule to the addresses the Gateway answers at, so
+// that a connection reaching another Gateway of the same instance cannot match
+// it. It returns the rule unchanged when the Gateways are not isolated.
+func (l gatewayListener) isolate(rule string) string {
+	if len(l.Addresses) == 0 {
+		return rule
+	}
+
+	matchers := make([]string, 0, len(l.Addresses))
+	for _, address := range l.Addresses {
+		matchers = append(matchers, fmt.Sprintf("DstIP(%q)", address))
+	}
+
+	return fmt.Sprintf("(%s) && (%s)", rule, strings.Join(matchers, " || "))
 }
 
 type gatewayWithListeners struct {
@@ -273,11 +319,28 @@ func (p *Provider) applyRouterTransform(ctx context.Context, rt *dynamic.Router,
 	}
 }
 
+// managesGateway reports whether the provider handles the given Gateway.
+// Without the Gateways restriction every Gateway of the managed GatewayClasses
+// is handled.
+func (p *Provider) managesGateway(gateway *gatev1.Gateway) bool {
+	if len(p.Gateways) == 0 {
+		return true
+	}
+
+	return slices.Contains(p.Gateways, gateway.Namespace+"/"+gateway.Name)
+}
+
 func (p *Provider) newK8sClient(ctx context.Context) (*clientWrapper, error) {
 	// Label selector validation
 	_, err := labels.Parse(p.LabelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("invalid label selector: %q", p.LabelSelector)
+	}
+
+	for _, gateway := range p.Gateways {
+		if _, _, ok := strings.Cut(gateway, "/"); !ok {
+			return nil, fmt.Errorf("invalid Gateway reference: %q", gateway)
+		}
 	}
 
 	logger := log.Ctx(ctx)
@@ -328,10 +391,15 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 		TLS: &dynamic.TLSConfiguration{},
 	}
 
-	addresses, err := p.gatewayAddresses()
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("Unable to get Gateway status addresses")
-		return nil
+	// Without isolation every Gateway of the instance answers at the same
+	// addresses, which are resolved once.
+	var addresses []gatev1.GatewayStatusAddress
+	if !p.GatewayIsolation {
+		var err error
+		if addresses, err = p.gatewayAddresses(); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("Unable to get Gateway status addresses")
+			return nil
+		}
 	}
 
 	gatewayClasses, err := p.client.ListGatewayClasses()
@@ -354,7 +422,15 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 			continue
 		}
 
+		if len(p.GatewayClasses) > 0 && !slices.Contains(p.GatewayClasses, gatewayClass.Name) {
+			continue
+		}
+
 		gatewayClassNames[gatewayClass.Name] = struct{}{}
+
+		if p.DisableGatewayClassStatus {
+			continue
+		}
 
 		status := gatev1.GatewayClassStatus{
 			Conditions: upsertGatewayClassConditionAccepted(gatewayClass.Status.Conditions, metav1.Condition{
@@ -382,8 +458,15 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 		if _, ok := gatewayClassNames[string(gateway.Spec.GatewayClassName)]; !ok {
 			continue
 		}
+
+		if !p.managesGateway(gateway) {
+			continue
+		}
+
 		gateways = append(gateways, gateway)
 	}
+
+	gatewayAddresses := map[ktypes.NamespacedName][]gatev1.GatewayStatusAddress{}
 
 	var selectedGateways []gatewayWithListeners
 	for _, gateway := range gateways {
@@ -392,10 +475,25 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 			Str("namespace", gateway.Namespace).
 			Logger()
 
+		gatewayKey := ktypes.NamespacedName{Name: gateway.Name, Namespace: gateway.Namespace}
+
+		gatewayAddresses[gatewayKey] = addresses
+		if p.GatewayIsolation {
+			isolatedAddresses, err := p.isolatedGatewayAddresses(gateway)
+			if err != nil {
+				// The Service backing the Gateway is provisioned asynchronously,
+				// so an address it does not have yet is not an error: the Gateway
+				// is reported as not programmed until it does.
+				logger.Debug().Err(err).Msg("Unable to get Gateway status addresses")
+			}
+
+			gatewayAddresses[gatewayKey] = isolatedAddresses
+		}
+
 		selectedGateways = append(selectedGateways, gatewayWithListeners{
 			Name:      gateway.Name,
 			Namespace: gateway.Namespace,
-			listeners: p.loadGatewayListeners(logger.WithContext(ctx), gateway, conf),
+			listeners: p.loadGatewayListeners(logger.WithContext(ctx), gateway, gatewayAddresses[gatewayKey], conf),
 		})
 	}
 
@@ -422,7 +520,9 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 			}
 		}
 
-		gatewayStatus, errConditions := p.makeGatewayStatus(gateway, listeners, addresses)
+		gatewayKey := ktypes.NamespacedName{Name: gateway.Name, Namespace: gateway.Namespace}
+
+		gatewayStatus, errConditions := p.makeGatewayStatus(gateway, listeners, gatewayAddresses[gatewayKey])
 		if len(errConditions) > 0 {
 			messages := map[string]struct{}{}
 			for _, condition := range errConditions {
@@ -437,7 +537,7 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 				Msg("Gateway Not Accepted")
 		}
 
-		if err = p.client.UpdateGatewayStatus(ctx, ktypes.NamespacedName{Name: gateway.Name, Namespace: gateway.Namespace}, gatewayStatus); err != nil {
+		if err := p.client.UpdateGatewayStatus(ctx, gatewayKey, gatewayStatus); err != nil {
 			logger.Warn().
 				Err(err).
 				Msg("Unable to update Gateway status")
@@ -447,18 +547,26 @@ func (p *Provider) loadConfigurationFromGateways(ctx context.Context) *dynamic.C
 	return conf
 }
 
-func (p *Provider) loadGatewayListeners(ctx context.Context, gateway *gatev1.Gateway, conf *dynamic.Configuration) []gatewayListener {
+func (p *Provider) loadGatewayListeners(ctx context.Context, gateway *gatev1.Gateway, addresses []gatev1.GatewayStatusAddress, conf *dynamic.Configuration) []gatewayListener {
 	tlsCerts := make(map[string]*tls.CertAndStores)
 	allocatedListeners := make(map[string]struct{})
 	gatewayListeners := make([]gatewayListener, len(gateway.Spec.Listeners))
 
+	var listenerAddresses []string
+	if p.GatewayIsolation {
+		for _, address := range addresses {
+			listenerAddresses = append(listenerAddresses, address.Value)
+		}
+	}
+
 	for i, listener := range gateway.Spec.Listeners {
 		gatewayListeners[i] = gatewayListener{
-			Name:     string(listener.Name),
-			Port:     listener.Port,
-			Protocol: listener.Protocol,
-			TLS:      listener.TLS,
-			Hostname: listener.Hostname,
+			Name:      string(listener.Name),
+			Port:      listener.Port,
+			Protocol:  listener.Protocol,
+			TLS:       listener.TLS,
+			Hostname:  listener.Hostname,
+			Addresses: listenerAddresses,
 			Status: &gatev1.ListenerStatus{
 				Name:           listener.Name,
 				SupportedKinds: []gatev1.RouteGroupKind{},
@@ -675,8 +783,95 @@ func (p *Provider) loadGatewayListeners(ctx context.Context, gateway *gatev1.Gat
 	return gatewayListeners
 }
 
+// supportedAddressType reports whether an address type can be honored.
+// A nil type defaults to IPAddress, as per the Gateway API specification.
+func supportedAddressType(addressType *gatev1.AddressType) bool {
+	if addressType == nil {
+		return true
+	}
+
+	switch *addressType {
+	case gatev1.IPAddressType, gatev1.HostnameAddressType:
+		return true
+	default:
+		return false
+	}
+}
+
+// staticAddressStatus resolves the addresses requested through the Gateway
+// spec.addresses against the addresses the data plane actually listens on.
+// It returns the addresses to report, and a condition preventing the Gateway
+// from being accepted or programmed when the request cannot be satisfied.
+func staticAddressStatus(gateway *gatev1.Gateway, listening []gatev1.GatewayStatusAddress) ([]gatev1.GatewayStatusAddress, *metav1.Condition) {
+	if len(gateway.Spec.Addresses) == 0 {
+		return listening, nil
+	}
+
+	for _, address := range gateway.Spec.Addresses {
+		if !supportedAddressType(address.Type) {
+			return nil, &metav1.Condition{
+				Type:               string(gatev1.GatewayConditionAccepted),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: gateway.Generation,
+				LastTransitionTime: metav1.Now(),
+				Reason:             string(gatev1.GatewayReasonUnsupportedAddress),
+				Message:            fmt.Sprintf("Unsupported address type: %s", *address.Type),
+			}
+		}
+	}
+
+	listeningValues := make([]string, 0, len(listening))
+	for _, address := range listening {
+		listeningValues = append(listeningValues, address.Value)
+	}
+
+	var usable []gatev1.GatewayStatusAddress
+	var unusable []string
+	for _, address := range gateway.Spec.Addresses {
+		if !slices.Contains(listeningValues, address.Value) {
+			unusable = append(unusable, address.Value)
+			continue
+		}
+
+		addressType := ptr.Deref(address.Type, gatev1.IPAddressType)
+		usable = append(usable, gatev1.GatewayStatusAddress{Type: new(addressType), Value: address.Value})
+	}
+
+	if len(unusable) > 0 {
+		return usable, &metav1.Condition{
+			Type:               string(gatev1.GatewayConditionProgrammed),
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: gateway.Generation,
+			LastTransitionTime: metav1.Now(),
+			Reason:             string(gatev1.GatewayReasonAddressNotUsable),
+			Message:            fmt.Sprintf("Requested addresses are not usable: %s", strings.Join(unusable, ", ")),
+		}
+	}
+
+	return usable, nil
+}
+
 func (p *Provider) makeGatewayStatus(gateway *gatev1.Gateway, listeners []gatewayListener, addresses []gatev1.GatewayStatusAddress) (gatev1.GatewayStatus, []metav1.Condition) {
-	gatewayStatus := gatev1.GatewayStatus{Addresses: addresses}
+	statusAddresses, addressCondition := staticAddressStatus(gateway, addresses)
+	gatewayStatus := gatev1.GatewayStatus{Addresses: statusAddresses}
+
+	// An unsupported requested address type is a Gateway level error: the
+	// Gateway is not accepted, whatever the Listeners state is.
+	if addressCondition != nil && addressCondition.Type == string(gatev1.GatewayConditionAccepted) {
+		gatewayStatus.Conditions = append(gatewayStatus.Conditions,
+			*addressCondition,
+			metav1.Condition{
+				Type:               string(gatev1.GatewayConditionProgrammed),
+				Status:             metav1.ConditionFalse,
+				ObservedGeneration: gateway.Generation,
+				LastTransitionTime: metav1.Now(),
+				Reason:             string(gatev1.GatewayReasonInvalid),
+				Message:            "Gateway is not accepted",
+			},
+		)
+
+		return gatewayStatus, []metav1.Condition{*addressCondition}
+	}
 
 	var acceptedListeners int
 	var errorConditions []metav1.Condition
@@ -780,6 +975,16 @@ func (p *Provider) makeGatewayStatus(gateway *gatev1.Gateway, listeners []gatewa
 			Message:            acceptedConditionMessage,
 			LastTransitionTime: metav1.Now(),
 		},
+	)
+
+	// A requested address that is not usable keeps the Gateway from being
+	// programmed, even though every Listener is valid.
+	if addressCondition != nil {
+		gatewayStatus.Conditions = append(gatewayStatus.Conditions, *addressCondition)
+		return gatewayStatus, nil
+	}
+
+	gatewayStatus.Conditions = append(gatewayStatus.Conditions,
 		// update "Programmed" status with "Programmed" reason
 		metav1.Condition{
 			Type:               string(gatev1.GatewayConditionProgrammed),
@@ -815,31 +1020,83 @@ func (p *Provider) gatewayAddresses() ([]gatev1.GatewayStatusAddress, error) {
 
 	svcRef := p.StatusAddress.Service
 	if svcRef.Name != "" && svcRef.Namespace != "" {
-		svc, err := p.client.GetService(svcRef.Namespace, svcRef.Name)
-		if err != nil {
-			return nil, fmt.Errorf("getting service: %w", err)
-		}
-
-		var addresses []gatev1.GatewayStatusAddress
-		for _, addr := range svc.Status.LoadBalancer.Ingress {
-			switch {
-			case addr.IP != "":
-				addresses = append(addresses, gatev1.GatewayStatusAddress{
-					Type:  new(gatev1.IPAddressType),
-					Value: addr.IP,
-				})
-
-			case addr.Hostname != "":
-				addresses = append(addresses, gatev1.GatewayStatusAddress{
-					Type:  new(gatev1.HostnameAddressType),
-					Value: addr.Hostname,
-				})
-			}
-		}
-		return addresses, nil
+		return p.statusAddressServiceAddresses(svcRef.Namespace, svcRef.Name)
 	}
 
 	return nil, errors.New("empty Gateway status address configuration")
+}
+
+const (
+	// gatewayNameLabel identifies the Gateway an external controller provisioned
+	// a resource for. It is the label the Gateway API defines for the
+	// infrastructure of a Gateway.
+	gatewayNameLabel = "gateway.networking.k8s.io/gateway-name"
+
+	// gatewayNamespaceLabel disambiguates the Gateways sharing a name across
+	// namespaces, whose infrastructure an external controller may gather in a
+	// single namespace.
+	gatewayNamespaceLabel = "gateway.traefik.io/gateway-namespace"
+)
+
+// isolatedGatewayAddresses returns the addresses of the Service an external
+// controller provisioned to give the Gateway an address of its own. Only the IP
+// addresses are returned: a hostname cannot be compared with the address a
+// connection was accepted on.
+func (p *Provider) isolatedGatewayAddresses(gateway *gatev1.Gateway) ([]gatev1.GatewayStatusAddress, error) {
+	selector := labels.SelectorFromSet(labels.Set{
+		gatewayNameLabel:      gateway.Name,
+		gatewayNamespaceLabel: gateway.Namespace,
+	})
+
+	services, err := p.client.ListServices(selector)
+	if err != nil {
+		return nil, fmt.Errorf("listing Services: %w", err)
+	}
+
+	var addresses []gatev1.GatewayStatusAddress
+	for _, service := range services {
+		addresses = append(addresses, serviceAddresses(service)...)
+	}
+
+	addresses = slices.DeleteFunc(addresses, func(address gatev1.GatewayStatusAddress) bool {
+		return ptr.Deref(address.Type, gatev1.IPAddressType) != gatev1.IPAddressType
+	})
+
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("no Service address for Gateway %s/%s", gateway.Namespace, gateway.Name)
+	}
+
+	return addresses, nil
+}
+
+func (p *Provider) statusAddressServiceAddresses(namespace, name string) ([]gatev1.GatewayStatusAddress, error) {
+	svc, err := p.client.GetService(namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("getting service: %w", err)
+	}
+
+	return serviceAddresses(svc), nil
+}
+
+func serviceAddresses(svc *corev1.Service) []gatev1.GatewayStatusAddress {
+	var addresses []gatev1.GatewayStatusAddress
+	for _, addr := range svc.Status.LoadBalancer.Ingress {
+		switch {
+		case addr.IP != "":
+			addresses = append(addresses, gatev1.GatewayStatusAddress{
+				Type:  new(gatev1.IPAddressType),
+				Value: addr.IP,
+			})
+
+		case addr.Hostname != "":
+			addresses = append(addresses, gatev1.GatewayStatusAddress{
+				Type:  new(gatev1.HostnameAddressType),
+				Value: addr.Hostname,
+			})
+		}
+	}
+
+	return addresses
 }
 
 func (p *Provider) entryPointName(port gatev1.PortNumber, protocol gatev1.ProtocolType) (string, error) {
