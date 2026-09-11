@@ -1,1 +1,3 @@
 # vendor/github.com/go-acme/lego/providers/dns/cloudxns/cloudxns.go eol=crlf
+
+.github/workflows/*.lock.yml linguist-generated=true

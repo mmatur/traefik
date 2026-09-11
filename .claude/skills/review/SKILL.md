@@ -9,8 +9,8 @@ disable-model-invocation: true
 
 This is Traefik Proxy (Go), a cloud-native reverse proxy and load balancer. The reviewer already fixes the
 role, the tools, the severity definitions, the finding mechanics and the output format; this guidance
-is **additive** and must not restate them. Record findings only with the severities the reviewer
-accepts: `CRITICAL`, `IMPORTANT`, `MINOR`, `QUESTION`.
+is **additive** and must not restate them. Classify findings only with the levels the reviewer uses: Blocking, Should fix,
+Needs a human decision.
 
 Review in this priority order, and keep the bar high at every level.
 
